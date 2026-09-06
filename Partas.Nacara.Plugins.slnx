@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/build/">
+    <File Path="build.fsx" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Partas.Nacara.Plugins.Tailwind/Partas.Nacara.Plugins.Tailwind.fsproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Partas.Nacara.Plugins.Tests/Partas.Nacara.Plugins.Tests.fsproj" />
+  </Folder>
+  <Project Path="docs/docs.fsproj" />
+</Solution>
