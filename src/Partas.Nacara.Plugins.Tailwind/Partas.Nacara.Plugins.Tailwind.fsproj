@@ -9,13 +9,13 @@
         <PackageId>Partas.Nacara.Plugins.Tailwind</PackageId>
         <Title>Partas.Nacara.Plugins.Tailwind</Title>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+        <Version>0.2.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>
         <Compile Include="Binary.fs" />
         <Compile Include="Program.fs" />
-        <None Include="../../README.md" Pack="true" PackagePath="\"/>
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>

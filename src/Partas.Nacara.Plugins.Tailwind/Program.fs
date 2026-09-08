@@ -5,8 +5,61 @@ open Nacara.Core
 open Nacara.Plugins.Internal
 
 [<Struct>]
+type TailwindCssImportStatement = {
+    AbsoluteDirPath: string
+    Import: string
+}
+
+[<Struct>]
 type TailwindCssOptions = {
+    /// <summary>
+    /// The strategy to use to find the tailwindcss binary. <c>Implicit</c> strategies will download the binary to a cache using
+    /// the provided version and platform parameters.
+    /// </summary>
+    /// <defaultValue><c>TailwindCssBinary.Implicit(TailwindCssBinary.Version(4,3,3), TailwindCssBinary.Platform.Auto)</c></defaultValue>
     Binary: TailwindCssBinary.Strategy
+    /// <summary>
+    /// The extensions that will be processed by the tailwindcss plugin.
+    /// This intended to be used to filter tailwindcss processing for specific files using
+    /// a composite extension pattern:<br/> <c>&lt;FileName>.*.css</c>
+    /// </summary>
+    /// <defaultValue><c>[".css"]</c></defaultValue>
+    TargetExtensions: string list
+    /// <summary>
+    /// The header that is injected into the target entry style sheet to import the tailwindcss library
+    /// if it is not already imported.
+    /// </summary>
+    /// <remarks>
+    /// If the header is empty, it will automatically inject <c>@import "tailwindcss";</c>
+    /// </remarks>
+    /// <defaultValue>
+    /// <code lang="fsharp">
+    /// [
+    ///     "@layer theme, base, components, utilities;"
+    ///     "@import \"tailwindcss/theme.css\" layer(theme);"
+    ///     "@import \"tailwindcss/utilities.css\" layer(utilities);"
+    /// ]
+    /// </code>
+    /// </defaultValue>
+    TailwindEntryHeader: string list
+    /// <summary>
+    /// The footer is injected at the end of the entry file.
+    /// </summary>
+    /// <defaultValue><c>[]</c></defaultValue>
+    TailwindEntryFooter: string list
+    // This is required for tailwind to properly handle references.
+    /// <summary>
+    /// <para>A delegate that is used to modify the import statements in the entry style sheet when bundling.</para>
+    /// <para>The delegate is called for each import statement found in the entry style sheet, and
+    /// receives the absolute path to the entry style sheet directory and the import string to modify
+    /// without quotations.</para><para>Return the final path, without quotations.</para>
+    /// </summary>
+    /// <remarks>
+    /// If the returned string ends with <c>;</c>, then the string is injected verbatim after the <c>@import &lt;returnValue></c>
+    /// statement.
+    /// </remarks>
+    /// <defaultValue><c>fun { AbsoluteDirPath = d; Import = i } -> System.IO.Path.Combine(d, i) |> Ok</c></defaultValue>
+    ReferenceHandler: TailwindCssImportStatement -> Result<string, string>
 }
 
 [<RequireQualifiedAccess>]
@@ -15,33 +68,56 @@ module TailwindCss =
     let defaults() =
         {
             Binary = TailwindCssBinary.Implicit(TailwindCssBinary.Version(4,3,3), TailwindCssBinary.Platform.Auto)
+            TargetExtensions = [ ".css" ]
+            TailwindEntryHeader = [
+                "@layer theme, base, components, utilities;"
+                "@import \"tailwindcss/theme.css\" layer(theme);"
+                "@import \"tailwindcss/utilities.css\" layer(utilities);"
+            ]
+            TailwindEntryFooter = []
+            ReferenceHandler = fun { AbsoluteDirPath = d; Import = i } -> Path.Combine(d, i) |> Ok
         }
 
-    let private isNacaraStyleSheet path  =
-        AbsolutePath.fileName path = "nacara.css"
-    let private isTailwindStyleSheet path =
-        use reader = File.OpenText(AbsolutePath.value path)
-        let mutable isTailwind = false
-        let mutable line = 0
-        while not isTailwind && not reader.EndOfStream && line < 10 do
-            if reader.ReadLine().Contains("tailwindcss") then isTailwind <- true
-            line <- line + 1
-        isTailwind
-
-    let private modifyNacaraStyleSheet (path: AbsolutePath) =
-        if not <| isNacaraStyleSheet path || isTailwindStyleSheet path then () else
-        let lines = File.ReadAllLines(AbsolutePath.value path)
-        File.WriteAllLines(AbsolutePath.value path, [|
-            // "@import \"tailwindcss\";"
-            "@layer theme, base, components, utilities;"
-            "@import \"tailwindcss/theme.css\" layer(theme);"
-            "@import \"tailwindcss/utilities.css\" layer(utilities);"
-            for line in lines do
-                if (not <| line.Contains("@import") || line.Contains("tailwindcss")) then line else
-                line.Replace("@import \"", "@import \"" + (AbsolutePath.directory path |> AbsolutePath.value) + "/")
-        |])
-
-
+    let private styleSheetBundler
+        { TailwindEntryHeader = header; TailwindEntryFooter = footer; ReferenceHandler = referenceHandler }
+        (path: AbsolutePath) =
+        let dirPath = AbsolutePath.directory path
+        let makeImportStatement (import: string) = { AbsoluteDirPath = AbsolutePath.value dirPath; Import = import }
+        let header =
+            match header with
+            | [] -> [ "@import \"tailwindcss\";" ]
+            | header -> header
+        let entryPath = AbsolutePath.value path
+        if not (File.Exists entryPath) then Error $"tailwindcss: entry path not found during bundling stage: {entryPath}" else
+        let errors = ResizeArray()
+        let lines =
+            File.ReadAllLines(entryPath)
+            |> Array.map (function
+                | line when line.StartsWith("@import") && not (line.Contains("tailwindcss")) ->
+                    try
+                        let firstQuoteIdx = line.IndexOf('"')
+                        let secondQuoteIdx = line.IndexOf('"', firstQuoteIdx + 1)
+                        let rest = line.Substring(secondQuoteIdx)
+                        match makeImportStatement line[firstQuoteIdx + 1..secondQuoteIdx - 1] |> referenceHandler with
+                        | Ok newPath ->
+                            if newPath.EndsWith(";") then $"@import {newPath}"
+                            else $"{line[0..firstQuoteIdx]}{newPath}{rest}"
+                        | Error error ->
+                            $"tailwindcss: error while bundling: %s{error}"
+                            |> errors.Add
+                            line
+                    with e ->
+                        $"tailwindcss: error while bundling: unexpected css import statement '{line}'"
+                        |> errors.Add
+                        $"           : {e.Message}"
+                        |> errors.Add
+                        line
+                | line -> line
+                )
+            |> Array.append (List.toArray header)
+        File.WriteAllLines(entryPath, footer |> List.toArray |> Array.append lines)
+        if errors.Count > 0 then Error (String.concat "\n" errors) else
+        Ok ()
 
     let private binary (options: TailwindCssOptions) =
         lazy
@@ -83,48 +159,26 @@ module TailwindCss =
 
     type private TailwindCssPlugin(options: TailwindCssOptions) =
         let binary = binary options
-        let mutable reported = false
         interface IPlugin with
             member _.Name = "TailwindCss"
             member _.Configure(registry) =
                 registry
                 |> Registry.assetBundler {
                     AssetBundler.Name = "tailwindcss"
-                    Extensions = [ ".css" ]
+                    Extensions = options.TargetExtensions
                     Bundle = fun context ->
+                        // try fetch binary
                         binary.Value
                         |> Result.bind (fun binary ->
-                                modifyNacaraStyleSheet context.Entry
-                                let output = Path.GetTempFileName()
-                                run binary options (AbsolutePath.value context.Entry) output
+                            // try modify css
+                            styleSheetBundler options context.Entry
+                            |> Result.map (fun _ -> binary)
                             )
-                }
-                |> Registry.assetTransform {
-                    AssetTransform.Name = "tailwindcss"
-                    Extensions = [ ".css" ]
-                    Transform = fun context ->
-                        let report message =
-                            if not reported then
-                                reported <- true
-                                context.Diagnostics.Add(
-                                    Diagnostic.warning
-                                        "tailwindcss-error"
-                                        $"TailwindCss error: %s{message}"
-                                    )
-                        binary.Value
-                        |> Result.mapError report
-                        |> Result.toOption
-                        |> Option.bind (fun binary ->
-                            let tempIn = Path.GetTempFileName()
-                            let tempOut = Path.GetTempFileName()
-                            File.WriteAllText(tempIn, context.Content)
-                            AbsolutePath.create tempIn
-                            |> modifyNacaraStyleSheet
-                            run binary options tempIn tempOut
-                            |> Result.mapError report
-                            |> Result.toOption
+                        |> Result.bind (fun binary ->
+                            // try write output
+                            let output = Path.GetTempFileName()
+                            run binary options (AbsolutePath.value context.Entry) output
                             )
-                        |> Option.defaultValue context.Content
                 }
 
     let binaryStrategy value (options: TailwindCssOptions) =
