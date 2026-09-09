@@ -9,7 +9,7 @@
         <PackageId>Partas.Nacara.Plugins.Tailwind</PackageId>
         <Title>Partas.Nacara.Plugins.Tailwind</Title>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <Version>0.2.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+        <Version>0.3.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>

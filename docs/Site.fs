@@ -30,7 +30,7 @@ let site =
     // |> Search.register
     |> Sitemap.register
     |> LinkValidator.register
-    |> TailwindCss.register
+    |> DaisyUI.register
     // |> Rumdl.register
     // |> LightningCss.register
     |> Esbuild.register

@@ -26,6 +26,7 @@
         <PackageReference Include="Nacara.Theme.Default" Version="1.0.0-*"/>
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\src\Partas.Nacara.Plugins.DaisyUI\Partas.Nacara.Plugins.DaisyUI.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Tailwind\Partas.Nacara.Plugins.Tailwind.fsproj" />
     </ItemGroup>
     <ItemGroup>

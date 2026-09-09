@@ -183,6 +183,10 @@ module TailwindCss =
 
     let binaryStrategy value (options: TailwindCssOptions) =
         { options with Binary = value }
+    let targetExtensions value (options: TailwindCssOptions) = { options with TargetExtensions = value }
+    let header value (options: TailwindCssOptions) = { options with TailwindEntryHeader = value }
+    let footer value (options: TailwindCssOptions) = { options with TailwindEntryFooter = value }
+    let referenceHandler value (options: TailwindCssOptions) = { options with ReferenceHandler = value }
 
     let create () = TailwindCssPlugin(defaults()) :> IPlugin
 

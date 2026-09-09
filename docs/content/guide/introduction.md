@@ -11,7 +11,7 @@ dotnet add package Partas.Nacara.Plugins
 
 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
 
-<button class="bg-yellow-500" >Hi</button>
+<button class="btn" >Hi</button>
 
 ## Usage
 

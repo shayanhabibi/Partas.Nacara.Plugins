@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>Partas.Nacara.Plugins.DaisyUI</RootNamespace>
+        <AssemblyName>Partas.Nacara.Plugins.DaisyUI</AssemblyName>
+        <PackageId>Partas.Nacara.Plugins.DaisyUI</PackageId>
+        <Title>Partas.Nacara.Plugins.DaisyUI</Title>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Install.fs" />
+        <Compile Include="DaisyUI.fs" />
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Partas.Nacara.Plugins.Tailwind\Partas.Nacara.Plugins.Tailwind.fsproj" />
+    </ItemGroup>
+
+</Project>
