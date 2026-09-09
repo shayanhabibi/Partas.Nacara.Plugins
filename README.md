@@ -1,5 +1,8 @@
 # Partas.Nacara.Plugins
 
+1. [Tailwind](#tailwind)
+2. [DaisyUI](#daisyui)
+
 ## Tailwind
 
 TailwindCSS in Nacara!
