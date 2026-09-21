@@ -142,6 +142,32 @@ let tests =
                 | Error message ->
                     Expect.stringContains message "no name" "the author hears about their line, not about YAML"
             }
+
+            test "an argument name carrying YAML punctuation is refused by name" {
+                // Left alone this is `{a,b: true}` - two keys from one flag, silently.
+                match mapping "a,b" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message ->
+                    Expect.stringContains message "','" "the offending character is named"
+                    Expect.stringContains message "a,b" "and so is the name it came from"
+            }
+
+            test "a punctuated name cannot smuggle a repeat past the duplicate check" {
+                // `a,b` reaches YAML as a second `a`, which the HashSet never saw.
+                match mapping "a=1 a,b=2" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "','" "the name is refused before YAML sees it"
+            }
+
+            test "a quoted value may carry YAML punctuation" {
+                // The rejection above is for BARE values and names only. Quoting is the
+                // documented way to keep punctuation as text, so it has to keep working.
+                match mapping "title=\"Hello, world: x\" level=2" with
+                | Ok yaml ->
+                    Expect.stringContains yaml "\"Hello, world: x\"" "the quoted value survives intact"
+                    Expect.stringContains yaml "level: 2" "and the argument after it is still read"
+                | Error message -> failtestf "expected the quoted value to be accepted, got %s" message
+            }
         ]
 
         testList "directive builder" [

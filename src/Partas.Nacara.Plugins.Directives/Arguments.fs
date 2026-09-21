@@ -81,10 +81,20 @@ module internal Arguments =
         let add (key: string) (entry: string) =
             if key = "" then
                 failure <- Some "an argument has no name before its '='"
-            elif not (named.Add key) then
-                failure <- Some $"the argument '%s{key}' is given more than once"
             else
-                pairs.Add entry
+                match key.IndexOfAny flowPunctuation with
+                | -1 ->
+                    if not (named.Add key) then
+                        failure <- Some $"the argument '%s{key}' is given more than once"
+                    else
+                        pairs.Add entry
+                | at ->
+                    // Refused for the same reason a bare value is, and checked here so the
+                    // flag form is covered too: `a,b` would otherwise reach YAML as two keys,
+                    // which also carries the second one past the duplicate check above.
+                    failure <-
+                        Some
+                            $"the argument name '%s{key}' contains '%c{key[at]}', which YAML reads as punctuation; an argument's name cannot contain , {{ }} [ ] or :"
 
         while failure.IsNone && index < arguments.Length do
             if Char.IsWhiteSpace arguments[index] then
