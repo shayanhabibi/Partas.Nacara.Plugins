@@ -4,6 +4,9 @@ open Expecto
 open Nacara.Plugins
 open Feliz.ViewEngine
 open Nacara.Core
+open Markdig
+open Markdig.Syntax
+open Markdig.Extensions.CustomContainers
 
 let private mapping input = Arguments.toFlowMapping input
 
@@ -112,6 +115,63 @@ let tests =
                 Expect.isError
                     (Directive.decodeArguments directive 0 "title=\"never closed")
                     "tokeniser failure surfaces as Error"
+            }
+        ]
+
+        testList "nesting" [
+            test "an ancestor is found by its type" {
+                let stack = DirectiveStack()
+                stack.Push(box {| Start = 1 |})
+                stack.Push(box {| Title = "Install" |})
+
+                let context =
+                    { Ancestors = stack.Current
+                      SiblingIndex = 0
+                      Nesting = stack.Depth
+                      Report = ignore }
+
+                Expect.equal (context.TryAncestor<{| Start: int |}>()) (Some {| Start = 1 |}) "found through one level"
+            }
+
+            test "the parent is only the nearest" {
+                let stack = DirectiveStack()
+                stack.Push(box {| Start = 1 |})
+                stack.Push(box {| Title = "Install" |})
+
+                let context =
+                    { Ancestors = stack.Current
+                      SiblingIndex = 0
+                      Nesting = stack.Depth
+                      Report = ignore }
+
+                Expect.isNone (context.TryParent<{| Start: int |}>()) "the grandparent is not the parent"
+                Expect.isSome (context.TryParent<{| Title: string |}>()) "the parent is"
+            }
+
+            test "popping restores what was there before" {
+                let stack = DirectiveStack()
+                stack.Push(box {| Start = 1 |})
+                stack.Push(box {| Title = "Install" |})
+                stack.Pop()
+
+                Expect.equal stack.Depth 1 "one left"
+                Expect.isSome
+                    ({ Ancestors = stack.Current; SiblingIndex = 0; Nesting = 1; Report = ignore }
+                        .TryParent<{| Start: int |}>())
+                    "the outer one is the parent again"
+            }
+
+            test "siblings of the same name are numbered in order" {
+                let pipeline = Markdig.MarkdownPipelineBuilder().UseCustomContainers().Build()
+                let source = "::::steps\n:::step\nfirst\n:::\n:::step\nsecond\n:::\n::::\n"
+                let document = Markdig.Markdown.Parse(source, pipeline)
+
+                let steps =
+                    document.Descendants<Markdig.Extensions.CustomContainers.CustomContainer>()
+                    |> Seq.filter (fun c -> c.Info = "step")
+                    |> Seq.toList
+
+                Expect.equal (steps |> List.map Context.siblingIndex) [ 0; 1 ] "numbered from zero"
             }
         ]
     ]

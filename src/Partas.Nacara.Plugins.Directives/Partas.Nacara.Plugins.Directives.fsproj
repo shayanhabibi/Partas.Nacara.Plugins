@@ -17,6 +17,7 @@
         <Compile Include="AssemblyInfo.fs" />
         <Compile Include="Arguments.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="Context.fs" />
         <None Include="../../README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
