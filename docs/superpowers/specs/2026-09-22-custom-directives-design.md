@@ -123,6 +123,15 @@ The page is **not** in the context. `pipelineFor` takes only a `Registry`, and n
 hands a `Page` to the pipeline, so a directive cannot see which page it is on or read its
 front matter. Supplying that needs a change upstream in the markdown plugin.
 
+One authoring rule falls out of Markdig rather than from this design, and authors have to
+know it: a nested directive's fence must be **shorter** than its parent's. Custom
+containers follow the fenced-block rule, so `::::steps` wraps `:::step`, and writing both
+at three colons does not nest — the first `:::` closes the outer container, leaving the
+inner directives as siblings plus a stray empty one. Verified against Markdig 1.3.2 by
+dumping the parsed block tree both ways. `ctx.TryAncestor<'T>()` returns `None` in the
+equal-fence case, which is the correct answer to a wrong question: the directive genuinely
+has no ancestor once the parse has gone that way.
+
 ## Hooking into Markdig
 
 One `IMarkdownExtension`, contributed with `Registry.extra`. Its
