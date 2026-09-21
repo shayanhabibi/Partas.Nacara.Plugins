@@ -204,3 +204,30 @@ local project; an end-to-end assertion over real output is the one to trust.
 About a day for the kit. The first step — determining whether Markdig's parser context
 carries the page, and so whether diagnostics get `file:line` — is under an hour and
 blocks nothing else.
+
+## Spike result
+
+**Degraded case confirmed.** Decompiling `Nacara.Plugin.Markdown` 1.0.0-beta.2 shows
+`transform` calls `Markdig.Markdown.Parse(page.Body, pipelineFor(context.Registry),
+(MarkdownParserContext)null)` — the parser context is unconditionally `null`, and nothing
+in the assembly ever calls `MarkdownObject.SetData`. A probe `IMarkdownExtension`
+contributed via `Registry.extra` and built into `docs/Site.fs` confirmed this at runtime:
+`doc.GetData(...)` returned `null` for every candidate key on both pages, and
+`doc.ContainsData(typeof<Page>)` was `false`. `pipelineFor` also caches the built
+`MarkdownPipeline` once per `Registry` for the whole build, so an extension added this
+way is a single shared instance across every page regardless.
+
+The same absence holds for diagnostics: `TransformContext.Diagnostics` (a
+`DiagnosticSink`) exists only on `TransformContext`, which a `Registry`-scoped
+`IMarkdownExtension` never receives — its `Setup` overloads see only
+`MarkdownPipelineBuilder`/`MarkdownPipeline`/`IMarkdownRenderer`. The one place both page
+and diagnostics *are* reachable is `Nacara.Plugins.Internal.NacaraContainerRenderer`,
+which the markdown plugin builds fresh per page inside `transform` and hands `context`
+and `page` as closed-over constructor arguments before swapping it into the renderer's
+`ObjectRenderers` — a privileged path open only to the markdown plugin itself, not to a
+third-party extension registered through `Registry.extra`.
+
+So a directive registered as a Markdig extension per this design's "Hooking into
+Markdig" section cannot reach `file:line` or a `Diagnostic` sink by any channel Markdig
+or Nacara currently exposes to it. The name-plus-body-line degraded path this design
+already specifies is the one to implement; nothing here changes its shape.
