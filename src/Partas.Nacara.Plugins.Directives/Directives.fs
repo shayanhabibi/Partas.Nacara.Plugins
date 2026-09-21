@@ -33,8 +33,7 @@ module Directives =
             // Said now rather than at render time, when it would be one page's problem
             // and whichever directive happened to be first would silently win.
             failwith
-                $"""More than one directive is called %s{String.concat ", " clashing}. \
-                   A name selects exactly one directive, so the build cannot choose."""
+                $"""More than one directive is called %s{String.concat ", " clashing}. A name selects exactly one directive, so the build cannot choose."""
 
     /// <summary>Add these directives to a site.</summary>
     let register (directives: Directive list) (site: Site) = Site.plugin (create directives) site

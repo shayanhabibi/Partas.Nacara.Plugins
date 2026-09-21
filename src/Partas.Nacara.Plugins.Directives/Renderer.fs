@@ -56,8 +56,16 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
         let original = renderer.Writer
         use captured = new StringWriter()
         renderer.Writer <- captured
-        renderer.WriteChildren container |> ignore
-        renderer.Writer <- original
+
+        try
+            renderer.WriteChildren container |> ignore
+        finally
+            // Restored in `finally` because the body can throw: a nested directive's own
+            // render function is an author's code, running inside this call. Leaving the
+            // captured writer in place would send the rest of the page into a StringWriter
+            // nobody reads.
+            renderer.Writer <- original
+
         captured.ToString()
 
     override this.Write(renderer: HtmlRenderer, container: CustomContainer) =
@@ -108,17 +116,34 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
                         Report = faults.Add
                     }
 
-                // `Using`, not a raw `Push`/`Pop`: this stack is shared by every page in
-                // the build (one `IMarkdownExtension` instance, reused), so a render
-                // function that throws must not leave its push behind for the next
-                // directive - or the next page - to inherit.
-                let body =
-                    stack.Using(arguments, fun () -> capture renderer container)
+                // `Using`, not a raw `Push`/`Pop`: a render function that throws must not
+                // leave its push behind for the directives after it to inherit as an
+                // ancestor they do not have.
+                let rendered =
+                    try
+                        let body =
+                            stack.Using(arguments, fun () -> capture renderer container)
 
-                let element =
-                    directive.RenderWith context arguments (Html.span [ prop.dangerouslySetInnerHTML body ])
+                        Ok(directive.RenderWith context arguments (Html.span [ prop.dangerouslySetInnerHTML body ]))
+                    with error ->
+                        // An author's render function threw. Left alone this takes the
+                        // whole page down, which is a wildly disproportionate answer to
+                        // one bad directive - so it degrades the same way unreadable
+                        // arguments do, and for the same reason.
+                        Error error.Message
 
-                renderer.Write(Render.htmlView element) |> ignore
+                match rendered with
+                | Ok element -> renderer.Write(Render.htmlView element) |> ignore
+                | Error message ->
+                    eprintfn $"directives: :::%s{container.Info} - %s{message}"
+
+                    Html.div [
+                        prop.className "nacara-directive-error"
+                        prop.children [ Html.p [ prop.text $":::%s{container.Info} - %s{message}" ] ]
+                    ]
+                    |> Render.htmlView
+                    |> renderer.Write
+                    |> ignore
 
                 for fault in faults do
                     eprintfn $"directives: :::%s{container.Info} - %s{fault}"

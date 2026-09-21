@@ -248,6 +248,39 @@ let tests =
                 Expect.isFalse (html.Contains "OTHER:note") "the registered directive did not"
             }
 
+            test "a render function that throws costs its own directive, not the page" {
+                let exploding =
+                    Directive.create "boom" (Decode.succeed ())
+                    |> Directive.render (fun _ _ _ -> failwith "author bug")
+
+                let html =
+                    Renderer.toHtml
+                        [ exploding; note ]
+                        ":::boom\nbody\n:::\n:::note title=\"Careful\"\nafter\n:::\n"
+
+                Expect.stringContains html "nacara-directive-error" "the thrown directive degraded visibly"
+                Expect.stringContains html "author bug" "the reason is on the page"
+                Expect.stringContains html "nacara-note" "the directive after it still rendered"
+                Expect.stringContains html "Careful" "and so did its arguments"
+            }
+
+            test "a nested directive that throws leaves the writer usable" {
+                // The body is rendered by swapping the renderer's writer. If a nested
+                // directive throws and the swap is not undone, the rest of the page is
+                // written into a discarded StringWriter and silently disappears.
+                let exploding =
+                    Directive.create "boom" (Decode.succeed ())
+                    |> Directive.render (fun _ _ _ -> failwith "author bug")
+
+                let html =
+                    Renderer.toHtml
+                        [ exploding; note ]
+                        "::::note title=\"Outer\"\n:::boom\nbody\n:::\n::::\n\nafterwards\n"
+
+                Expect.stringContains html "nacara-note" "the enclosing directive rendered"
+                Expect.stringContains html "afterwards" "and the page carried on past it"
+            }
+
             test "directives nest" {
                 let steps =
                     Directive.create "steps" (Decode.succeed {| Start = 1 |})
