@@ -3,3 +3,8 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+# Node tooling used at build time
+node_modules/
+
+# Generated documentation site
+docs/output/

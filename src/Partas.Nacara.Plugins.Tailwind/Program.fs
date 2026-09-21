@@ -3,6 +3,7 @@
 open System.Diagnostics
 open Nacara.Core
 open Nacara.Plugins.Internal
+open Partas.Nacara.Theme
 
 [<Struct>]
 type TailwindCssImportStatement = {
@@ -70,7 +71,6 @@ module TailwindCss =
             Binary = TailwindCssBinary.Implicit(TailwindCssBinary.Version(4,3,3), TailwindCssBinary.Platform.Auto)
             TargetExtensions = [ ".css" ]
             TailwindEntryHeader = [
-                "@layer theme, base, components, utilities;"
                 "@import \"tailwindcss/theme.css\" layer(theme);"
                 "@import \"tailwindcss/utilities.css\" layer(utilities);"
             ]
@@ -83,10 +83,26 @@ module TailwindCss =
         (path: AbsolutePath) =
         let dirPath = AbsolutePath.directory path
         let makeImportStatement (import: string) = { AbsoluteDirPath = AbsolutePath.value dirPath; Import = import }
+
+        // Read while bundling rather than while configuring: the theme may well have been
+        // registered after this plugin was, and by now it has had its say either way.
+        let themeLayers = ThemeLayers.current()
+
         let header =
             match header with
             | [] -> [ "@import \"tailwindcss\";" ]
             | header -> header
+
+        // A theme that names its layers is ordered against Tailwind's by name. One that does not
+        // gets the whole of it swept into a single 'nacara' layer, which is the most that can be
+        // said about a stylesheet that says nothing about itself.
+        let layerOrder =
+            let names =
+                match themeLayers with
+                | [] -> [ "nacara" ]
+                | names -> names
+
+            [ $"""@layer {String.concat ", " names}, theme, base, components, utilities;""" ]
         let entryPath = AbsolutePath.value path
         if not (File.Exists entryPath) then Error $"tailwindcss: entry path not found during bundling stage: {entryPath}" else
         let errors = ResizeArray()
@@ -97,11 +113,15 @@ module TailwindCss =
                     try
                         let firstQuoteIdx = line.IndexOf('"')
                         let secondQuoteIdx = line.IndexOf('"', firstQuoteIdx + 1)
-                        let rest = line.Substring(secondQuoteIdx)
+                        let rest = line.Substring(secondQuoteIdx).TrimEnd(';')
                         match makeImportStatement line[firstQuoteIdx + 1..secondQuoteIdx - 1] |> referenceHandler with
                         | Ok newPath ->
                             if newPath.EndsWith(";") then $"@import {newPath}"
-                            else $"{line[0..firstQuoteIdx]}{newPath}{rest}"
+                            elif not themeLayers.IsEmpty then
+                                // The theme put each of its parts in a layer already. Wrapping the
+                                // lot in one more would bury them all under it.
+                                $"{line[0..firstQuoteIdx]}{newPath}{rest};"
+                            else $"{line[0..firstQuoteIdx]}{newPath}{rest} layer(nacara);"
                         | Error error ->
                             $"tailwindcss: error while bundling: %s{error}"
                             |> errors.Add
@@ -114,7 +134,7 @@ module TailwindCss =
                         line
                 | line -> line
                 )
-            |> Array.append (List.toArray header)
+            |> Array.append (List.toArray (layerOrder @ header))
         File.WriteAllLines(entryPath, footer |> List.toArray |> Array.append lines)
         if errors.Count > 0 then Error (String.concat "\n" errors) else
         Ok ()

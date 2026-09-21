@@ -1,0 +1,204 @@
+.nacara-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: var(--nacara-space-4);
+    height: var(--nacara-navbar-height);
+    padding: 0 var(--nacara-space-4);
+    background: color-mix(in srgb, var(--nacara-bg) var(--nacara-navbar-opacity), transparent);
+    backdrop-filter: blur(var(--nacara-navbar-blur));
+    border-bottom: 1px solid var(--nacara-border);
+    color: var(--nacara-text);
+}
+.nacara-navbar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--nacara-space-2);
+    font-weight: 650;
+    color: var(--nacara-text);
+}
+.nacara-navbar__items {
+    display: flex;
+    align-items: center;
+    gap: var(--nacara-space-1);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.nacara-navbar__items--end {
+    margin-left: auto;
+}
+.nacara-navbar__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nacara-space-2);
+    padding: var(--nacara-space-2) var(--nacara-space-3);
+    border-radius: var(--nacara-radius-sm);
+    color: var(--nacara-text-muted);
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+/* The same class on a dropdown's trigger, which a browser would otherwise draw as a control. */
+button.nacara-navbar__link {
+    border: none;
+    background: none;
+    font-family: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
+button.nacara-navbar__link[data-nacara-dropdown]::after {
+    content: "";
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    background: currentColor;
+    mask:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+        center / 1rem no-repeat;
+    transition: transform 0.15s ease;
+    opacity: 0.55;
+}
+.nacara-dropdown[data-open="true"] > button.nacara-navbar__link {
+    background: var(--nacara-primary-subtle);
+    color: var(--nacara-text);
+}
+.nacara-dropdown[data-open="true"] > button.nacara-navbar__link::after {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.nacara-navbar__link:hover {
+    background: var(--nacara-bg-subtle);
+    color: var(--nacara-text);
+    text-decoration: none;
+}
+.nacara-navbar__link[aria-current="page"],
+.nacara-navbar__link[data-active="true"] {
+    color: var(--nacara-primary);
+    background: var(--nacara-primary-subtle);
+}
+
+/*
+    Dropdowns
+*/
+
+.nacara-dropdown {
+    position: relative;
+}
+.nacara-dropdown__panel {
+    position: absolute;
+    top: calc(100% + var(--nacara-space-1));
+    left: 0;
+    width: max-content;
+    min-width: 15rem;
+    max-width: min(28rem, 90vw);
+    margin: 0;
+    padding: var(--nacara-space-2);
+    background: var(--nacara-bg-raised);
+    border: 1px solid var(--nacara-border);
+    border-radius: var(--nacara-radius);
+    box-shadow: var(--nacara-shadow-floating, var(--nacara-shadow));
+    list-style: none;
+}
+/* The gap up to the trigger belongs to the panel, or a pointer crossing it closes the menu. */
+.nacara-dropdown__panel::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: calc(var(--nacara-space-1) + 2px);
+}
+.nacara-dropdown:not([data-open="true"]) .nacara-dropdown__panel {
+    display: none;
+}
+.nacara-dropdown__item {
+    display: block;
+    padding: var(--nacara-space-2) var(--nacara-space-3);
+    border-radius: var(--nacara-radius-sm);
+    color: var(--nacara-text);
+}
+.nacara-dropdown__item:hover {
+    background: var(--nacara-primary-subtle);
+    text-decoration: none;
+}
+.nacara-dropdown__description {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--nacara-text-muted);
+}
+.nacara-dropdown__divider {
+    height: 1px;
+    margin: var(--nacara-space-2) 0;
+    background: var(--nacara-border);
+}
+/* The same divider in the navbar row, where it separates items side by side. */
+.nacara-navbar__items > .nacara-dropdown__divider {
+    height: 2rem;
+    margin: 0 var(--nacara-space-2);
+    background: none;
+    border-inline-end: 1px solid var(--nacara-border);
+}
+/* An icon button is a square around a smaller glyph, so it already carries the space the
+   divider would add. Taken back on whichever side the icon is. */
+.nacara-navbar__items > .nacara-dropdown__divider + li:has(> .nacara-icon-button),
+.nacara-navbar__items > li:has(> .nacara-icon-button) + .nacara-dropdown__divider {
+    margin-inline-start: calc(var(--nacara-space-2) * -1);
+}
+
+/*
+    Colour scheme
+*/
+
+.nacara-theme-select {
+    height: var(--nacara-control-height);
+    padding: 0 var(--nacara-space-2);
+    border: 1px solid var(--nacara-border);
+    border-radius: var(--nacara-control-radius);
+    background: var(--nacara-bg-subtle);
+    color: var(--nacara-text-muted);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--nacara-text);
+    }
+}
+
+/*
+    Icon buttons
+*/
+
+.nacara-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--nacara-control-height);
+    height: var(--nacara-control-height);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--nacara-control-radius);
+    background: none;
+    color: var(--nacara-text-muted);
+    cursor: pointer;
+}
+.nacara-icon-button:hover {
+    background: var(--nacara-bg-subtle);
+    color: var(--nacara-text);
+}
+/* An inline box sits on the text baseline, so both are made block-level for the flex centring to reach the icon. */
+.nacara-icon-button > * {
+    display: flex;
+}
+.nacara-icon-button svg {
+    display: block;
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+[data-nacara-menu-toggle] {
+    display: none;
+}

@@ -1,0 +1,143 @@
+---
+last_commit_released: 4ba7535ef32c2fbd243ef96b3f6a3fd2a89181e6
+---
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+This changelog is generated using [EasyBuild.ShipIt](https://github.com/easybuild-org/EasyBuild.ShipIt).
+
+⚠ Only edit the front matter metadata at the top of this file. All other changes will be overwritten when a new release is created.
+
+## 1.0.0-beta.13 - 2026-09-18
+
+### 🚀 Features
+
+* *(theme-default)* List a menu group's pages up to a limit ([4ba7535](https://github.com/MangelMaxime/Nacara/commit/4ba7535ef32c2fbd243ef96b3f6a3fd2a89181e6))
+
+### ⚡ Performance Improvements
+
+* *(theme-default)* Find a menu's page by name instead of scanning ([c2dbaf8](https://github.com/MangelMaxime/Nacara/commit/c2dbaf80214892639517779783bc2bbbd471da56))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/0db668ca8825d9b3b8d40f970689b0954e702a40..4ba7535ef32c2fbd243ef96b3f6a3fd2a89181e6)</small></strong>
+
+## 1.0.0-beta.12 - 2026-09-17
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Keep a splash page to one column below 1200px ([0db668c](https://github.com/MangelMaxime/Nacara/commit/0db668ca8825d9b3b8d40f970689b0954e702a40))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/82f0280fb8208a1ae930ae279d25ec4915e05bd1..0db668ca8825d9b3b8d40f970689b0954e702a40)</small></strong>
+
+## 1.0.0-beta.11 - 2026-09-16
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Colour the step numbers with the primary ([82f0280](https://github.com/MangelMaxime/Nacara/commit/82f0280fb8208a1ae930ae279d25ec4915e05bd1))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/ec91cacd3183b9ee1a7069b265b67ccc6ff453b4..82f0280fb8208a1ae930ae279d25ec4915e05bd1)</small></strong>
+
+## 1.0.0-beta.10 - 2026-09-16
+
+### 🏗️ Breaking changes
+
+* *(markdown)* Title the steps of a :::steps block ([ec91cac](https://github.com/MangelMaxime/Nacara/commit/ec91cacd3183b9ee1a7069b265b67ccc6ff453b4))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/4df579722848356abcfd265a61967830b991af33..ec91cacd3183b9ee1a7069b265b67ccc6ff453b4)</small></strong>
+
+## 1.0.0-beta.9 - 2026-09-16
+
+### 🚀 Features
+
+* *(core)* Cap a code block's height with maxHeight= ([4df5797](https://github.com/MangelMaxime/Nacara/commit/4df579722848356abcfd265a61967830b991af33))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/a042e9e6333701e3cc483c3f5337150d5b599b88..4df579722848356abcfd265a61967830b991af33)</small></strong>
+
+## 1.0.0-beta.8 - 2026-09-15
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Size the navbar dropdown to its content ([a042e9e](https://github.com/MangelMaxime/Nacara/commit/a042e9e6333701e3cc483c3f5337150d5b599b88))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/09a68e254780ca78d3c8463b489a11124920e50c..a042e9e6333701e3cc483c3f5337150d5b599b88)</small></strong>
+
+## 1.0.0-beta.7 - 2026-09-12
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Indent the table of contents past level 3 ([3678ac2](https://github.com/MangelMaxime/Nacara/commit/3678ac29a373554622804db52dbd360434ffadb8))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/cd0822278e4c7b62bb5a3f0b005d4a8542a17bb4..09a68e254780ca78d3c8463b489a11124920e50c)</small></strong>
+
+## 1.0.0-beta.6 - 2026-09-11
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Give a step's content room beside its number ([5d2c481](https://github.com/MangelMaxime/Nacara/commit/5d2c481ae07556f626c273760c38e7fafc10cc4d))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/22ac301653fe3807a89c94604a70662f47653313..cd0822278e4c7b62bb5a3f0b005d4a8542a17bb4)</small></strong>
+
+## 1.0.0-beta.5 - 2026-09-04
+
+### 🚀 Features
+
+* *(theme-default)* Add a splash layout for pages that keep the theme's spacing ([abc85e8](https://github.com/MangelMaxime/Nacara/commit/abc85e836fc606dd826b35deb85251c1545ebe3f))
+* *(theme-default)* Drop the edit link on splash and bare pages ([22ac301](https://github.com/MangelMaxime/Nacara/commit/22ac301653fe3807a89c94604a70662f47653313))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/353cf65737afd57d96bee68d5236b20bfedad32a..22ac301653fe3807a89c94604a70662f47653313)</small></strong>
+
+## 1.0.0-beta.4 - 2026-09-02
+
+### 🚀 Features
+
+* *(theme-default)* Resolve a navbar url from a page's source path ([037d1ec](https://github.com/MangelMaxime/Nacara/commit/037d1ecef5b8168a0f9053464a91d27e3f18a66c))
+* *(theme-default)* Add the site prefix to a root-relative navbar url ([5b28a10](https://github.com/MangelMaxime/Nacara/commit/5b28a1038e9883d0a5b869bcc1c0debd989be7d5))
+
+### 🐞 Bug Fixes
+
+* *(theme-default)* Resolve a page path only when one page answers to it ([0c465a2](https://github.com/MangelMaxime/Nacara/commit/0c465a236d7357c35080c6dbbdb329376dbd684a))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/6e538f915a2693829ce44463ce7444bd568b60d5..353cf65737afd57d96bee68d5236b20bfedad32a)</small></strong>
+
+## 1.0.0-beta.3 - 2026-09-01
+
+### 🚀 Features
+
+* *(theme-default)* Let front matter put attributes on `main` ([30e042d](https://github.com/MangelMaxime/Nacara/commit/30e042d97e83f437dfae30a1a3cab384f481f089))
+* *(theme-default)* Make `layout: bare` a canvas and expose `toc: false` ([33b041d](https://github.com/MangelMaxime/Nacara/commit/33b041d85926df96c7b971b541e2a9fb0ca9dd92))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/2ea4861b2dd698a3a7a7ff5459cb129fb2ea2484..6e538f915a2693829ce44463ce7444bd568b60d5)</small></strong>
+
+## 1.0.0-beta.2 - 2026-08-29
+
+### 🚀 Features
+
+* *(theme-default)* Improve custom theming support ([fcbaee9](https://github.com/MangelMaxime/Nacara/commit/fcbaee9530b3f3de0ba3877608e955b207552e9e))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/e8ed7c5a308808771fe5062cef3dd9ea2179fcf9..2ea4861b2dd698a3a7a7ff5459cb129fb2ea2484)</small></strong>
+
+## 1.0.0-beta.1 - 2026-08-28
+
+### 🏗️ Breaking changes
+
+* Nacara v3 ([9cb78aa](https://github.com/MangelMaxime/Nacara/commit/9cb78aace4a660da18bac00d4a19f45e1cd8e15a))
+
+### 🚀 Features
+
+* *(theme-default)* Take back Nacara's violet, and a border you can see ([c802ada](https://github.com/MangelMaxime/Nacara/commit/c802adac9c45e848f5e44b2b486a5ab1f095a46e))
+* *(theme-default)* Fold the navbar's sections into the mobile drawer ([3522d9a](https://github.com/MangelMaxime/Nacara/commit/3522d9a126eab36447f0ec4d0e1bb85aa3f06a42))
+* *(theme-default)* Dismiss the mobile drawer by tapping away or pressing escape ([86a7ac6](https://github.com/MangelMaxime/Nacara/commit/86a7ac60269967ee958c69262cb42158ed4d6116))
+* *(theme-default)* Open a navbar dropdown on hover, and draw it like a link ([a73881c](https://github.com/MangelMaxime/Nacara/commit/a73881c0d9c11bd177700d46e1a989bc7b38808e))
+* *(theme-default)* Name the badge kinds the theme paints ([2445778](https://github.com/MangelMaxime/Nacara/commit/24457787c21f21614736a42f0f5da60feb3b40c7))
+
+### 🐞 Bug Fixes
+
+* *(build)* Install the node dependencies from the build system ([5a55fa3](https://github.com/MangelMaxime/Nacara/commit/5a55fa39dbe3d96b563b149a1d19c66a5875e22b))
+* *(theme-default)* Make the navbar divider a rule you can see ([bcc0467](https://github.com/MangelMaxime/Nacara/commit/bcc04675978fea4d3012b18b6b694aaa39249e4b))
+
+<strong><small>[View changes on Github](https://github.com/MangelMaxime/Nacara/compare/448dbdc8db3f53f81e320099e9c992b69e336395..e8ed7c5a308808771fe5062cef3dd9ea2179fcf9)</small></strong>
+
+## 0.0.0

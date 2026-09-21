@@ -3,9 +3,29 @@ module Docs.Site
 open Feliz.ViewEngine
 open Nacara.Core
 open Nacara.Plugins
-open Nacara.Theme
+open Partas.Nacara.Theme
 
 let versions = [SiteVersion.root "1.0"]
+
+let private steps =
+    Directive.create "steps" (Decode.object (fun get ->
+        {| Start = get.Optional.Field "start" Decode.int |> Option.defaultValue 1 |}))
+    |> Directive.render (fun _ _ body -> Html.ol [ prop.className "nacara-steps"; prop.children [ body ] ])
+
+let private step =
+    Directive.create "step" (Decode.object (fun get ->
+        {| Title = get.Required.Field "title" Decode.string |}))
+    |> Directive.render (fun ctx args body ->
+        match ctx.TryAncestor<{| Start: int |}>() with
+        | None ->
+            ctx.Error ":::step only means something inside :::steps"
+            Html.none
+        | Some parent ->
+            Html.li [
+                prop.className "nacara-step"
+                prop.custom ("data-number", string (parent.Start + ctx.Index))
+                prop.children [ Html.h3 args.Title; body ]
+            ])
 
 let theme =
     Theme.defaults
@@ -17,6 +37,10 @@ let theme =
            ]
     |> Theme.editUrl "https://github.com/shayanhabibi/Partas.Nacara.Plugins/edit/main/docs"
     |> Theme.footer (Html.p [Html.text "Built with Nacara"])
+
+PluginLayers.offer
+    { Name = "directives"
+      Css = ".nacara-steps { list-style: none; } .nacara-step { margin-block: 1rem; }" }
 
 let site =
     Site.create "Partas.Nacara.Plugins"
@@ -31,6 +55,7 @@ let site =
     |> Sitemap.register
     |> LinkValidator.register
     |> DaisyUI.register
+    |> Directives.register [ steps; step ]
     // |> Rumdl.register
     // |> LightningCss.register
     |> Esbuild.register

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <PackageId>Partas.Nacara.Theme.Contracts</PackageId>
+        <Description>What a theme and a styling plugin agree on: the cascade layers a theme declares, and the layers a plugin contributes to it. Depends on nothing, so neither side depends on the other.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="StyleLayers.fs" />
+    </ItemGroup>
+</Project>

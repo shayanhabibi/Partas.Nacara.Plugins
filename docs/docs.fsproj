@@ -23,11 +23,12 @@
         <PackageReference Include="Nacara.Plugin.Assets.Esbuild" Version="1.0.0-*"/>
         <PackageReference Include="Nacara.Plugin.Assets.Nuglify" Version="1.0.0-*"/>
         <PackageReference Include="Nacara.Plugin.Deploy.GitHubPages" Version="1.0.0-*"/>
-        <PackageReference Include="Nacara.Theme.Default" Version="1.0.0-*"/>
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\src\Partas.Nacara.Theme\Partas.Nacara.Theme.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.DaisyUI\Partas.Nacara.Plugins.DaisyUI.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Tailwind\Partas.Nacara.Plugins.Tailwind.fsproj" />
+      <ProjectReference Include="..\src\Partas.Nacara.Plugins.Directives\Partas.Nacara.Plugins.Directives.fsproj" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="static\" />

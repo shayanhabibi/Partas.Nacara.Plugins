@@ -10,7 +10,12 @@
 
     <ItemGroup>
         <Compile Include="Tests.fs"/>
+        <Compile Include="DirectivesTests.fs"/>
         <Compile Include="Main.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Partas.Nacara.Plugins.Directives/Partas.Nacara.Plugins.Directives.fsproj" />
     </ItemGroup>
 
     <ItemGroup>
