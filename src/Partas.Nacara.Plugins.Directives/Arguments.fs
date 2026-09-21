@@ -49,13 +49,42 @@ module internal Arguments =
             index <- index + 1
         input.Substring(start, index - start), index
 
+    /// <summary>The characters a bare value may not contain.</summary>
+    /// <remarks>
+    /// A bare value is concatenated into the flow mapping unquoted, which is the whole
+    /// reason <c>level=2</c> arrives as an int. That also leaves YAML's own punctuation
+    /// free to end the entry early: <c>title=a,b=2</c> would otherwise become two keys
+    /// with nothing said about it. Quoting bare values would close the hole and cost the
+    /// typing, so a value carrying one of these is refused instead.
+    /// </remarks>
+    let private flowPunctuation = [| ','; '{'; '}'; '['; ']'; ':' |]
+
     /// <summary>Turn an opening line's arguments into a YAML flow mapping.</summary>
     /// <param name="arguments">Everything Markdig found after the directive's name.</param>
     /// <returns>YAML source on success, or why it could not be read.</returns>
+    /// <remarks>
+    /// Everything refused here is refused so that the author hears about their directive
+    /// line rather than about a YAML document they never wrote. A mapping that leaves this
+    /// function is one whose keys are named, distinct, and paired with a value that cannot
+    /// have escaped its own entry.
+    /// </remarks>
     let toFlowMapping (arguments: string) : Result<string, string> =
         let pairs = ResizeArray<string>()
+        let named = System.Collections.Generic.HashSet<string>()
         let mutable index = 0
         let mutable failure = None
+
+        // Both checks are about the author's line, not about YAML: an unnamed key would
+        // reach the decoder as `{: 5}` and a repeated one as a mapping YAML is entitled to
+        // read either way round, and in both cases the message would be about a document
+        // the author never saw.
+        let add (key: string) (entry: string) =
+            if key = "" then
+                failure <- Some "an argument has no name before its '='"
+            elif not (named.Add key) then
+                failure <- Some $"the argument '%s{key}' is given more than once"
+            else
+                pairs.Add entry
 
         while failure.IsNone && index < arguments.Length do
             if Char.IsWhiteSpace arguments[index] then
@@ -76,16 +105,31 @@ module internal Arguments =
                     if index < arguments.Length && arguments[index] = Quote then
                         match readQuoted arguments index with
                         | Ok(value, next) ->
-                            pairs.Add $"%s{key}: %s{value}"
-                            index <- next
+                            // A closing quote has to be the end of the value. Without this,
+                            // `title="a"x` leaves the parser sitting on `x`, which is then
+                            // read as a fresh key and silently becomes a flag.
+                            if next < arguments.Length && not (Char.IsWhiteSpace arguments[next]) then
+                                failure <-
+                                    Some
+                                        $"the value of '%s{key}' has '%c{arguments[next]}' after its closing quote; separate arguments with a space"
+                            else
+                                add key $"%s{key}: %s{value}"
+                                index <- next
                         | Error reason -> failure <- Some reason
                     else
                         let value, next = readBare arguments index
-                        pairs.Add $"%s{key}: %s{value}"
-                        index <- next
+
+                        match value.IndexOfAny flowPunctuation with
+                        | -1 ->
+                            add key $"%s{key}: %s{value}"
+                            index <- next
+                        | at ->
+                            failure <-
+                                Some
+                                    $"""the value of '%s{key}' contains '%c{value[at]}', which YAML reads as punctuation; write it as %s{key}="%s{value}" to keep it as text"""
                 else
                     // A key on its own is a flag, which is how a reader writes it anyway.
-                    pairs.Add $"%s{key}: true"
+                    add key $"%s{key}: true"
             end
 
         match failure with

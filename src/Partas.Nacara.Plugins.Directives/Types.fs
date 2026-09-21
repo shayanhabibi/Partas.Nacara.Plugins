@@ -3,6 +3,20 @@ namespace Nacara.Plugins
 open Feliz.ViewEngine
 open Nacara.Core
 
+/// <summary>How much a fault reported by a directive matters.</summary>
+/// <remarks>
+/// Neither value fails the build, and neither can: a <c>Registry</c>-scoped
+/// <c>IMarkdownExtension</c> has no route to stop one. What the severity decides is the
+/// label the message is written under, which - alongside the <c>nacara-directive-error</c>
+/// element on the page - is the whole of what a directive has to say with.
+/// </remarks>
+[<RequireQualifiedAccess>]
+type internal FaultSeverity =
+    /// The directive could not do what the author asked of it.
+    | Error
+    /// Worth saying, though the directive carried on regardless.
+    | Warning
+
 /// <summary>What a directive can find out about where it sits.</summary>
 /// <remarks>
 /// Markdig's block tree holds the nesting but not a parent's decoded arguments, so those
@@ -20,7 +34,7 @@ type DirectiveContext =
             /// How many directives enclose this one.
             Nesting: int
             /// Says something went wrong, in whatever way the build wants it said.
-            Report: string -> unit
+            Report: FaultSeverity * string -> unit
         }
 
     /// <summary>The nearest enclosing directive whose arguments are the given type.</summary>
@@ -46,11 +60,21 @@ type DirectiveContext =
     /// <summary>How many directives enclose this one.</summary>
     member this.Depth = this.Nesting
 
-    /// <summary>Report a fault that should fail the build.</summary>
-    member this.Error(message: string) = this.Report message
+    /// <summary>Report that the directive could not do what was asked of it.</summary>
+    /// <remarks>
+    /// This does not fail the build and cannot: nothing wires a diagnostic sink through to
+    /// a <c>Registry</c>-scoped <c>IMarkdownExtension</c>, so there is nowhere for a fatal
+    /// error to be raised to. What happens is that the message is written to stderr under
+    /// an <c>error:</c> label, naming the directive it came from. What the page shows is
+    /// whatever the render function went on to return.
+    /// </remarks>
+    member this.Error(message: string) = this.Report(FaultSeverity.Error, message)
 
-    /// <summary>Report something worth saying that is not fatal.</summary>
-    member this.Warn(message: string) = this.Report message
+    /// <summary>Report something worth saying that did not stop the directive.</summary>
+    /// <remarks>
+    /// The same channel as <c>Error</c>, under a <c>warning:</c> label instead.
+    /// </remarks>
+    member this.Warn(message: string) = this.Report(FaultSeverity.Warning, message)
 
 /// <summary>A directive: its name, how to read its arguments, what to render.</summary>
 /// <remarks>
@@ -113,9 +137,22 @@ module Directive =
                     |> Result.bind (fun yaml ->
                         Yaml.decodeWithOffset line builder.Decoder yaml
                         |> Result.mapError (fun error ->
+                            // The offset exists to turn a position in the flow mapping this
+                            // module synthesised into one on the page, and it is only worth
+                            // paying for if the author is told. `line` is
+                            // `CustomContainer.Line`, which Markdig counts from zero, and
+                            // the flow mapping is a single line, so its own position is
+                            // line 1: the sum is already the line a reader counts, and
+                            // adding one again would point at the line below.
+                            //
+                            // The column is left out on purpose. It is a column into the
+                            // flow mapping, not into what the author typed, so it would
+                            // point at a character that is not on their line.
+                            let position = $"line %d{error.Line}"
+
                             match error.Path with
-                            | "" -> error.Message
-                            | path -> $"%s{path}: %s{error.Message}"))
+                            | "" -> $"%s{position}: %s{error.Message}"
+                            | path -> $"%s{position}: %s{path}: %s{error.Message}"))
                     |> Result.map box
             RenderWith = fun context value body -> render context (value :?> 'T) body
         }
@@ -124,5 +161,10 @@ module Directive =
     /// <param name="directive">The directive whose decoder is used.</param>
     /// <param name="line">Where the directive starts, so positions are reported there.</param>
     /// <param name="arguments">Everything after the directive's name.</param>
-    let decodeArguments (directive: Directive) (line: int) (arguments: string) : Result<obj, string> =
+    /// <remarks>
+    /// Internal: it takes a <c>Directive</c> whose every field is internal and hands back an
+    /// <c>obj</c> that only <c>RenderWith</c> knows how to unbox, so there is nothing a
+    /// consumer could do with it. The renderer and the tests are the callers.
+    /// </remarks>
+    let internal decodeArguments (directive: Directive) (line: int) (arguments: string) : Result<obj, string> =
         directive.Decode line arguments

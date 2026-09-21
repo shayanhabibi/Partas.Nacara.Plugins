@@ -1,5 +1,6 @@
 namespace Nacara.Plugins
 
+open System.Collections.Generic
 open System.IO
 open Feliz.ViewEngine
 open Markdig
@@ -13,23 +14,27 @@ open Markdig.Renderers.Html
 /// <c>:::steps</c>, <c>:::filetree</c> and <c>:::preview</c> keep falling through to
 /// whatever renderer would otherwise have handled it.
 /// </remarks>
-type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStack) =
+/// <param name="byName">Every declared directive, keyed by the name that selects it.</param>
+/// <param name="fallback">Markdig's stock container renderer, used only when nothing else in
+/// the live renderer list will take an unmatched container.</param>
+/// <param name="stack">The directives currently open on the page being rendered.</param>
+/// <remarks>
+/// <paramref name="byName"/> and <paramref name="fallback"/> are built once by
+/// <c>DirectiveExtension</c> and handed in rather than rebuilt here, because neither depends
+/// on the page: the directive list is fixed when the plugin is created, and this type is
+/// constructed once per page. <paramref name="stack"/> is the one thing that must be
+/// per-page - see <c>DirectiveExtension</c>'s renderer <c>Setup</c>.
+///
+/// <paramref name="fallback"/> is a last resort, not "what Nacara's built-ins are rendered
+/// by" - Nacara installs its own <c>NacaraContainerRenderer</c> into <c>ObjectRenderers</c>
+/// per page, closing over that page and its transform context, and that one is found and
+/// used instead whenever it is present. The stock renderer only fires if nothing else in the
+/// list accepts the container, so an unmatched directive still renders as something rather
+/// than nothing.
+/// </remarks>
+type internal DirectiveRenderer
+    (byName: IDictionary<string, Directive>, fallback: HtmlCustomContainerRenderer, stack: DirectiveStack) =
     inherit HtmlObjectRenderer<CustomContainer>()
-
-    let byName =
-        directives |> List.map (fun directive -> directive.Name, directive) |> dict
-
-    /// <summary>Markdig's stock container renderer, used only when nothing else in the
-    /// live renderer list will take an unmatched container.</summary>
-    /// <remarks>
-    /// This is a last resort, not "what Nacara's built-ins are rendered by" - Nacara
-    /// installs its own <c>NacaraContainerRenderer</c> into <c>ObjectRenderers</c> per page,
-    /// closing over that page and its transform context, and that one is found and used
-    /// instead whenever it is present. This stock renderer only fires if nothing else in
-    /// the list accepts the container, so an unmatched directive still renders as
-    /// something rather than nothing.
-    /// </remarks>
-    let fallback = HtmlCustomContainerRenderer()
 
     /// <summary>The renderer that would have handled this container had ours not claimed
     /// every <c>CustomContainer</c> first.</summary>
@@ -91,22 +96,38 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
                 // diagnostic sink through to a `Registry`-scoped `IMarkdownExtension` - so
                 // the degraded path is what there is: a visible error element in the
                 // output, and the same message on stderr so the build log has it too.
-                eprintfn $"directives: :::%s{container.Info} - %s{reason}"
+                eprintfn $"directives: error: :::%s{container.Info} - %s{reason}"
 
-                let body = capture renderer container
+                // Guarded, because the body can contain a nested directive whose render
+                // function is an author's code and may throw - the same hazard the `Ok`
+                // branch covers with its own `try`.
+                //
+                // Nothing is pushed for this directive, and that is the chosen behaviour
+                // rather than an oversight: `Push` takes the decoded arguments, and there
+                // are none. Children of a directive whose arguments did not decode
+                // therefore find no ancestor for it - `TryAncestor` looks past it to the
+                // grandparent - and their `Depth` counts it as absent.
+                let body =
+                    try
+                        capture renderer container
+                    with error ->
+                        eprintfn $"directives: error: :::%s{container.Info} - %s{error.Message}"
+                        ""
 
                 Html.div [
                     prop.className "nacara-directive-error"
                     prop.children [
                         Html.p [ prop.text $":::%s{container.Info} - %s{reason}" ]
-                        Html.span [ prop.dangerouslySetInnerHTML body ]
+                        // A `div`, not a `span`: a directive body is block content, and
+                        // `<span><p>…</p></span>` is not valid nesting.
+                        Html.div [ prop.dangerouslySetInnerHTML body ]
                     ]
                 ]
                 |> Render.htmlView
                 |> renderer.Write
                 |> ignore
             | Ok arguments ->
-                let faults = ResizeArray<string>()
+                let faults = ResizeArray<FaultSeverity * string>()
 
                 let context =
                     {
@@ -124,7 +145,21 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
                         let body =
                             stack.Using(arguments, fun () -> capture renderer container)
 
-                        Ok(directive.RenderWith context arguments (Html.span [ prop.dangerouslySetInnerHTML body ]))
+                        // Serialised inside the `try` as well: an element can throw on the
+                        // way to a string just as a render function can throw on the way to
+                        // an element, and both are the author's code failing on one
+                        // directive rather than a reason to lose the page.
+                        //
+                        // A `div`, not a `span`: a directive body is always block content -
+                        // `<p>`, `<ul>`, `<pre>` - so a `span` emits `<span><p>…</p></span>`,
+                        // which is not valid inside an inline formatting context. The `span`
+                        // precedent is `Components.rawHtml`, which is only ever handed inline
+                        // SVG, so it does not carry over here.
+                        Ok(
+                            Render.htmlView (
+                                directive.RenderWith context arguments (Html.div [ prop.dangerouslySetInnerHTML body ])
+                            )
+                        )
                     with error ->
                         // An author's render function threw. Left alone this takes the
                         // whole page down, which is a wildly disproportionate answer to
@@ -133,9 +168,9 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
                         Error error.Message
 
                 match rendered with
-                | Ok element -> renderer.Write(Render.htmlView element) |> ignore
+                | Ok html -> renderer.Write html |> ignore
                 | Error message ->
-                    eprintfn $"directives: :::%s{container.Info} - %s{message}"
+                    eprintfn $"directives: error: :::%s{container.Info} - %s{message}"
 
                     Html.div [
                         prop.className "nacara-directive-error"
@@ -145,11 +180,28 @@ type internal DirectiveRenderer(directives: Directive list, stack: DirectiveStac
                     |> renderer.Write
                     |> ignore
 
-                for fault in faults do
-                    eprintfn $"directives: :::%s{container.Info} - %s{fault}"
+                // stderr is the only channel a directive has, so the severity it chose has
+                // to survive to the label: `ctx.Error` and `ctx.Warn` would otherwise be
+                // one function wearing two names. Neither stops the build - see
+                // `DirectiveContext.Error`.
+                for severity, fault in faults do
+                    let label =
+                        match severity with
+                        | FaultSeverity.Error -> "error"
+                        | FaultSeverity.Warning -> "warning"
+
+                    eprintfn $"directives: %s{label}: :::%s{container.Info} - %s{fault}"
 
 /// <summary>Teaches a Markdig pipeline about the declared directives.</summary>
 type internal DirectiveExtension(directives: Directive list) =
+    // Built here rather than in `DirectiveRenderer`, which is constructed once per page:
+    // neither of these depends on the page, and the directive list is fixed when the plugin
+    // is created.
+    let byName =
+        directives |> List.map (fun directive -> directive.Name, directive) |> dict
+
+    let fallback = HtmlCustomContainerRenderer()
+
     interface IMarkdownExtension with
         member _.Setup(pipeline: MarkdownPipelineBuilder) =
             // :::name is the custom container syntax, so it has to be on for any of this
@@ -163,7 +215,13 @@ type internal DirectiveExtension(directives: Directive list) =
                 // extension is one shared instance across every page in the build, but
                 // this `Setup` runs once per renderer, which is once per page. Sharing the
                 // stack itself would let one page's nesting leak into the next.
-                html.ObjectRenderers.Insert(0, DirectiveRenderer(directives, DirectiveStack()))
+                //
+                // Position 0 is load-bearing, and only holds while this is the last thing
+                // to insert there. Another `Registry.extra` extension inserting at 0 after
+                // this one claims every `CustomContainer` first and every directive stops
+                // rendering, with no message anywhere - so if directives have gone quiet,
+                // the order of `Registry.extra` registrations is the thread to pull.
+                html.ObjectRenderers.Insert(0, DirectiveRenderer(byName, fallback, DirectiveStack()))
             | _ -> ()
 
 /// <summary>Rendering markdown with directives applied, for tests.</summary>

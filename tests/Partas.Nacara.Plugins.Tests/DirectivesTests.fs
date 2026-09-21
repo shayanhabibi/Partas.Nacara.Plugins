@@ -29,6 +29,28 @@ type private SentinelExtension(marker: string) =
             | :? HtmlRenderer as html -> html.ObjectRenderers.Insert(0, SentinelRenderer marker)
             | _ -> ()
 
+/// <summary>A renderer that throws instead of writing.</summary>
+/// <remarks>
+/// This is the only way to get an exception to propagate out of <c>WriteChildren</c>: a
+/// nested <em>directive</em> cannot, because its own <c>Write</c> catches whatever its
+/// render function throws and writes a degraded element instead. Something the directive
+/// renderer delegates to, on the other hand, is not guarded by anything.
+/// </remarks>
+type private ThrowingRenderer() =
+    inherit HtmlObjectRenderer<CustomContainer>()
+
+    override _.Write(_renderer: HtmlRenderer, container: CustomContainer) : unit =
+        failwith $"the renderer for :::%s{container.Info} threw"
+
+type private ThrowingExtension() =
+    interface IMarkdownExtension with
+        member _.Setup(_pipeline: MarkdownPipelineBuilder) = ()
+
+        member _.Setup(_pipeline: MarkdownPipeline, renderer: IMarkdownRenderer) =
+            match renderer with
+            | :? HtmlRenderer as html -> html.ObjectRenderers.Insert(0, ThrowingRenderer())
+            | _ -> ()
+
 [<Tests>]
 let tests =
     testList "directives" [
@@ -81,6 +103,45 @@ let tests =
                     (Ok "{title: \"say \\\"hi\\\"\"}")
                     "escape survives"
             }
+
+            test "a bare value carrying YAML punctuation is refused by name" {
+                // Left alone this is `{title: a,b: 2}` - two keys, silently.
+                match mapping "title=a,b=2" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message ->
+                    Expect.stringContains message "','" "the offending character is named"
+                    Expect.stringContains message "title" "and so is the key it belongs to"
+            }
+
+            test "a bare value carrying a colon is refused by name" {
+                match mapping "title=a:b" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message ->
+                    Expect.stringContains message "':'" "the offending character is named"
+                    Expect.stringContains message "title" "and so is the key it belongs to"
+            }
+
+            test "text after a closing quote is refused by name" {
+                // Left alone the parser lands on `x` and reads it as a fresh flag.
+                match mapping "title=\"a\"x" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message ->
+                    Expect.stringContains message "'x'" "the offending character is named"
+                    Expect.stringContains message "title" "and so is the key it belongs to"
+            }
+
+            test "a repeated argument is refused by name" {
+                match mapping "a=1 a=2" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "'a'" "the repeated key is named"
+            }
+
+            test "an argument with no name is refused" {
+                match mapping "=5" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message ->
+                    Expect.stringContains message "no name" "the author hears about their line, not about YAML"
+            }
         ]
 
         testList "directive builder" [
@@ -124,6 +185,33 @@ let tests =
                     |> Directive.render (fun _ _ _ -> Html.none)
 
                 Expect.isError (Directive.decodeArguments directive 0 "") "title required"
+            }
+
+            test "a decode failure says where on the page it is" {
+                let directive =
+                    Directive.create "note" (Decode.object (fun get ->
+                        {| Level = get.Required.Field "level" Decode.int |}))
+                    |> Directive.render (fun _ _ _ -> Html.none)
+
+                // Markdig counts `CustomContainer.Line` from zero, so 4 is the page's
+                // fifth line - which is the number the author has to be given.
+                match Directive.decodeArguments directive 4 "level=high" with
+                | Ok _ -> failtest "'high' is not an int and should not have decoded"
+                | Error message ->
+                    Expect.stringContains message "line 5" "the offset is folded into the message"
+                    Expect.stringContains message "level" "and the path survives alongside it"
+            }
+
+            test "a decode failure on the first line says line 1" {
+                let directive =
+                    Directive.create "note" (Decode.object (fun get ->
+                        {| Level = get.Required.Field "level" Decode.int |}))
+                    |> Directive.render (fun _ _ _ -> Html.none)
+
+                match Directive.decodeArguments directive 0 "level=high" with
+                | Ok _ -> failtest "'high' is not an int and should not have decoded"
+                | Error message ->
+                    Expect.stringContains message "line 1" "no off-by-one at the top of the page"
             }
 
             test "a malformed argument line is an error, not an exception" {
@@ -264,20 +352,30 @@ let tests =
                 Expect.stringContains html "Careful" "and so did its arguments"
             }
 
-            test "a nested directive that throws leaves the writer usable" {
-                // The body is rendered by swapping the renderer's writer. If a nested
-                // directive throws and the swap is not undone, the rest of the page is
+            test "an exception through WriteChildren leaves the writer usable" {
+                // The body is rendered by swapping the renderer's writer. If something in
+                // the body throws and the swap is not undone, the rest of the page is
                 // written into a discarded StringWriter and silently disappears.
-                let exploding =
-                    Directive.create "boom" (Decode.succeed ())
-                    |> Directive.render (fun _ _ _ -> failwith "author bug")
+                //
+                // A nested *directive* cannot demonstrate this: its own `Write` catches
+                // what its render function throws, so nothing ever propagates out of the
+                // enclosing `capture`. The throw has to come from a renderer the directive
+                // renderer delegates to, which nothing guards. Delete the `try/finally` in
+                // `capture` and "afterwards" below stops reaching the output.
+                let pipeline =
+                    MarkdownPipelineBuilder()
+                        .UseCustomContainers()
+                        .Use(ThrowingExtension())
+                        .Use(DirectiveExtension [ note ])
+                        .Build()
 
                 let html =
-                    Renderer.toHtml
-                        [ exploding; note ]
-                        "::::note title=\"Outer\"\n:::boom\nbody\n:::\n::::\n\nafterwards\n"
+                    Markdown.ToHtml(
+                        "::::note title=\"Outer\"\n:::boom\nbody\n:::\n::::\n\nafterwards\n",
+                        pipeline
+                    )
 
-                Expect.stringContains html "nacara-note" "the enclosing directive rendered"
+                Expect.stringContains html "nacara-directive-error" "the enclosing directive degraded visibly"
                 Expect.stringContains html "afterwards" "and the page carried on past it"
             }
 
@@ -322,6 +420,78 @@ let tests =
 
                 let html = Renderer.toHtml [ steps; step ] "::::steps start=5\n:::step\nfirst\n:::\n::::\n"
                 Expect.stringContains html "data-number=\"5\"" "the parent's start was read"
+            }
+
+            test "a grandchild reaches its grandparent's arguments" {
+                let steps =
+                    Directive.create "steps" (Decode.object (fun get ->
+                        {| Start = get.Optional.Field "start" Decode.int |> Option.defaultValue 1 |}))
+                    |> Directive.render (fun _ _ body -> Html.ol [ prop.children [ body ] ])
+
+                let group =
+                    Directive.create "group" (Decode.succeed {| Label = "middle" |})
+                    |> Directive.render (fun _ _ body -> Html.div [ prop.children [ body ] ])
+
+                let step =
+                    Directive.create "step" (Decode.succeed ())
+                    |> Directive.render (fun ctx _ body ->
+                        Html.li [
+                            prop.custom ("data-depth", string ctx.Depth)
+                            prop.custom (
+                                "data-number",
+                                match ctx.TryAncestor<{| Start: int |}>() with
+                                | Some outermost -> string (outermost.Start + ctx.Index)
+                                | None -> "orphan"
+                            )
+                            prop.children [ body ]
+                        ])
+
+                // Each fence is shorter than the one enclosing it, which is the rule
+                // Markdig's fenced blocks impose: with equal fences the first `:::` would
+                // close the outermost block and these would be siblings.
+                let html =
+                    Renderer.toHtml
+                        [ steps; group; step ]
+                        ":::::steps start=5\n::::group\n:::step\nfirst\n:::\n::::\n:::::\n"
+
+                Expect.stringContains
+                    html
+                    "data-number=\"5\""
+                    "TryAncestor looked past the group to the grandparent's type"
+
+                Expect.stringContains html "data-depth=\"2\"" "two directives enclose it"
+            }
+
+            testSequenced
+            <| test "a reported fault reaches stderr under its own severity" {
+                // Sequenced because it swaps `Console.Error`, which is process-wide.
+                let speaking =
+                    Directive.create "speak" (Decode.succeed ())
+                    |> Directive.render (fun ctx _ body ->
+                        ctx.Error "this one could not be done"
+                        ctx.Warn "this one is only worth saying"
+                        body)
+
+                let original = System.Console.Error
+                use captured = new System.IO.StringWriter()
+                System.Console.SetError captured
+
+                try
+                    Renderer.toHtml [ speaking ] ":::speak\nbody\n:::\n" |> ignore
+                finally
+                    System.Console.SetError original
+
+                let reported = captured.ToString()
+
+                Expect.stringContains
+                    reported
+                    "directives: error: :::speak - this one could not be done"
+                    "ctx.Error reached the drain under the error label"
+
+                Expect.stringContains
+                    reported
+                    "directives: warning: :::speak - this one is only worth saying"
+                    "and ctx.Warn is distinguishable from it in the output"
             }
 
             test "arguments that do not decode still render the body" {

@@ -58,6 +58,10 @@ module internal Context =
             |> Seq.choose (function
                 | :? CustomContainer as sibling when sibling.Info = container.Info -> Some sibling
                 | _ -> None)
-            |> Seq.toList
-            |> List.tryFindIndex (fun sibling -> System.Object.ReferenceEquals(sibling, container))
+            |> Seq.indexed
+            |> Seq.tryPick (fun (index, sibling) ->
+                if System.Object.ReferenceEquals(sibling, container) then
+                    Some index
+                else
+                    None)
             |> Option.defaultValue 0
