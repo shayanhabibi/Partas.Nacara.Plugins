@@ -7,8 +7,27 @@ open Nacara.Core
 open Markdig
 open Markdig.Syntax
 open Markdig.Extensions.CustomContainers
+open Markdig.Renderers
+open Markdig.Renderers.Html
 
 let private mapping input = Arguments.toFlowMapping input
+
+/// <summary>A stand-in for the renderer Nacara installs for its own built-in containers,
+/// so a test does not depend on the stock <c>HtmlCustomContainerRenderer</c> being the one
+/// that answers for an unmatched directive.</summary>
+type private SentinelRenderer(marker: string) =
+    inherit HtmlObjectRenderer<CustomContainer>()
+    override _.Write(renderer: HtmlRenderer, container: CustomContainer) =
+        renderer.Write($"<!--%s{marker}:%s{container.Info}-->") |> ignore
+
+type private SentinelExtension(marker: string) =
+    interface IMarkdownExtension with
+        member _.Setup(_pipeline: MarkdownPipelineBuilder) = ()
+
+        member _.Setup(_pipeline: MarkdownPipeline, renderer: IMarkdownRenderer) =
+            match renderer with
+            | :? HtmlRenderer as html -> html.ObjectRenderers.Insert(0, SentinelRenderer marker)
+            | _ -> ()
 
 [<Tests>]
 let tests =
@@ -172,6 +191,137 @@ let tests =
                     |> Seq.toList
 
                 Expect.equal (steps |> List.map Context.siblingIndex) [ 0; 1 ] "numbered from zero"
+            }
+        ]
+
+        testList "rendering" [
+            let note =
+                Directive.create "note" (Decode.object (fun get ->
+                    {| Title = get.Optional.Field "title" Decode.string |}))
+                |> Directive.render (fun _ args body ->
+                    Html.aside [
+                        prop.className "nacara-note"
+                        prop.children [
+                            match args.Title with
+                            | Some title -> Html.p [ prop.className "nacara-note__title"; prop.text title ]
+                            | None -> Html.none
+                            body
+                        ]
+                    ])
+
+            test "a registered directive renders through its function" {
+                let html = Renderer.toHtml [ note ] ":::note title=\"Careful\"\nbody text\n:::\n"
+                Expect.stringContains html "nacara-note" "the class is there"
+                Expect.stringContains html "Careful" "the argument was read"
+            }
+
+            test "the body is rendered as markdown, not as text" {
+                let html = Renderer.toHtml [ note ] ":::note\nsome *emphasis*\n:::\n"
+                Expect.stringContains html "<em>emphasis</em>" "markdown in the body still works"
+            }
+
+            test "an unregistered directive is left alone" {
+                let html = Renderer.toHtml [ note ] ":::unknown\nbody\n:::\n"
+                Expect.isFalse (html.Contains "nacara-note") "our renderer did not claim it"
+            }
+
+            test "an unregistered directive still reaches whatever else would have rendered it" {
+                // Proves the fallback resolves the live renderer list rather than a
+                // fixed stock renderer: with a stand-in for Nacara's own container
+                // renderer present, an unmatched name reaches it, and a matched one does
+                // not - so this directive extension is not quietly swallowing directives
+                // it was never declared to own.
+                let pipeline =
+                    MarkdownPipelineBuilder()
+                        .UseCustomContainers()
+                        .Use(SentinelExtension "OTHER")
+                        .Use(DirectiveExtension [ note ])
+                        .Build()
+
+                let html =
+                    Markdown.ToHtml(
+                        ":::unknown\nbody\n:::\n:::note title=\"x\"\nbody\n:::\n",
+                        pipeline
+                    )
+
+                Expect.stringContains html "OTHER:unknown" "the unregistered directive reached the other renderer"
+                Expect.isFalse (html.Contains "OTHER:note") "the registered directive did not"
+            }
+
+            test "directives nest" {
+                let steps =
+                    Directive.create "steps" (Decode.succeed {| Start = 1 |})
+                    |> Directive.render (fun _ _ body -> Html.ol [ prop.children [ body ] ])
+
+                let step =
+                    Directive.create "step" (Decode.succeed ())
+                    |> Directive.render (fun ctx _ body ->
+                        Html.li [
+                            prop.custom ("data-step", string ctx.Index)
+                            prop.children [ body ]
+                        ])
+
+                let html =
+                    Renderer.toHtml
+                        [ steps; step ]
+                        "::::steps\n:::step\nfirst\n:::\n:::step\nsecond\n:::\n::::\n"
+
+                Expect.stringContains html "data-step=\"0\"" "first is zero"
+                Expect.stringContains html "data-step=\"1\"" "second is one"
+            }
+
+            test "a child can read its parent's arguments" {
+                let steps =
+                    Directive.create "steps" (Decode.object (fun get ->
+                        {| Start = get.Optional.Field "start" Decode.int |> Option.defaultValue 1 |}))
+                    |> Directive.render (fun _ _ body -> Html.ol [ prop.children [ body ] ])
+
+                let step =
+                    Directive.create "step" (Decode.succeed ())
+                    |> Directive.render (fun ctx _ body ->
+                        match ctx.TryAncestor<{| Start: int |}>() with
+                        | Some parent ->
+                            Html.li [
+                                prop.custom ("data-number", string (parent.Start + ctx.Index))
+                                prop.children [ body ]
+                            ]
+                        | None -> Html.li [ prop.text "orphan" ])
+
+                let html = Renderer.toHtml [ steps; step ] "::::steps start=5\n:::step\nfirst\n:::\n::::\n"
+                Expect.stringContains html "data-number=\"5\"" "the parent's start was read"
+            }
+
+            test "arguments that do not decode still render the body" {
+                let step =
+                    Directive.create "step" (Decode.object (fun get ->
+                        {| Title = get.Required.Field "title" Decode.string |}))
+                    |> Directive.render (fun _ args _ -> Html.h3 args.Title)
+
+                let html = Renderer.toHtml [ step ] ":::step\nthe body\n:::\n"
+                Expect.stringContains html "the body" "content is not lost when arguments fail"
+            }
+        ]
+
+        testList "registration" [
+            test "two directives of one name are refused" {
+                let one = Directive.create "note" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+                let two = Directive.create "note" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+
+                Expect.equal (Directives.duplicates [ one; two ]) [ "note" ] "the clash is named"
+            }
+
+            test "distinct names are accepted" {
+                let one = Directive.create "note" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+                let two = Directive.create "tip" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+
+                Expect.isEmpty (Directives.duplicates [ one; two ]) "no clash"
+            }
+
+            test "creating a plugin with a duplicate name throws at once" {
+                let one = Directive.create "note" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+                let two = Directive.create "note" (Decode.succeed ()) |> Directive.render (fun _ _ _ -> Html.none)
+
+                Expect.throws (fun () -> Directives.create [ one; two ] |> ignore) "fails before any page renders"
             }
         ]
     ]

@@ -18,6 +18,8 @@
         <Compile Include="Arguments.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="Context.fs" />
+        <Compile Include="Renderer.fs" />
+        <Compile Include="Directives.fs" />
         <None Include="../../README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
