@@ -3,6 +3,9 @@
     <File Path="build.fsx" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Partas.Nacara.Theme/Partas.Nacara.Theme.fsproj" />
+    <Project Path="src/Partas.Nacara.Theme.Contracts/Partas.Nacara.Theme.Contracts.fsproj" />
+    <Project Path="src/Partas.Nacara.Plugins.AgentFriendly/Partas.Nacara.Plugins.AgentFriendly.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.DaisyUI/Partas.Nacara.Plugins.DaisyUI.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.Tailwind/Partas.Nacara.Plugins.Tailwind.fsproj" />
   </Folder>

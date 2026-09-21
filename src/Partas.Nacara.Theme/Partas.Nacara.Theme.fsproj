@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <PackageId>Partas.Nacara.Theme</PackageId>
+        <AssemblyName>Partas.Nacara.Theme</AssemblyName>
+        <RootNamespace>Partas.Nacara.Theme</RootNamespace>
+        <Description>Default documentation theme for Nacara: layout, design tokens and web components.</Description>
+        <JsOutputPath>$(BaseIntermediateOutputPath)js/</JsOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Types.fs" />
+        <Compile Include="CodeBlocks.fs" />
+        <Compile Include="Icons.fs" />
+        <Compile Include="Components.fs" />
+        <Compile Include="Theme.fs" />
+    </ItemGroup>
+    <ItemGroup>
+        <ThemeSource Include="js/**/*.js" />
+        <None Include="@(ThemeSource)" />
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="assets/css/*.css" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Fss-lib.Core" Version="3.0.0" />
+      <PackageReference Include="Fss-lib.Static" Version="3.0.0" />
+      <PackageReference Include="Nacara.Core" Version="2.0.0-beta.6" />
+      <ProjectReference Include="..\Partas.Nacara.Theme.Contracts\Partas.Nacara.Theme.Contracts.fsproj" />
+    </ItemGroup>
+
+    <!--
+        Separate from EmbedThemeAssets so Inputs/Outputs can skip bundling without skipping the
+        EmbeddedResource items.
+    -->
+    <Target Name="BundleTheme"
+            Inputs="@(ThemeSource)"
+            Outputs="$(JsOutputPath)nacara.js;$(JsOutputPath)theme-bootstrap.js">
+        <MakeDir Directories="$(JsOutputPath)" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
+              Command="npx --no-install esbuild js/nacara.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)nacara.js&quot;" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
+              Command="npx --no-install esbuild js/theme-bootstrap.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)theme-bootstrap.js&quot;" />
+    </Target>
+
+    <!-- AssignTargetPaths walks @(EmbeddedResource); an item added after it has run is dropped. -->
+    <Target Name="EmbedThemeAssets" BeforeTargets="AssignTargetPaths" DependsOnTargets="BundleTheme">
+        <ItemGroup>
+            <EmbeddedResource Include="$(JsOutputPath)nacara.js" LogicalName="Partas.Nacara.Theme.assets.nacara.js" />
+            <EmbeddedResource Include="$(JsOutputPath)theme-bootstrap.js" LogicalName="Partas.Nacara.Theme.assets.theme-bootstrap.js" />
+        </ItemGroup>
+    </Target>
+</Project>

@@ -1,0 +1,8 @@
+{
+  "name": "partas-nacara-plugins",
+  "private": true,
+  "description": "Build-time JavaScript tooling. The theme's BundleTheme target runs esbuild through npx --no-install, which resolves it from here.",
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

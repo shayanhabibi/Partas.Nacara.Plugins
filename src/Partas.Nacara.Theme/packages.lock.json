@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "FSharp.Core": {
+        "type": "Direct",
+        "requested": "[11.0.101-rc1.26425.128, )",
+        "resolved": "11.0.101-rc1.26425.128",
+        "contentHash": "IXKJwuqgq5HwFWw1gM27SYl8Ztgb4tTPA7b3hn3ePv0cobG/iLBZ9c9a0VLzSPxT8QH7ZSxIdYCT5NtvTIcYww=="
+      },
+      "Fss-lib.Core": {
+        "type": "Direct",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "CG1zA4soEszRQY9T9q2b89gUuzhR0ABSNgIpsFVckxRl4vQ/h0pBgJzqR8ZWzO5pBOGd3h35/Gjt105ZvtZs8w==",
+        "dependencies": {
+          "FSharp.Core": "10.0.103"
+        }
+      },
+      "Fss-lib.Static": {
+        "type": "Direct",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "I7ygz9EgiDlIn1+QsTt+s0/SEA1XWhAj3//ZtPNd18PokoXAUWosKcRqgloXO11WpTB5Z792pWJ02DU25gVp8w==",
+        "dependencies": {
+          "FSharp.Core": "10.0.103",
+          "Fss-lib.Core": "3.0.0"
+        }
+      },
+      "Nacara.Core": {
+        "type": "Direct",
+        "requested": "[2.0.0-beta.6, )",
+        "resolved": "2.0.0-beta.6",
+        "contentHash": "IvAtbADun05y/u7sX3U6to/+tyXUq0VC7y31eWtNKa96nPI1XZRqUeR/T2RpNr2OvASd0gznVJfcldWcZrKVMA==",
+        "dependencies": {
+          "FSharp.Core": "10.1.300",
+          "Feliz.ViewEngine": "1.0.3",
+          "Microsoft.Extensions.FileSystemGlobbing": "10.0.11",
+          "YamlDotNet": "18.1.0"
+        }
+      },
+      "Feliz.ViewEngine": {
+        "type": "Transitive",
+        "resolved": "1.0.3",
+        "contentHash": "962ikmdW9oKmB4p6BJLM75D5SQJHFB+DmIUeKmHwoP1uZaXbvsXbQKQFi5slzGGUvOP8L3TYhRex6QVJri0Zjw==",
+        "dependencies": {
+          "Fsharp.Core": "4.7.0"
+        }
+      },
+      "Microsoft.Extensions.FileSystemGlobbing": {
+        "type": "Transitive",
+        "resolved": "10.0.11",
+        "contentHash": "2i6rtW/B5rCnWCnhdmWWEmaM9O0HD0zsPY9eRqa++y4tclI3Uw8zvGbBvhY/LjAdtf8gUHhUPcAWj3DRlWMXmQ=="
+      },
+      "YamlDotNet": {
+        "type": "Transitive",
+        "resolved": "18.1.0",
+        "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
+      },
+      "partas.nacara.theme.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[11.0.101-rc1.26425.128, )"
+        }
+      }
+    }
+  }
+}

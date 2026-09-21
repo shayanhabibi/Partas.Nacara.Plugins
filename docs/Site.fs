@@ -3,7 +3,7 @@ module Docs.Site
 open Feliz.ViewEngine
 open Nacara.Core
 open Nacara.Plugins
-open Nacara.Theme
+open Partas.Nacara.Theme
 
 let versions = [SiteVersion.root "1.0"]
 
