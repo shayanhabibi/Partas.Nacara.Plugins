@@ -116,9 +116,14 @@ module Stage =
         return stage "clean" {
             when' (not quick)
             run (async {
+                // node_modules is full of directories called bin, and one of them holds the
+                // esbuild binary the theme bundles with. Sweeping it left the build to fail
+                // later, in a project, with no hint that cleaning was what emptied it.
                 !! "**/**/bin"
                 ++ "temp"
                 -- "bin"
+                -- "node_modules/**"
+                -- "**/node_modules/**"
                 |> Shell.cleanDirs
             })
         }
