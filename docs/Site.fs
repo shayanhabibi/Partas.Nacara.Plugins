@@ -29,7 +29,21 @@ let private step =
 
 let theme =
     Theme.defaults
-    |> Theme.navbar [NavbarSection("Guide", "guide", "/guide/introduction/")]
+    |> Theme.navbar [NavbarSection("Guide", "guide", "/guide/getting-started/")]
+    // One section per package, so the menu reads as the list of things on offer
+    // rather than as a flat pile of pages.
+    |> Theme.menu
+           "guide"
+           [ Menu.page "guide/getting-started.md"
+             Menu.section "Directives" [ Menu.page "guide/directives.md" ]
+             |> Menu.badge "New"
+             Menu.section "Tailwind" [ Menu.page "guide/tailwind.md" ]
+             Menu.section "DaisyUI" [ Menu.page "guide/daisyui.md" ]
+             Menu.section
+                 "Theme"
+                 [ Menu.page "guide/theme.md"
+                   Menu.page "guide/styling.md" |> Menu.badge "New" ]
+             |> Menu.badge "New" ]
     |> Theme.navbarEnd
            [// NavbarDynamicWidget Search.trigger
             NavbarDynamicWidget(Versions.switcher (Versions.versions versions Versions.defaults))

@@ -264,7 +264,7 @@ open Partas.Nacara.Theme
 
 let theme =
     Theme.defaults
-    |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/introduction/") ]
+    |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/getting-started/") ]
     |> Theme.footer (Html.p [ Html.text "Built with Nacara" ])
 
 let site =

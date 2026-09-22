@@ -1,6 +1,5 @@
 ---
-title: Theme
-order: 3
+title: Cascade layers
 ---
 
 `Partas.Nacara.Theme` is the documentation theme this site is built with: layout,
@@ -12,7 +11,7 @@ open Partas.Nacara.Theme
 
 let theme =
     Theme.defaults
-    |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/introduction/") ]
+    |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/getting-started/") ]
     |> Theme.editUrl "https://github.com/you/repo/edit/main/docs"
     |> Theme.footer (Html.p [ Html.text "Built with Nacara" ])
 

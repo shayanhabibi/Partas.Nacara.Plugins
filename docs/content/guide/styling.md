@@ -1,10 +1,10 @@
 ---
 title: Plugin style layers
-order: 4
 ---
 
-A plugin that renders markup usually needs CSS for it. `:::step` above is a `<li>`
-with a class on it and means nothing without rules to match.
+A plugin that renders markup usually needs CSS for it. The `:::step` directive in
+[Writing directives](directives.md) is a `<li>` with a class on it, and means
+nothing without rules to match.
 
 `Partas.Nacara.Theme.Contracts` is the package both sides agree on. It holds two
 small things and no theme, so a plugin can offer styles without depending on the

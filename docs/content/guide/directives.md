@@ -1,6 +1,5 @@
 ---
-title: Directives
-order: 2
+title: Writing directives
 ---
 
 A directive is a fenced block Markdown knows nothing about and your site renders

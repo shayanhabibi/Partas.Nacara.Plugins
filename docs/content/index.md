@@ -10,7 +10,7 @@ Plugins and a documentation theme for [Nacara](https://github.com/MangelMaxime/N
 the F# static site generator whose site is an F# program. Each package is
 independent — take the one you want.
 
-New here? Start with [the introduction](guide/introduction.md).
+New here? Start with [getting started](guide/getting-started.md).
 
 ## Write your own `:::` blocks
 
