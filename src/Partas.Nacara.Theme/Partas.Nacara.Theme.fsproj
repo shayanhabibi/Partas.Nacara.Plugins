@@ -48,9 +48,30 @@
         EmbeddedResource items.
     -->
     <Target Name="BundleTheme" Inputs="@(ThemeSource)" Outputs="$(JsOutputPath)nacara.js;$(JsOutputPath)theme-bootstrap.js">
+        <!--
+            The native binary, not `npx esbuild`. npx has to be on PATH and has to find the
+            package's JavaScript launcher, and neither is reliable: under `dotnet fsi build.fsx`
+            on CI npx is not on PATH at all and the build fails with 127, and on Windows the
+            launcher is liable to be quarantined after install while the binary beside it is
+            left alone. This runs the binary, so it needs neither npx nor node.
+
+            npm installs exactly one @esbuild/<platform> package, for the platform it ran on.
+            Globbing it rather than naming it keeps every OS and architecture working; the two
+            patterns are the Unix layout and the Windows one.
+        -->
+        <ItemGroup>
+            <EsbuildBinary Include="$(MSBuildThisFileDirectory)../../node_modules/@esbuild/*/bin/esbuild" />
+            <EsbuildBinary Include="$(MSBuildThisFileDirectory)../../node_modules/@esbuild/*/esbuild.exe" />
+        </ItemGroup>
+        <PropertyGroup>
+            <EsbuildPath>@(EsbuildBinary->'%(FullPath)')</EsbuildPath>
+        </PropertyGroup>
+        <Error
+            Condition="'$(EsbuildPath)' == ''"
+            Text="esbuild is not installed, so the theme's JavaScript cannot be bundled. Run `npm ci` at the root of the repository." />
         <MakeDir Directories="$(JsOutputPath)" />
-        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="npx --no-install esbuild js/nacara.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)nacara.js&quot;" />
-        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="npx --no-install esbuild js/theme-bootstrap.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)theme-bootstrap.js&quot;" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;$(EsbuildPath)&quot; js/nacara.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)nacara.js&quot;" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;$(EsbuildPath)&quot; js/theme-bootstrap.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)theme-bootstrap.js&quot;" />
     </Target>
 
     <!-- AssignTargetPaths walks @(EmbeddedResource); an item added after it has run is dropped. -->
