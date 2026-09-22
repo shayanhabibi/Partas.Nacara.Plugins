@@ -168,6 +168,76 @@ let tests =
                     Expect.stringContains yaml "level: 2" "and the argument after it is still read"
                 | Error message -> failtestf "expected the quoted value to be accepted, got %s" message
             }
+
+            test "a value in brackets is handed to YAML as a collection" {
+                // The brackets are the point: they reach YAML intact, so `Decode.list` reads
+                // a list rather than a decoder having to split a string.
+                match mapping "tags=[fsharp, dotnet]" with
+                | Ok yaml -> Expect.stringContains yaml "tags: [fsharp, dotnet]" "the sequence survives intact"
+                | Error message -> failtestf "expected the sequence to be accepted, got %s" message
+            }
+
+            test "a bracketed value does not end at the space inside it" {
+                // A bare value stops at the first space. If a bracketed one did too, `[a,`
+                // would be the value and `b]` would be read as a fresh argument.
+                match mapping "tags=[a, b] level=2" with
+                | Ok yaml ->
+                    Expect.stringContains yaml "tags: [a, b]" "the whole sequence is one value"
+                    Expect.stringContains yaml "level: 2" "and the argument after it is still read"
+                | Error message -> failtestf "expected the sequence to be accepted, got %s" message
+            }
+
+            test "brackets may nest" {
+                match mapping "meta={title: a, tags: [x, y]}" with
+                | Ok yaml -> Expect.stringContains yaml "meta: {title: a, tags: [x, y]}" "the inner sequence does not close the outer mapping"
+                | Error message -> failtestf "expected the mapping to be accepted, got %s" message
+            }
+
+            test "an empty collection is a collection" {
+                match mapping "tags=[]" with
+                | Ok yaml -> Expect.stringContains yaml "tags: []" "the empty sequence is read"
+                | Error message -> failtestf "expected the empty sequence to be accepted, got %s" message
+            }
+
+            test "a bracket inside a quoted section does not close the collection" {
+                match mapping "tags=[\"a, b]\", c]" with
+                | Ok yaml -> Expect.stringContains yaml "tags: [\"a, b]\", c]" "the quoted bracket is part of the value"
+                | Error message -> failtestf "expected the quoted bracket to be accepted, got %s" message
+            }
+
+            test "a collection that is never closed is refused" {
+                match mapping "tags=[a, b" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "never closed" "the author hears which end is missing"
+            }
+
+            test "a collection closed by the wrong bracket is refused" {
+                match mapping "tags=[a, b}" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "']'" "the expected bracket is named"
+            }
+
+            test "text after a closing bracket is refused" {
+                // Same hole the closing-quote check covers: `x` would become a flag.
+                match mapping "tags=[a]x" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "closing bracket" "the author hears where the value ended"
+            }
+
+            test "a stray bracket is still refused" {
+                // Reading collections must not reopen the hole: this value does not open one.
+                match mapping "title=a]b" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "']'" "the offending character is named"
+            }
+
+            test "a comma in a bare value is still refused" {
+                // The regression that collections could have brought back: `title=a,b=2`
+                // silently becoming two arguments.
+                match mapping "title=a,b=2" with
+                | Ok yaml -> failtestf "expected a rejection, got %s" yaml
+                | Error message -> Expect.stringContains message "','" "the offending character is named"
+            }
         ]
 
         testList "directive builder" [
@@ -202,6 +272,28 @@ let tests =
 
                     let rendered = directive.RenderWith context arguments Html.none
                     Expect.stringContains (Render.htmlView rendered) "2" "the decoded level reaches the render function"
+                | Error message -> failtest message
+            }
+
+            test "a bracketed argument decodes as a list, not as a string" {
+                let directive =
+                    Directive.create
+                        "note"
+                        (Decode.object (fun get -> {| Tags = get.Required.Field "tags" (Decode.list Decode.string) |}))
+                    |> Directive.render (fun _ args _ -> Html.span [ prop.text (String.concat "|" args.Tags) ])
+
+                match Directive.decodeArguments directive 0 "tags=[fsharp, dotnet]" with
+                | Ok arguments ->
+                    let context: DirectiveContext =
+                        {
+                            Ancestors = []
+                            SiblingIndex = 0
+                            Nesting = 0
+                            Report = ignore
+                        }
+
+                    let rendered = directive.RenderWith context arguments Html.none
+                    Expect.stringContains (Render.htmlView rendered) "fsharp|dotnet" "both list entries reach the render function"
                 | Error message -> failtest message
             }
 

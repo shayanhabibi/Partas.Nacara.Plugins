@@ -42,6 +42,51 @@ module internal Arguments =
         if closed then Ok(value.ToString(), index)
         else Error $"a quoted value was opened but never closed: %s{input.Substring start}"
 
+    /// <summary>Read a value that is itself YAML flow syntax: a sequence or a mapping.</summary>
+    /// <remarks>
+    /// Handed on untouched, brackets and all, because it already is the syntax YAML wants -
+    /// which is what lets <c>tags=[a, b]</c> reach a <c>Decode.list</c>. Whitespace inside
+    /// the brackets belongs to the value, so this reads to the closing bracket rather than
+    /// to the next space. Nesting is tracked, and a quoted section is stepped over whole, so
+    /// a bracket inside a quoted string does not close the value early.
+    /// </remarks>
+    let private readBracketed (input: string) (start: int) =
+        let closerFor opener = if opener = '[' then ']' else '}'
+        let mutable index = start
+        let mutable expected: char list = []
+        let mutable failure = None
+        let mutable closed = false
+
+        while not closed && failure.IsNone && index < input.Length do
+            match input[index] with
+            | c when c = Quote ->
+                match readQuoted input index with
+                | Ok(_, next) -> index <- next
+                | Error reason -> failure <- Some reason
+            | c when c = '[' || c = '{' ->
+                expected <- closerFor c :: expected
+                index <- index + 1
+            | c when c = ']' || c = '}' ->
+                match expected with
+                | want :: rest when want = c ->
+                    expected <- rest
+                    index <- index + 1
+                    closed <- rest.IsEmpty
+                | want :: _ ->
+                    failure <-
+                        Some
+                            $"a bracketed value closes with '%c{c}' where '%c{want}' was expected: %s{input.Substring start}"
+                | [] ->
+                    // Unreachable: this is only called on a line whose first character is an
+                    // opening bracket, so something is always expected on the first pass.
+                    failure <- Some $"a bracketed value closed before it opened: %s{input.Substring start}"
+            | _ -> index <- index + 1
+
+        match failure with
+        | Some reason -> Error reason
+        | None when closed -> Ok(input.Substring(start, index - start), index)
+        | None -> Error $"a bracketed value was opened but never closed: %s{input.Substring start}"
+
     /// <summary>Read a value that runs until the next space.</summary>
     let private readBare (input: string) (start: int) =
         let mutable index = start
@@ -56,6 +101,8 @@ module internal Arguments =
     /// free to end the entry early: <c>title=a,b=2</c> would otherwise become two keys
     /// with nothing said about it. Quoting bare values would close the hole and cost the
     /// typing, so a value carrying one of these is refused instead.
+    /// <para>A value that opens with a bracket never reaches this check: it is read as a
+    /// balanced collection instead, which is what a stray bracket is not.</para>
     /// </remarks>
     let private flowPunctuation = [| ','; '{'; '}'; '['; ']'; ':' |]
 
@@ -122,6 +169,19 @@ module internal Arguments =
                                 failure <-
                                     Some
                                         $"the value of '%s{key}' has '%c{arguments[next]}' after its closing quote; separate arguments with a space"
+                            else
+                                add key $"%s{key}: %s{value}"
+                                index <- next
+                        | Error reason -> failure <- Some reason
+                    elif index < arguments.Length && (arguments[index] = '[' || arguments[index] = '{') then
+                        match readBracketed arguments index with
+                        | Ok(value, next) ->
+                            // Same rule as the closing quote, for the same reason: `tags=[a]x`
+                            // would otherwise leave `x` to be read as a fresh key.
+                            if next < arguments.Length && not (Char.IsWhiteSpace arguments[next]) then
+                                failure <-
+                                    Some
+                                        $"the value of '%s{key}' has '%c{arguments[next]}' after its closing bracket; separate arguments with a space"
                             else
                                 add key $"%s{key}: %s{value}"
                                 index <- next
