@@ -4,7 +4,7 @@
         <PackageId>Partas.Nacara.Theme.Contracts</PackageId>
         <Description>What a theme and a styling plugin agree on: the cascade layers a theme declares, and the layers a plugin contributes to it. Depends on nothing, so neither side depends on the other.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-    </PropertyGroup>
+    <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion></PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="\" />
     </ItemGroup>

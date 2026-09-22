@@ -8,3 +8,4 @@ node_modules/
 
 # Generated documentation site
 docs/output/
+src/Partas.Nacara.Theme/build/

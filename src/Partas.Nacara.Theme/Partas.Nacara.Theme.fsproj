@@ -14,7 +14,7 @@
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <Copyright>Copyright Maxime Mangel; modifications copyright 2026 Shayan Habibi</Copyright>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-    </PropertyGroup>
+    <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion></PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="\" />
         <!-- Section 4(a) and 4(d): the License and the NOTICE travel with the package. -->
@@ -46,14 +46,10 @@
         Separate from EmbedThemeAssets so Inputs/Outputs can skip bundling without skipping the
         EmbeddedResource items.
     -->
-    <Target Name="BundleTheme"
-            Inputs="@(ThemeSource)"
-            Outputs="$(JsOutputPath)nacara.js;$(JsOutputPath)theme-bootstrap.js">
+    <Target Name="BundleTheme" Inputs="@(ThemeSource)" Outputs="$(JsOutputPath)nacara.js;$(JsOutputPath)theme-bootstrap.js">
         <MakeDir Directories="$(JsOutputPath)" />
-        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
-              Command="npx --no-install esbuild js/nacara.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)nacara.js&quot;" />
-        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
-              Command="npx --no-install esbuild js/theme-bootstrap.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)theme-bootstrap.js&quot;" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="npx --no-install esbuild js/nacara.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)nacara.js&quot;" />
+        <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="npx --no-install esbuild js/theme-bootstrap.js --bundle --minify --format=iife --outfile=&quot;$(JsOutputPath)theme-bootstrap.js&quot;" />
     </Target>
 
     <!-- AssignTargetPaths walks @(EmbeddedResource); an item added after it has run is dropped. -->

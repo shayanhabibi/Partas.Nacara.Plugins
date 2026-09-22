@@ -4,7 +4,16 @@
   "tools": {
     "fantomas": {
       "version": "7.0.5",
-      "commands": [ "fantomas" ],
+      "commands": [
+        "fantomas"
+      ],
+      "rollForward": false
+    },
+    "fss-lib.builder": {
+      "version": "3.0.1",
+      "commands": [
+        "Fss.Build"
+      ],
       "rollForward": false
     }
   }
