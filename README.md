@@ -149,6 +149,14 @@ int rather than the string `"2"`. That puts YAML's own punctuation — `,` `{` `
 early; write `title="a, b"` and it is text. A line that breaks this is refused by
 name rather than silently misread, as are a repeated argument and one with no name.
 
+A value that *opens* with a bracket is a different matter: it is read to its
+matching close and handed to YAML whole, brackets and all. So `tags=[fsharp,
+dotnet]` decodes with `Decode.list Decode.string` rather than as a string a
+decoder has to split, and `meta={author: you, since: 2024}` nests. Spaces inside
+the brackets belong to the value, nesting is tracked, and a bracket inside a
+quoted section does not close it early. A bracket that never balances is refused
+like any other stray punctuation.
+
 A nested directive reads the one enclosing it by type, so `:::step` can number
 itself from its parent's `start` without the author counting. Lookup is by the
 argument type, not by name, so an anonymous record is enough — there is no type to
@@ -241,6 +249,91 @@ Both raise if two directives claim one name — a name selects exactly one direc
 so the build cannot choose. `Directives.duplicates` answers the same question
 without raising, returning the names claimed more than once, which is what to call
 if you are validating a list you assembled from somewhere else.
+
+## Theme
+
+The documentation theme this repository's own site is built with: layout, navbar,
+design tokens and web components.
+
+```bash
+dotnet add package Partas.Nacara.Theme
+```
+
+```fsharp
+open Partas.Nacara.Theme
+
+let theme =
+    Theme.defaults
+    |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/introduction/") ]
+    |> Theme.footer (Html.p [ Html.text "Built with Nacara" ])
+
+let site =
+    Site.create "My site"
+    |> Theme.register theme
+    |> Site.collection (Theme.docs theme "content")
+```
+
+Its stylesheet is not one file but a list of named parts, each written into a CSS
+cascade layer of its own — `tokens`, `base`, `navbar`, `layout`, `components`,
+`code`, `responsive`, in that order. Because they are cascade layers, order
+decides ties rather than specificity, so restyling the theme does not mean
+out-specifying it:
+
+```fsharp
+Theme.defaults
+|> Theme.replaceLayer "components" (File.ReadAllText "css/components.css")
+|> Theme.dropLayer "code"
+|> Theme.layerAfter "components" "widgets" widgetCss
+```
+
+`layerBefore` is the mirror of `layerAfter`, and `Theme.styles` replaces the whole
+list at once. Naming a layer the theme does not have fails the build with the
+known names in the message, since a typo would otherwise be a silent no-op.
+
+> [!WARNING]
+> Do not drop `tokens` unless you are replacing every custom property it defines.
+> The other six layers read over three hundred `var(--nacara-*)` references; with
+> `tokens` gone they resolve to nothing and the page renders wrong without saying
+> so. Every other layer is safe to drop, and reordering is always safe.
+
+This package is Apache-2.0 rather than MIT — see
+[Licensing and attribution](#licensing-and-attribution).
+
+## Theme contracts
+
+What a theme and a styling plugin agree on, in a package that depends on nothing
+so that neither side depends on the other.
+
+```bash
+dotnet add package Partas.Nacara.Theme.Contracts
+```
+
+A plugin with styles of its own offers them; the theme bundles each into a cascade
+layer named after it, `nacara.<name>`, after the theme's own layers:
+
+```fsharp
+open Partas.Nacara.Theme
+
+PluginLayers.offer
+    { Name = "directives"
+      Css = ".nacara-steps { list-style: none; }" }
+```
+
+A CSS tool that generates its own stylesheet reads the other direction, to declare
+its cascade order against the theme's:
+
+```fsharp
+match ThemeLayers.current () with
+| [] -> "@layer mine;"
+| names -> $"""@layer {String.Join(", ", names)}, mine;"""
+```
+
+Read `ThemeLayers.current ()` when bundling, not when configuring: the theme has
+to configure last, because it reads what the plugins offered, so a plugin that
+asks too early sees the empty list. Both are one build at a time in one process.
+
+An offer is an offer — a theme that never reads `PluginLayers.all ()` is within
+its rights.
 
 ## Licensing and attribution
 

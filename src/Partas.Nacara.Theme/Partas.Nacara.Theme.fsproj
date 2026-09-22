@@ -13,8 +13,10 @@
         -->
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <Copyright>Copyright Maxime Mangel; modifications copyright 2026 Shayan Habibi</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
         <!-- Section 4(a) and 4(d): the License and the NOTICE travel with the package. -->
         <None Include="../../LICENSE" Pack="true" PackagePath="/" Visible="false" />
         <None Include="../../NOTICE" Pack="true" PackagePath="/" Visible="false" />
