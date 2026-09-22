@@ -24,6 +24,39 @@ let site =
 `Theme.register` installs it; `Theme.docs` builds the collection that renders
 your Markdown with it.
 
+## Design tokens
+
+The `tokens` layer is the one layer you do not write CSS for. It is a record, and
+every field in it is a custom property the rest of the theme reads:
+
+```fsharp
+Theme.defaults
+|> Theme.lightTokens (fun tokens -> { tokens with Primary = "#c0392b" })
+|> Theme.darkTokens (fun tokens -> { tokens with Primary = "#e74c3c" })
+```
+
+A field's name is its property's name, in kebab case, under `--nacara-`: `Primary`
+is `--nacara-primary`, `BgSubtle` is `--nacara-bg-subtle`, `Space12` is
+`--nacara-space-12`. So the completion list in your editor is the list of tokens,
+and a token that does not exist does not compile.
+
+Values are CSS, unparsed — a colour, a length, a `var()` reading another token.
+Only the names are typed.
+
+| Function | Reaches |
+|---|---|
+| `Theme.lightTokens` | the `--nacara-*` properties, light scheme |
+| `Theme.darkTokens` | the same, dark scheme |
+| `Theme.lightSyntax` | the `--tok-*` highlighting colours, light scheme |
+| `Theme.darkSyntax` | the same, dark scheme |
+| `Theme.tokens` | all four at once, for a wholesale replacement |
+
+The dark records are read as overrides: a dark value identical to its light one
+is not written twice, so restating a light value in `darkTokens` costs nothing.
+
+Each of these rewrites the `tokens` layer, so it fails if you dropped that layer —
+there is then nothing for the properties to go in.
+
 ## Style layers
 
 The theme's stylesheet is not one file. It is a list of named parts, each written
@@ -31,7 +64,7 @@ into a CSS cascade layer of its own, in this order:
 
 | Layer | Holds |
 |---|---|
-| `tokens` | the custom properties every other layer reads |
+| `tokens` | the custom properties every other layer reads, rendered from the record above |
 | `base` | element defaults |
 | `navbar` | the top bar |
 | `layout` | page structure |
@@ -66,7 +99,8 @@ plugin brings its own.
 Do not drop `tokens` unless you are replacing every custom property it defines.
 The other six layers read over three hundred `var(--nacara-*)` references; with
 `tokens` gone they resolve to nothing and the page renders wrong without saying
-so. Everything else is safe to drop.
+so. Changing a token's value is what `Theme.lightTokens` is for, and it keeps the
+layer. Everything else is safe to drop.
 :::
 
 ### Adding a layer

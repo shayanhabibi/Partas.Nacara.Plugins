@@ -217,6 +217,14 @@ type ThemeOptions =
         /// not there is an error you hear about at build time.
         /// </remarks>
         Styles: StyleLayer list
+        /// <summary>The custom properties the <c>tokens</c> layer declares.</summary>
+        /// <remarks>
+        /// Held apart from <c>Styles</c> so a change can be made to one token rather than to the
+        /// whole stylesheet. Change them with <see cref="M:Partas.Nacara.Theme.Theme.tokens" /> and
+        /// the like, which rewrite the <c>tokens</c> layer to match; setting this field alone
+        /// changes nothing anyone reads.
+        /// </remarks>
+        Tokens: ThemeTokens
         Footer: ReactElement option
         /// Path of the favicon, relative to the site root.
         FavIcon: string option

@@ -273,6 +273,22 @@ let site =
     |> Site.collection (Theme.docs theme "content")
 ```
 
+The design tokens are a record rather than a stylesheet, so a colour is changed by
+name and a name that does not exist does not compile:
+
+```fsharp
+Theme.defaults
+|> Theme.lightTokens (fun tokens -> { tokens with Primary = "#c0392b" })
+|> Theme.darkTokens (fun tokens -> { tokens with Primary = "#e74c3c" })
+```
+
+A field is its custom property in kebab case under `--nacara-`, so `BgSubtle` is
+`--nacara-bg-subtle` and `Space12` is `--nacara-space-12`. Values stay CSS and
+unparsed — only the names are typed. `Theme.lightSyntax` and `Theme.darkSyntax`
+do the same for the `--tok-*` highlighting colours, and `Theme.tokens` reaches all
+four records at once. Dark values identical to their light counterparts are not
+written twice.
+
 Its stylesheet is not one file but a list of named parts, each written into a CSS
 cascade layer of its own — `tokens`, `base`, `navbar`, `layout`, `components`,
 `code`, `responsive`, in that order. Because they are cascade layers, order

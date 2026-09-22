@@ -25,7 +25,6 @@ module Theme =
     let defaultStyles =
         lazy
             ([
-                 "tokens"
                  "base"
                  "navbar"
                  "layout"
@@ -38,7 +37,15 @@ module Theme =
                      Name = name
                      Css = readResource $"css.%s{name}.css"
                  }
-             ))
+             )
+             // Rendered rather than read: the tokens are a record, so that a site changes one
+             // of them by name instead of by restating the stylesheet that declares them.
+             |> List.insertAt
+                 0
+                 {
+                     Name = "tokens"
+                     Css = Tokens.render Tokens.defaults
+                 })
 
     let defaults =
         {
@@ -49,6 +56,7 @@ module Theme =
             HeadExtra = []
             Css = []
             Styles = defaultStyles.Value
+            Tokens = Tokens.defaults
             Footer = None
             FavIcon = None
             MenuGroupLimit = 150
@@ -246,6 +254,74 @@ module Theme =
         { options with
             Styles = List.insertAt index added options.Styles
         }
+
+    /// <summary>The theme's design tokens, changed by name.</summary>
+    /// <remarks>
+    /// <para>
+    /// The <c>tokens</c> layer is rewritten from the result, so a token changed here is a token
+    /// changed everywhere the theme reads it. The four narrower functions -
+    /// <see cref="M:Partas.Nacara.Theme.Theme.lightTokens" />,
+    /// <see cref="M:Partas.Nacara.Theme.Theme.darkTokens" />,
+    /// <see cref="M:Partas.Nacara.Theme.Theme.lightSyntax" /> and
+    /// <see cref="M:Partas.Nacara.Theme.Theme.darkSyntax" /> - reach one record without naming
+    /// the other three, which is usually what you want.
+    /// </para>
+    /// <para>
+    /// This fails if the <c>tokens</c> layer has been dropped, since there is then nothing to
+    /// write the properties into.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults
+    /// |> Theme.tokens (fun tokens ->
+    ///     { tokens with
+    ///         Light = { tokens.Light with Primary = "#c0392b" }
+    ///         Dark = { tokens.Dark with Primary = "#e74c3c" } })
+    /// </code>
+    /// </example>
+    /// <param name="mapping">The tokens so far, and what they become.</param>
+    /// <param name="options">The options so far.</param>
+    let tokens (mapping: ThemeTokens -> ThemeTokens) (options: ThemeOptions) =
+        let changed = mapping options.Tokens
+
+        { options with
+            Tokens = changed
+        }
+        |> replaceLayer "tokens" (Tokens.render changed)
+
+    /// <summary>The <c>--nacara-*</c> properties as the light scheme has them.</summary>
+    /// <remarks>These are the defaults the dark scheme overrides, so a property left out of
+    /// <see cref="M:Partas.Nacara.Theme.Theme.darkTokens" /> is whatever this says.</remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults |> Theme.lightTokens (fun t -> { t with Primary = "#c0392b" })
+    /// </code>
+    /// </example>
+    /// <param name="mapping">The light tokens so far, and what they become.</param>
+    /// <param name="options">The options so far.</param>
+    let lightTokens (mapping: Tokens -> Tokens) (options: ThemeOptions) =
+        options |> tokens (fun value -> { value with Light = mapping value.Light })
+
+    /// <summary>The <c>--nacara-*</c> properties as the dark scheme has them.</summary>
+    /// <remarks>Only what differs from the light value is written, so restating a light value
+    /// here costs nothing.</remarks>
+    /// <param name="mapping">The dark tokens so far, and what they become.</param>
+    /// <param name="options">The options so far.</param>
+    let darkTokens (mapping: Tokens -> Tokens) (options: ThemeOptions) =
+        options |> tokens (fun value -> { value with Dark = mapping value.Dark })
+
+    /// <summary>The <c>--tok-*</c> highlighting colours as the light scheme has them.</summary>
+    /// <param name="mapping">The light syntax colours so far, and what they become.</param>
+    /// <param name="options">The options so far.</param>
+    let lightSyntax (mapping: SyntaxTokens -> SyntaxTokens) (options: ThemeOptions) =
+        options |> tokens (fun value -> { value with SyntaxLight = mapping value.SyntaxLight })
+
+    /// <summary>The <c>--tok-*</c> highlighting colours as the dark scheme has them.</summary>
+    /// <param name="mapping">The dark syntax colours so far, and what they become.</param>
+    /// <param name="options">The options so far.</param>
+    let darkSyntax (mapping: SyntaxTokens -> SyntaxTokens) (options: ThemeOptions) =
+        options |> tokens (fun value -> { value with SyntaxDark = mapping value.SyntaxDark })
 
     /// <summary>What every page ends with.</summary>
     /// <param name="value">The footer's markup.</param>
