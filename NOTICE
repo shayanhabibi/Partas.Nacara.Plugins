@@ -1,0 +1,30 @@
+Partas.Nacara.Plugins
+Copyright 2026 Shayan Habibi
+
+This product includes software developed as part of the Nacara project.
+
+  Nacara
+  Copyright Maxime Mangel
+  https://github.com/MangelMaxime/Nacara
+  Licensed under the Apache License, Version 2.0
+
+The project Partas.Nacara.Theme is a derivative work of Nacara.Theme.Default,
+taken from the Nacara project named above. Its F# sources, stylesheets and
+scripts were copied from that project and then modified. The modifications
+include:
+
+  - splitting the single embedded stylesheet into named CSS cascade layers
+    that a consuming site can replace, drop or reorder
+  - generating the entry stylesheet, which declares the cascade order, rather
+    than embedding it
+  - renaming the namespace, assembly and package from Nacara.Theme.Default to
+    Partas.Nacara.Theme, so that a consumer referencing both does not get two
+    assemblies claiming the same types
+
+Files carrying those modifications are marked individually, as Section 4(b) of
+the Apache License asks.
+
+The other projects in this repository - Partas.Nacara.Theme.Contracts,
+Partas.Nacara.Plugins.Directives, Partas.Nacara.Plugins.Tailwind and
+Partas.Nacara.Plugins.DaisyUI - are original work and are licensed under the
+MIT license, as their package metadata records.

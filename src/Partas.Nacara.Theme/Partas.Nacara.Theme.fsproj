@@ -6,7 +6,19 @@
         <RootNamespace>Partas.Nacara.Theme</RootNamespace>
         <Description>Default documentation theme for Nacara: layout, design tokens and web components.</Description>
         <JsOutputPath>$(BaseIntermediateOutputPath)js/</JsOutputPath>
+        <!--
+        Overrides the repository-wide MIT. This project is a derivative work of
+        Nacara.Theme.Default, which is Apache-2.0, and Apache-2.0 code cannot be
+        redistributed under a more permissive label. See NOTICE.
+        -->
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <Copyright>Copyright Maxime Mangel; modifications copyright 2026 Shayan Habibi</Copyright>
     </PropertyGroup>
+    <ItemGroup>
+        <!-- Section 4(a) and 4(d): the License and the NOTICE travel with the package. -->
+        <None Include="../../LICENSE" Pack="true" PackagePath="/" Visible="false" />
+        <None Include="../../NOTICE" Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
     <ItemGroup>
         <Compile Include="Types.fs" />
         <Compile Include="CodeBlocks.fs" />

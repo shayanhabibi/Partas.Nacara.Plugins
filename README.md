@@ -241,3 +241,23 @@ Both raise if two directives claim one name — a name selects exactly one direc
 so the build cannot choose. `Directives.duplicates` answers the same question
 without raising, returning the names claimed more than once, which is what to call
 if you are validating a list you assembled from somewhere else.
+
+## Licensing and attribution
+
+Most of this repository is MIT. One project is not.
+
+`Partas.Nacara.Theme` is a derivative work of `Nacara.Theme.Default` from the
+[Nacara](https://github.com/MangelMaxime/Nacara) project, copyright Maxime Mangel,
+licensed under the Apache License 2.0. Its sources were copied and then modified -
+the stylesheet was split into named cascade layers, the entry stylesheet is generated
+rather than embedded, and the namespace and assembly were renamed so that a consumer
+referencing both this and upstream does not get two assemblies claiming the same
+types. That project is published as Apache-2.0, each modified file says so at its
+top, and the full terms are in [LICENSE](LICENSE) with the attribution in
+[NOTICE](NOTICE).
+
+Apache-2.0 code cannot be redistributed under a more permissive label, so the theme
+package keeps its own licence rather than the repository-wide MIT. The remaining
+projects - `Partas.Nacara.Theme.Contracts`, `Partas.Nacara.Plugins.Directives`,
+`Partas.Nacara.Plugins.Tailwind` and `Partas.Nacara.Plugins.DaisyUI` - are original
+work and stay MIT.
