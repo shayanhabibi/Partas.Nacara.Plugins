@@ -42,6 +42,15 @@ Theme.defaults
 |> Theme.layerAfter "components" "widgets" widgetCss
 ```
 
+Its design tokens are a record rather than a stylesheet, so a colour is changed by
+name and a name that does not exist does not compile:
+
+```fsharp
+Theme.defaults
+|> Theme.lightTokens (fun tokens -> { tokens with Primary = "#c0392b" })
+|> Theme.darkTokens (fun tokens -> { tokens with Primary = "#e74c3c" })
+```
+
 → [Theme](guide/theme.md)
 
 ## Let plugins contribute styles

@@ -52,6 +52,7 @@ The page reloads as you type.
 ## Where to next
 
 - [Directives](directives.md) — the plugin most of this documentation is about
-- [Theme](theme.md) — restyling without out-specifying anything
+- [Theme](theme.md) — typed design tokens, and restyling without out-specifying
+  anything
 - [Tailwind](tailwind.md) and [DaisyUI](daisyui.md) — if you would rather bring
   your own CSS framework

@@ -146,9 +146,12 @@ module Stage =
         let! config = Options.config
         return stage "build" {
             quiet
-            parallel'
-            for { Name = name; Path = project } in Spec.sourceProjects do
-            stage $"build {name}" { run (cmd $"dotnet build {project} -c {config} -v q") }
+            // One solution build, not one per project. The source projects reference each
+            // other, so building them concurrently puts two MSBuild processes in the same
+            // obj/: one reads a reference assembly the other is still writing, and the
+            // theme's esbuild target runs twice over one output file. The solution graph
+            // builds each project exactly once, in dependency order.
+            run (cmd $"dotnet build {Repo.Project.SolutionFile} -c {config} -v q")
         }
     }
 
