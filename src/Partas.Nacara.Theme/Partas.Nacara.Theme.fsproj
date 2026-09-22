@@ -14,7 +14,7 @@
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <Copyright>Copyright Maxime Mangel; modifications copyright 2026 Shayan Habibi</Copyright>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion></PropertyGroup>
+    <Version>0.2.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion></PropertyGroup>
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="\" />
         <!-- Section 4(a) and 4(d): the License and the NOTICE travel with the package. -->
