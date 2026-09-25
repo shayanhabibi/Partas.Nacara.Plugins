@@ -298,7 +298,7 @@ module SolidCompile =
                     finished watching.Last
             else
                 log $"compiling %d{units.Length} page(s) of examples with Fable"
-                run "dotnet" fableArguments
+                run "dotnet" ("fable" :: fableArguments)
 
         let messages = fableMessages units fable.Output
 
