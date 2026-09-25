@@ -56,8 +56,89 @@ module SolidScan =
         |> Option.defaultValue true
 
     /// <summary>The placeholder a cell mounts into.</summary>
+    /// <remarks>A use sits in a paragraph, where a <c>div</c> would end it, so it gets a <c>span</c>.</remarks>
     let placeholder (pageKey: string) (cell: SolidCell) =
-        $"""<div class="partas-solid" data-partas-page="%s{pageKey}" data-partas-cell="%s{cell.Id}"></div>"""
+        let data = $"data-partas-page=\"%s{pageKey}\" data-partas-cell=\"%s{cell.Id}\""
+
+        match cell.Kind, cell.Show with
+        | SolidCellKind.Use _, _ -> $"""<span class="partas-solid partas-solid--inline" %s{data}></span>"""
+        | _, SolidShow.Inline -> $"""<div class="partas-solid partas-solid--inline" %s{data}></div>"""
+        | _ -> $"""<div class="partas-solid" %s{data}></div>"""
+
+    let private isUse (cell: SolidCell) =
+        match cell.Kind with
+        | SolidCellKind.Use _ -> true
+        | _ -> false
+
+    /// <summary>A code span in prose that holds an expression to render.</summary>
+    type SolidUse =
+        {
+            /// Where the span starts in its line, counting from zero, backticks included.
+            Start: int
+            Length: int
+            Code: string
+            /// The column the expression starts on, counting from one.
+            Column: int
+        }
+
+    /// <summary>The code spans in a line that start with the fence token and a colon.</summary>
+    /// <remarks>
+    /// Written <c>`solid: Badge "new"`</c>, so a viewer that knows nothing of the plugin still shows
+    /// the code. Spans follow CommonMark: a run of backticks closes at the next run as long. A space
+    /// before the token makes a span plain code, which is how a page shows the syntax.
+    /// </remarks>
+    let uses (fenceToken: string) (line: string) =
+        let prefix = fenceToken + ":"
+
+        let runAt at =
+            let mutable finish = at
+
+            while finish < line.Length && line[finish] = '`' do
+                finish <- finish + 1
+
+            finish - at
+
+        [
+            let mutable at = 0
+
+            while at < line.Length do
+                if line[at] <> '`' || (at > 0 && line[at - 1] = '\\') then
+                    at <- at + 1
+                else
+                    let run = runAt at
+                    let mutable close = at + run
+                    let mutable found = -1
+
+                    while found < 0 && close < line.Length do
+                        if line[close] = '`' then
+                            let length = runAt close
+
+                            if length = run then found <- close else close <- close + length
+                        else
+                            close <- close + 1
+
+                    if found < 0 then
+                        // An unclosed run is literal backticks.
+                        at <- at + run
+                    else
+                        let inner = line.Substring(at + run, found - at - run)
+
+                        // Only hard against the backticks: `` `solid: x` `` shows the syntax itself.
+                        // `solid:` alone names the syntax rather than using it.
+                        if inner.StartsWith prefix && inner.Substring(prefix.Length).Trim() <> "" then
+                            let afterPrefix = at + run + prefix.Length
+                            let code = line.Substring(afterPrefix, found - afterPrefix)
+                            let skipped = code.Length - code.TrimStart().Length
+
+                            {
+                                Start = at
+                                Length = found + run - at
+                                Code = code.Trim()
+                                Column = afterPrefix + skipped + 1
+                            }
+
+                        at <- found + run
+        ]
 
     /// <summary>The panel the loader fills with the JSX Fable made of a cell, once it is opened.</summary>
     let jsxPanel (pageKey: string) (cell: SolidCell) =
@@ -102,9 +183,10 @@ module SolidScan =
                 | "both" -> { state with Show = Some SolidShow.Both }
                 | "code" -> { state with Show = Some SolidShow.Code }
                 | "output" -> { state with Show = Some SolidShow.Output }
+                | "inline" -> { state with Show = Some SolidShow.Inline }
                 | other ->
                     { state with
-                        Problems = state.Problems @ [ $"show=%s{other} is not one of both, code or output" ]
+                        Problems = state.Problems @ [ $"show=%s{other} is not one of both, code, output or inline" ]
                     }
             | token -> { state with Rest = state.Rest @ [ token ] }
         )
@@ -127,7 +209,40 @@ module SolidScan =
             let matched = opening.Match line
 
             if not matched.Success then
-                emit line
+                let found = uses fenceToken line
+
+                if found.IsEmpty then
+                    emit line
+                else
+                    let rewritten = StringBuilder()
+                    let mutable copied = 0
+
+                    for used in found do
+                        let id = $"u%d{(cells |> Seq.filter isUse |> Seq.length) + 1}"
+
+                        if cells |> Seq.exists (fun cell -> cell.Id = id) then
+                            problems.Add(index + 1, $"id=%s{id} is taken by a fence, so an inline use cannot have it")
+
+                        let cell =
+                            {
+                                Id = id
+                                Kind = SolidCellKind.Use used.Column
+                                Show = SolidShow.Inline
+                                Code = used.Code
+                                Line = index + 1
+                                // A panel after a span would split the paragraph it sits in.
+                                Jsx = false
+                            }
+
+                        cells.Add cell
+
+                        rewritten.Append(line, copied, used.Start - copied).Append(placeholder pageKey cell)
+                        |> ignore
+
+                        copied <- used.Start + used.Length
+
+                    emit (rewritten.Append(line, copied, line.Length - copied).ToString())
+
                 index <- index + 1
             else
                 let fence = matched.Groups["fence"].Value
@@ -169,7 +284,8 @@ module SolidScan =
                         | false, None -> SolidCellKind.Expression
 
                     let id =
-                        tokens.Id |> Option.defaultValue $"c%d{cells.Count + 1}"
+                        tokens.Id
+                        |> Option.defaultValue $"c%d{(cells |> Seq.filter (isUse >> not) |> Seq.length) + 1}"
 
                     if cells |> Seq.exists (fun cell -> cell.Id = id) then
                         problems.Add(index + 1, $"id=%s{id} is already used on this page")
@@ -189,7 +305,8 @@ module SolidScan =
                     let shown =
                         match cell.Kind, cell.Show with
                         | SolidCellKind.Setup, _
-                        | _, SolidShow.Output -> false
+                        | _, SolidShow.Output
+                        | _, SolidShow.Inline -> false
                         | _ -> true
 
                     if shown then

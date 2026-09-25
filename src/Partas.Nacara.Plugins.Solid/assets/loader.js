@@ -16,6 +16,8 @@
     style.textContent = `
 .partas-solid { margin-block: 1rem; padding: 1rem; border: 1px solid color-mix(in oklab, currentColor 20%, transparent); border-radius: .5rem; }
 .partas-solid:empty::before { content: "Loading example..."; opacity: .6; }
+.partas-solid.partas-solid--inline { display: contents; margin: 0; padding: 0; border: 0; }
+.partas-solid.partas-solid--inline:empty::before { content: none; }
 .partas-solid__error { margin: 0; white-space: pre-wrap; color: #dc2626; font-size: .875em; }
 .partas-solid__jsx { margin-block: 1rem; }
 .partas-solid__jsx > summary { cursor: pointer; font-size: .875em; opacity: .8; }
@@ -24,11 +26,19 @@
     document.head.append(style);
 
     const fail = (element, error) => {
+        console.error(error);
+        // Inline, the page reads on around it, so a line of code says enough; the console has the rest.
+        if (element.classList.contains("partas-solid--inline")) {
+            const note = document.createElement("code");
+            note.className = "partas-solid__error";
+            note.textContent = `${error && error.message ? error.message : error}`;
+            element.replaceChildren(note);
+            return;
+        }
         const box = document.createElement("pre");
         box.className = "partas-solid__error";
         box.textContent = `This example did not run.\n${error && error.stack ? error.stack : error}`;
         element.replaceChildren(box);
-        console.error(error);
     };
 
     const pages = new Map();

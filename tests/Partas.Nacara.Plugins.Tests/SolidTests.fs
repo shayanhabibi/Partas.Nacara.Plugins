@@ -257,6 +257,100 @@ let tests =
                 ]
 
             testList
+                "inline"
+                [
+                    test "show=inline mounts without the code, in an unboxed div" {
+                        let result = scan (fence "solid show=inline" "p () { \"hi\" }")
+                        let found = List.exactlyOne result.Cells
+                        Expect.equal found.Show SolidShow.Inline "show"
+                        Expect.isTrue found.Mounts "mounts"
+                        Expect.isFalse (result.Body.Contains "```") "no fence"
+                        Expect.stringContains result.Body "<div class=\"partas-solid partas-solid--inline\"" "placeholder"
+                    }
+
+                    test "a use in prose becomes a span where it stood" {
+                        let result = scan "Press `solid: Kbd \"Ctrl\"` to copy."
+                        let found = List.exactlyOne result.Cells
+                        Expect.equal found.Kind (SolidCellKind.Use 15) "kind"
+                        Expect.equal found.Code "Kbd \"Ctrl\"" "code"
+                        Expect.equal found.Id "u1" "id"
+                        Expect.isTrue found.Mounts "mounts"
+
+                        Expect.equal
+                            result.Body
+                            "Press <span class=\"partas-solid partas-solid--inline\" data-partas-page=\"pkey\" data-partas-cell=\"u1\"></span> to copy."
+                            "body"
+                    }
+
+                    test "several uses on a line are each found" {
+                        let found = SolidScan.uses "solid" "`solid: A ()` and ``solid: B `x` ()`` then `solid:C()`"
+                        Expect.equal (found |> List.map _.Code) [ "A ()"; "B `x` ()"; "C()" ] "codes"
+                        Expect.equal (found |> List.map _.Column) [ 9; 28; 51 ] "columns"
+                    }
+
+                    test "plain code spans are left alone" {
+                        let body = "Write `solid` or `Kbd \"x\"` or `solidly: x` or \`solid: x`."
+                        let result = scan body
+                        Expect.isEmpty result.Cells "cells"
+                        Expect.equal result.Body body "body"
+                    }
+
+                    test "a space before the token shows the syntax as code" {
+                        let body = "Write `` `solid: Kbd \"x\"` `` in the prose."
+                        let result = scan body
+                        Expect.isEmpty result.Cells "cells"
+                        Expect.equal result.Body body "body"
+                    }
+
+                    test "a use inside a fence is code, not a use" {
+                        let body = fence "" "let s = \"`solid: A ()`\""
+                        let result = scan body
+                        Expect.isEmpty result.Cells "cells"
+                        Expect.equal result.Body body "body"
+                    }
+
+                    test "a use takes the token the site set" {
+                        let result = SolidScan.scan "live" false "pkey" "`live: A ()` but not `solid: B ()`"
+                        Expect.equal (result.Cells |> List.map _.Code) [ "A ()" ] "codes"
+                    }
+
+                    test "showJsx leaves uses without a panel" {
+                        let result = SolidScan.scan "solid" true "pkey" "Press `solid: Kbd \"C\"` now."
+                        Expect.isFalse (List.exactlyOne result.Cells).Jsx "jsx"
+                        Expect.isFalse (result.Body.Contains "<details") "no panel"
+                    }
+
+                    test "uses do not shift the numbering of fences" {
+                        let result = scan ("`solid: A ()`\n\n" + fence "solid" "B ()")
+                        Expect.equal (result.Cells |> List.map _.Id) [ "u1"; "c1" ] "ids"
+                    }
+
+                    test "the token alone names the syntax and stays as written" {
+                        let result = scan "x `solid:` or `solid: ` y"
+                        Expect.isEmpty result.Cells "cells"
+                        Expect.isEmpty result.Problems "problems"
+                        Expect.equal result.Body "x `solid:` or `solid: ` y" "body"
+                    }
+
+                    test "a use is wrapped after every fence, so it can come first" {
+                        let cells = (scan ("`solid: Badge ()`\n\n" + fence "solid" "let Badge () = span () { }")).Cells
+                        let unit = unitOf cells
+                        Expect.isLessThan (lineOf "let Badge" unit.Code) (lineOf "let Cell_u1" unit.Code) "order"
+                        Expect.stringContains unit.Code "let Cell_u1 () =\n    Badge ()" "wrapper"
+                        Expect.stringContains (SolidGenerate.entry "pkey" cells) "\"u1\": m.Cell_u1," "entry"
+                    }
+
+                    test "an error in a use points at its line and column" {
+                        let unit = unitOf (scan "text\nSee `solid: Badge ()` here.").Cells
+                        let line = lineOf "    Badge ()" unit.Code
+                        // Badge starts at column 5 of the generated line and column 13 of the prose.
+                        Expect.equal (SolidGenerate.locate unit.Spans line 5) (Some(2, 13)) "start"
+                        Expect.equal (SolidGenerate.locate unit.Spans line 11) (Some(2, 19)) "later"
+                        Expect.equal (SolidGenerate.locate unit.Spans (lineOf "let Cell_u1" unit.Code) 5) (Some(2, 1)) "wrapper"
+                    }
+                ]
+
+            testList
                 "fable messages"
                 [
                     let unit = unitOf (scan (fence "solid" "Counter ()")).Cells
