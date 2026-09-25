@@ -69,7 +69,7 @@ let private solidExamples (options: SolidExamplesOptions) =
         | value -> Some value
 
     options
-    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.0.0-local.822796f")
+    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.0.0-local.cd6d4e2")
     |> SolidExamples.feed (
         fromEnvironment "PARTAS_SOLID_FEED"
         |> Option.defaultValue (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "feed"))

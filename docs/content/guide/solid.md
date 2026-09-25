@@ -79,18 +79,18 @@ appear on it. The next fence uses it and names the component to mount:
 [<SolidComponent>]
 let TodoList () =
     let todos, setTodos =
-        createSignal [| { Id = 1; Text = "Write docs"; Done = true }
-                        { Id = 2; Text = "Ship it"; Done = false } |]
+        createSignal [ { Id = 1; Text = "Write docs"; Done = true }
+                       { Id = 2; Text = "Ship it"; Done = false } ]
     let draft, setDraft = createSignal ""
 
     let add () =
         if draft () <> "" then
-            setTodos (Array.append (todos ()) [| { Id = todos().Length + 1; Text = draft (); Done = false } |])
+            setTodos (todos () @ [ { Id = todos().Length + 1; Text = draft (); Done = false } ])
             setDraft ""
 
     let toggle id =
         todos ()
-        |> Array.map (fun t -> if t.Id = id then { t with Done = not t.Done } else t)
+        |> List.map (fun t -> if t.Id = id then { t with Done = not t.Done } else t)
         |> setTodos
 
     div () {
@@ -99,7 +99,7 @@ let TodoList () =
             button (type' = "submit") { "Add" }
         }
         ul () {
-            For.Keyed(each = todos ()) {
+            For.Keyed(each = List.toArray (todos ())) {
                 yield fun todo _ ->
                     li (
                         onClick = (fun _ -> toggle todo.Id),
