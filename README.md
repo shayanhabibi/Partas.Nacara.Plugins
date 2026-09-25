@@ -250,6 +250,30 @@ so the build cannot choose. `Directives.duplicates` answers the same question
 without raising, returning the names claimed more than once, which is what to call
 if you are validating a list you assembled from somewhere else.
 
+## Solid
+
+Live [Partas.Solid](https://github.com/shayanhabibi/Partas.Solid) examples. An
+`fsharp solid` fence is compiled with Fable and the Partas.Solid plugin when the
+site builds, and what it renders is mounted under the code.
+
+```bash
+dotnet add package Partas.Nacara.Plugins.Solid
+```
+
+```fsharp
+open Nacara.Plugins
+
+let site =
+    Site.create "My site"
+    |> Markdown.register
+    |> SolidExamples.registerWith (SolidExamples.partasVersion "3.0.0")
+```
+
+It needs `dotnet` and Node 22.12 or later on the `PATH`, and keeps its generated
+project in `.nacara/partas-solid`. A build where no example changed skips the
+compilers. The [guide](docs/content/guide/solid.md) covers fences, `render=`,
+`setup`, `show=` and the options.
+
 ## Theme
 
 The documentation theme this repository's own site is built with: layout, navbar,
@@ -368,5 +392,5 @@ top, and the full terms are in [LICENSE](LICENSE) with the attribution in
 Apache-2.0 code cannot be redistributed under a more permissive label, so the theme
 package keeps its own licence rather than the repository-wide MIT. The remaining
 projects - `Partas.Nacara.Theme.Contracts`, `Partas.Nacara.Plugins.Directives`,
-`Partas.Nacara.Plugins.Tailwind` and `Partas.Nacara.Plugins.DaisyUI` - are original
+`Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI` and `Partas.Nacara.Plugins.Solid` - are original
 work and stay MIT.

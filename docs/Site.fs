@@ -37,6 +37,8 @@ let theme =
            [ Menu.page "guide/getting-started.md"
              Menu.section "Directives" [ Menu.page "guide/directives.md" ]
              |> Menu.badge "New"
+             Menu.section "Solid" [ Menu.page "guide/solid.md" ]
+             |> Menu.badge "New"
              Menu.section "Tailwind" [ Menu.page "guide/tailwind.md" ]
              Menu.section "DaisyUI" [ Menu.page "guide/daisyui.md" ]
              Menu.section
@@ -56,6 +58,19 @@ PluginLayers.offer
     { Name = "directives"
       Css = ".nacara-steps { list-style: none; } .nacara-step { margin-block: 1rem; }" }
 
+/// Which Partas.Solid the live examples compile against. PARTAS_SOLID_FEED points at a folder of
+/// locally packed nupkgs, for trying the docs against an unreleased Partas.Solid.
+let private solidExamples (options: SolidExamplesOptions) =
+    let fromEnvironment name =
+        match System.Environment.GetEnvironmentVariable name with
+        | null
+        | "" -> None
+        | value -> Some value
+
+    options
+    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.*")
+    |> (fromEnvironment "PARTAS_SOLID_FEED" |> Option.map SolidExamples.feed |> Option.defaultValue id)
+
 let site =
     Site.create "Partas.Nacara.Plugins"
     |> Site.baseUrl "/Partas.Nacara.Plugins/"
@@ -70,6 +85,7 @@ let site =
     |> LinkValidator.register
     |> DaisyUI.register
     |> Directives.register [ steps; step ]
+    |> SolidExamples.registerWith solidExamples
     // |> Rumdl.register
     // |> LightningCss.register
     |> Esbuild.register
