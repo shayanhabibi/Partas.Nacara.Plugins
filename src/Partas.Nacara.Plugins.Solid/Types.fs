@@ -33,6 +33,8 @@ type SolidCell =
         Code: string
         /// The line of the body the code starts on, counting from one.
         Line: int
+        /// Whether the page shows the JSX Fable made of the cell, under it.
+        Jsx: bool
     }
 
     /// <summary>Whether a placeholder is mounted for it.</summary>
@@ -101,6 +103,11 @@ type SolidExamplesOptions =
         WorkspacePath: string
         /// <defaultValue><c>true</c></defaultValue>
         Minify: bool
+        /// <summary>
+        /// Show the JSX Fable made of every example, not only of fences marked <c>jsx</c>.
+        /// </summary>
+        /// <defaultValue><c>false</c></defaultValue>
+        ShowJsx: bool
         /// <summary>How long one tool run may take before it is abandoned.</summary>
         /// <defaultValue>Five minutes.</defaultValue>
         Timeout: TimeSpan

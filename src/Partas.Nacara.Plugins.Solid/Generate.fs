@@ -3,6 +3,8 @@ namespace Nacara.Plugins.Internal
 open System
 open System.Security.Cryptography
 open System.Text
+open System.Text.Json
+open System.Text.RegularExpressions
 open Nacara.Plugins
 
 /// <summary>Turns a page's cells into an F# module and the entry that mounts them.</summary>
@@ -121,3 +123,77 @@ export function mount(cell, element) {{
 
             span.Body + line - span.Generated, column
         )
+
+    let private declared =
+        Regex(
+            @"^(?:let|and|type)\s+(?:(?:rec|inline|private|internal|public|mutable)\s+)*(?<name>[A-Za-z_]\w*)",
+            RegexOptions.Compiled
+        )
+
+    /// <summary>The names whose JSX a cell's panel shows.</summary>
+    /// <remarks>
+    /// An expression is its wrapper. Declarations are what the cell declares at column zero, or the
+    /// component it renders when it declares nothing.
+    /// </remarks>
+    let jsxNames (cell: SolidCell) =
+        match cell.Kind with
+        | SolidCellKind.Expression -> [ wrapper cell ]
+        | SolidCellKind.Setup -> []
+        | SolidCellKind.Declarations render ->
+            let names =
+                cell.Code.Split('\n')
+                |> Array.map (fun line -> declared.Match(line.TrimEnd('\r')))
+                |> Array.filter _.Success
+                |> Array.map _.Groups["name"].Value
+                |> Array.distinct
+                |> List.ofArray
+
+            match names, render with
+            | [], Some render -> [ render ]
+            | names, _ -> names
+
+    /// <summary>A top-level declaration of the module's JSX, cut out by name.</summary>
+    /// <remarks>
+    /// Fable writes each one from column zero and closes a block with a brace at column zero, so the
+    /// first such brace ends it. A declaration on one line ends with it.
+    /// </remarks>
+    let jsxDeclaration (jsx: string) (name: string) =
+        let lines = jsx.Split('\n') |> Array.map _.TrimEnd('\r')
+
+        let starts (line: string) =
+            [ "export function "; "function "; "export class "; "class "; "export const "; "const "; "export let "; "let " ]
+            |> List.exists (fun keyword ->
+                line.StartsWith(keyword + name)
+                && (let rest = line.Substring((keyword + name).Length) in rest.StartsWith "(" || rest.StartsWith " ")
+            )
+
+        lines
+        |> Array.tryFindIndex starts
+        |> Option.map (fun first ->
+            let last =
+                if lines[first].EndsWith ";" then
+                    first
+                else
+                    seq { first + 1 .. lines.Length - 1 }
+                    |> Seq.tryFind (fun at -> lines[at].StartsWith "}")
+                    |> Option.defaultValue (lines.Length - 1)
+
+            lines[first..last] |> String.concat "\n"
+        )
+
+    /// <summary>What the loader fills a page's JSX panels from: each marked cell's id and its JSX.</summary>
+    /// <param name="cells">The page's cells; only those marked <c>jsx</c> are written.</param>
+    /// <param name="jsx">The <c>.fs.jsx</c> Fable wrote for the page's module.</param>
+    let jsxJson (cells: SolidCell list) (jsx: string) =
+        let panels = Collections.Generic.Dictionary<string, string>()
+
+        for cell in cells |> List.filter _.Jsx do
+            let found =
+                match jsxNames cell |> List.choose (jsxDeclaration jsx) with
+                // Nothing declared by a name Fable kept: the wrapper at least shows what mounts.
+                | [] -> jsxDeclaration jsx (wrapper cell) |> Option.toList
+                | found -> found
+
+            panels[cell.Id] <- String.concat "\n\n" found
+
+        JsonSerializer.Serialize panels

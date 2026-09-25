@@ -109,6 +109,10 @@ module SolidCompile =
                 unit.Key
                 unit.Code
                 SolidGenerate.entry unit.Key unit.Cells
+
+                for cell in unit.Cells do
+                    if cell.Jsx then
+                        cell.Id
         ]
         |> String.concat "\u0000"
         |> SolidGenerate.hash 16
@@ -298,7 +302,7 @@ module SolidCompile =
                     finished watching.Last
             else
                 log $"compiling %d{units.Length} page(s) of examples with Fable"
-                run "dotnet" fableArguments
+                run "dotnet" ("fable" :: fableArguments)
 
         let messages = fableMessages units fable.Output
 
@@ -336,6 +340,12 @@ module SolidCompile =
         if bundled.ExitCode <> 0 then
             failed (messages @ [ general true $"bundling failed:\n%s{tail bundled.Output}" ])
         else
+
+        // Read from Fable's output rather than the bundle, which the Solid compiler has already rewritten.
+        for unit in units do
+            if unit.Cells |> List.exists _.Jsx then
+                let jsx = File.ReadAllText(at (SolidGenerate.fileName unit.Key + ".jsx"))
+                File.WriteAllText(Path.Combine(outDir, $"%s{unit.Key}.jsx.json"), SolidGenerate.jsxJson unit.Cells jsx)
 
         File.WriteAllText(stampFile, key)
 

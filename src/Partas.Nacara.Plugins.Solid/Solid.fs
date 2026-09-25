@@ -31,6 +31,7 @@ module SolidExamples =
             OutputPath = "_partas/solid"
             WorkspacePath = ".nacara/partas-solid"
             Minify = true
+            ShowJsx = false
             Timeout = TimeSpan.FromMinutes 5.
         }
 
@@ -44,6 +45,7 @@ module SolidExamples =
     let outputPath value (options: SolidExamplesOptions) = { options with OutputPath = value }
     let workspacePath value (options: SolidExamplesOptions) = { options with WorkspacePath = value }
     let minify value (options: SolidExamplesOptions) = { options with Minify = value }
+    let showJsx value (options: SolidExamplesOptions) = { options with ShowJsx = value }
     let timeout value (options: SolidExamplesOptions) = { options with Timeout = value }
 
     /// <summary>Rewrite a page's solid fences, and keep what they compile to on the page.</summary>
@@ -53,7 +55,7 @@ module SolidExamples =
         else
 
         let key = SolidGenerate.pageKey page.Id
-        let scan = SolidScan.scan options.FenceToken key page.Body
+        let scan = SolidScan.scan options.FenceToken options.ShowJsx key page.Body
 
         if scan.Cells.IsEmpty then
             page

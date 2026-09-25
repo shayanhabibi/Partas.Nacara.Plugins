@@ -6,7 +6,7 @@ open Nacara.Plugins.Internal
 
 let private fence (info: string) (code: string) = $"```fsharp %s{info}\n%s{code}\n```"
 
-let private scan (body: string) = SolidScan.scan "solid" "pkey" body
+let private scan (body: string) = SolidScan.scan "solid" false "pkey" body
 
 let private cell (body: string) = List.exactlyOne (scan body).Cells
 
@@ -99,6 +99,32 @@ let tests =
                         Expect.equal (result.Cells |> List.map _.Line) [ 2; 6 ] "lines"
                     }
 
+                    test "jsx adds a panel under the placeholder, and leaves the fence" {
+                        let result = scan (fence "solid jsx" "Counter ()")
+                        Expect.isTrue (List.exactlyOne result.Cells).Jsx "marked"
+                        Expect.stringContains result.Body "```fsharp\nCounter ()\n```" "code"
+                        let placeholder = result.Body.IndexOf "data-partas-cell=\"c1\""
+                        let panel = result.Body.IndexOf "data-partas-jsx-page=\"pkey\" data-partas-jsx-cell=\"c1\""
+                        Expect.isGreaterThan panel placeholder "panel after placeholder"
+                    }
+
+                    test "without jsx there is no panel" {
+                        let result = scan (fence "solid" "Counter ()")
+                        Expect.isFalse (List.exactlyOne result.Cells).Jsx "marked"
+                        Expect.isFalse (result.Body.Contains "partas-solid__jsx") "panel"
+                    }
+
+                    test "showJsx marks every fence but setup" {
+                        let body = fence "solid" "A ()" + "\n" + fence "solid setup" "let x = 1"
+                        let result = SolidScan.scan "solid" true "pkey" body
+                        Expect.equal (result.Cells |> List.map _.Jsx) [ true; false ] "marked"
+                    }
+
+                    test "show=code still gets its panel" {
+                        let result = scan (fence "solid show=code jsx" "Counter ()")
+                        Expect.stringContains result.Body "```\n\n<details class=\"partas-solid__jsx\"" "panel"
+                    }
+
                     test "a bad show= and a repeated id are problems" {
                         let result = scan (fence "solid show=nope id=a" "A ()" + "\n" + fence "solid id=a" "B ()")
                         Expect.equal (result.Problems |> List.map fst) [ 1; 4 ] "lines"
@@ -142,6 +168,91 @@ let tests =
                         Expect.stringContains entry "\"c1\": m.Cell_c1," "c1"
                         Expect.isFalse (entry.Contains "Cell_c2") "c2"
                         Expect.stringContains entry "../Pkey.fs.jsx" "module"
+                    }
+                ]
+
+            testList
+                "jsx"
+                [
+                    let jsx =
+                        String.concat
+                            "\n"
+                            [
+                                "import { createSignal } from \"solid-js\";"
+                                ""
+                                "export function Counter() {"
+                                "    return <button>"
+                                "        {count()}"
+                                "    </button>;"
+                                "}"
+                                ""
+                                "export class Todo extends Record {"
+                                "    constructor(Id) {"
+                                "        super();"
+                                "    }"
+                                "}"
+                                ""
+                                "export const limit = 3;"
+                                ""
+                                "export function Cell_c1() {"
+                                "    return Counter();"
+                                "}"
+                                ""
+                            ]
+
+                    let parse (json: string) =
+                        System.Text.Json.JsonSerializer.Deserialize<Map<string, string>> json
+
+                    test "an expression shows its wrapper" {
+                        Expect.equal (SolidGenerate.jsxNames (cell (fence "solid" "Counter ()"))) [ "Cell_c1" ] "names"
+                    }
+
+                    test "declarations show what they declare at column zero" {
+                        let code =
+                            "[<SolidComponent>]\nlet Counter () =\n    let inner = 1\n    inner\ntype private Todo = { Id: int }"
+
+                        let names = SolidGenerate.jsxNames (cell (fence "solid render=Counter" code))
+                        Expect.equal names [ "Counter"; "Todo" ] "names"
+                    }
+
+                    test "a function is cut out up to its closing brace" {
+                        Expect.equal
+                            (SolidGenerate.jsxDeclaration jsx "Counter")
+                            (Some "export function Counter() {\n    return <button>\n        {count()}\n    </button>;\n}")
+                            "Counter"
+                    }
+
+                    test "a class and a one-line const are cut out" {
+                        Expect.stringStarts (Option.get (SolidGenerate.jsxDeclaration jsx "Todo")) "export class Todo" "class"
+                        Expect.equal (SolidGenerate.jsxDeclaration jsx "limit") (Some "export const limit = 3;") "const"
+                    }
+
+                    test "a name is matched whole" {
+                        Expect.isNone (SolidGenerate.jsxDeclaration jsx "Count") "prefix"
+                    }
+
+                    test "the JSON holds only the cells marked jsx" {
+                        let cells = (scan (fence "solid jsx" "Counter ()" + "\n" + fence "solid" "B ()")).Cells
+                        let parsed = parse (SolidGenerate.jsxJson cells jsx)
+                        Expect.equal (parsed |> Map.keys |> List.ofSeq) [ "c1" ] "keys"
+                        Expect.stringContains parsed["c1"] "return Counter();" "c1"
+                    }
+
+                    test "declarations Fable left no trace of fall back to the wrapper" {
+                        let cells = (scan (fence "solid render=Counter jsx" "let private helper = 1")).Cells
+                        let parsed = parse (SolidGenerate.jsxJson cells jsx)
+                        Expect.stringStarts parsed["c1"] "export function Cell_c1" "wrapper"
+                    }
+
+                    test "marking a cell jsx changes the fingerprint" {
+                        let plain = unitOf (scan (fence "solid" "Counter ()")).Cells
+                        let marked = unitOf (scan (fence "solid jsx" "Counter ()")).Cells
+                        let options = SolidExamples.defaults ()
+
+                        Expect.notEqual
+                            (SolidCompile.fingerprint options [ plain ])
+                            (SolidCompile.fingerprint options [ marked ])
+                            "fingerprint"
                     }
                 ]
 

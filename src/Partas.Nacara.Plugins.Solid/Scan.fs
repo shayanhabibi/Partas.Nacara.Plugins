@@ -59,9 +59,14 @@ module SolidScan =
     let placeholder (pageKey: string) (cell: SolidCell) =
         $"""<div class="partas-solid" data-partas-page="%s{pageKey}" data-partas-cell="%s{cell.Id}"></div>"""
 
+    /// <summary>The panel the loader fills with the JSX Fable made of a cell, once it is opened.</summary>
+    let jsxPanel (pageKey: string) (cell: SolidCell) =
+        $"""<details class="partas-solid__jsx" data-partas-jsx-page="%s{pageKey}" data-partas-jsx-cell="%s{cell.Id}"><summary>JSX</summary></details>"""
+
     type private Tokens =
         {
             Setup: bool
+            Jsx: bool
             Render: string option
             Show: SolidShow option
             Id: string option
@@ -76,6 +81,7 @@ module SolidScan =
         let start =
             {
                 Setup = false
+                Jsx = false
                 Render = None
                 Show = None
                 Id = None
@@ -88,6 +94,7 @@ module SolidScan =
             match token with
             | token when token = fenceToken -> state
             | "setup" -> { state with Setup = true }
+            | "jsx" -> { state with Jsx = true }
             | token when token.StartsWith "render=" -> { state with Render = Some(value token) }
             | token when token.StartsWith "id=" -> { state with Id = Some(value token) }
             | token when token.StartsWith "show=" ->
@@ -104,9 +111,10 @@ module SolidScan =
 
     /// <summary>Scan a page's body.</summary>
     /// <param name="fenceToken">The word that marks a fence as a solid example.</param>
+    /// <param name="showJsx">Show the JSX of every cell, not only of fences marked <c>jsx</c>.</param>
     /// <param name="pageKey">Written into each placeholder, so the loader knows which bundle to load.</param>
     /// <param name="body">The page's markdown.</param>
-    let scan (fenceToken: string) (pageKey: string) (body: string) =
+    let scan (fenceToken: string) (showJsx: bool) (pageKey: string) (body: string) =
         let lines = body.Split('\n') |> Array.map _.TrimEnd('\r')
         let output = StringBuilder()
         let cells = ResizeArray<SolidCell>()
@@ -173,6 +181,7 @@ module SolidScan =
                             Show = tokens.Show |> Option.defaultValue SolidShow.Both
                             Code = code
                             Line = bodyLine
+                            Jsx = (tokens.Jsx || showJsx) && not tokens.Setup
                         }
 
                     cells.Add cell
@@ -204,6 +213,13 @@ module SolidScan =
                         // it was written on.
                         for _ in index .. min closing (lines.Length - 1) do
                             emit ""
+
+                    if cell.Jsx then
+                        if not cell.Mounts then
+                            emit ""
+
+                        emit (jsxPanel pageKey cell)
+                        emit ""
 
                     index <- closing + 1
 

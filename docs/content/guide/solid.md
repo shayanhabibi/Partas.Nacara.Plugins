@@ -75,7 +75,7 @@ type Todo = { Id: int; Text: string; Done: bool }
 The fence above declared a `Todo` record. It compiled with the page but does not
 appear on it. The next fence uses it and names the component to mount:
 
-```fsharp solid render=TodoList
+```fsharp solid render=TodoList jsx
 [<SolidComponent>]
 let TodoList () =
     let todos, setTodos =
@@ -120,6 +120,36 @@ still fails the build, but nothing is mounted.
 p () { "Only the output of this fence is on the page." }
 ```
 
+### Showing the JSX
+
+Add `jsx` to a fence to put a collapsed **JSX** panel under it. Opening the
+panel shows the JSX that Fable and the Partas.Solid plugin made of the cell,
+before the Solid compiler turned it into DOM code. Use it to show readers what
+Partas.Solid does with a piece of F#.
+
+```fsharp solid jsx
+let name = "Solid"
+
+p (class' = "greeting") { $"Hello, {name}!" }
+```
+
+The `TodoList` fence above is marked `jsx` too, so its panel shows the
+declared component rather than a wrapper.
+
+The panel holds only the cell's own functions:
+
+- For an expression, that is the wrapper component the plugin generated for it.
+- For declarations, it is each name the fence declares at column zero (`let`,
+  `type` and `and`). When Fable wrote none of them, the panel shows the
+  `render=` wrapper instead.
+
+Imports, and anything Fable generated beside a declaration (such as a record's
+`_$reflection` function), are left out. `setup` fences never get a panel.
+
+`SolidExamples.showJsx true` gives every fence on the site a panel. The panels
+are filled from a `<key>.jsx.json` file written next to each page's bundle, and
+the file is fetched when a reader first opens a panel on the page.
+
 ### Naming a cell
 
 Cells are numbered `c1`, `c2` and so on. Add `id=name` to give one a stable
@@ -146,3 +176,4 @@ the fence and save again.
 | `outputPath` | `"_partas/solid"` | Where the bundles go in the output |
 | `workspacePath` | `".nacara/partas-solid"` | Where the generated project lives |
 | `minify` | `true` | |
+| `showJsx` | `false` | Adds a JSX panel under every fence, as if each were marked `jsx` |
