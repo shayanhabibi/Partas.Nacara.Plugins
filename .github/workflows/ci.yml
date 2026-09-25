@@ -38,4 +38,7 @@ jobs:
       - name: Install JavaScript tooling
         run: npm ci
       - name: Run CI
-        run: dotnet fsi build.fsx -- publish --nuget-key ${{ secrets.NUGET_KEY }}
+        # Stops short of publishing while the packages move to a new NuGet account; the old
+        # key is rejected. Put back `publish --nuget-key ${{ secrets.NUGET_KEY }}` once a key
+        # from the new account is in the NUGET_KEY secret.
+        run: dotnet fsi build.fsx -- pack

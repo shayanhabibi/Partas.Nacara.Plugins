@@ -233,6 +233,15 @@ exit <| rootCommandOfScript {
         Stage.pack
         Stage.publish
     }
+    command "pack" {
+        description "Builds, tests and packs the solution, without publishing"
+        Stage.restore
+        Stage.clean
+        Stage.format (InputSpec.ofInput Options.format) (InputSpec.ofInput Options.dryFormat)
+        Stage.build
+        Stage.runTests
+        Stage.pack
+    }
     command "bump" {
         description "Bumps the version of the project"
         Baked.Pipelines.bumpArgument (Spec.sourceProjects |> List.map _.Path) (InputSpec.ofInput Options.projects)
