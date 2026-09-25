@@ -11,6 +11,8 @@ type SolidShow =
     | Code
     /// What it renders, without the code.
     | Output
+    /// What it renders, without the code or the box around it, as though it were part of the page.
+    | Inline
 
 /// <summary>How the code of a solid fence is read.</summary>
 [<RequireQualifiedAccess>]
@@ -22,6 +24,8 @@ type SolidCellKind =
     | Expression
     /// Declarations the page needs but the reader does not: compiled, never shown.
     | Setup
+    /// An expression written in the prose as a code span, rendered where it stands.
+    | Use of column: int
 
 /// <summary>One solid fence, as the scanner found it.</summary>
 type SolidCell =
@@ -40,6 +44,7 @@ type SolidCell =
         match this.Kind with
         | SolidCellKind.Expression
         | SolidCellKind.Declarations(Some _) -> this.Show <> SolidShow.Code
+        | SolidCellKind.Use _ -> true
         | SolidCellKind.Declarations None
         | SolidCellKind.Setup -> false
 
@@ -51,7 +56,7 @@ type SolidLineSpan =
         Length: int
         /// The body line the first generated line came from.
         Body: int
-        /// Columns the generator indented the code by.
+        /// Columns the generator moved the code right by: negative when it moved left.
         Indent: int
     }
 

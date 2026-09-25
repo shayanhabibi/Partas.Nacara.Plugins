@@ -70,7 +70,16 @@ module SolidGenerate =
         for line in prelude do
             add line
 
-        for cell in cells do
+        // Uses come last, so prose can use a component before the fence that declares it.
+        let uses, fences =
+            cells
+            |> List.partition (fun cell ->
+                match cell.Kind with
+                | SolidCellKind.Use _ -> true
+                | _ -> false
+            )
+
+        for cell in fences @ uses do
             add ""
 
             match cell.Kind with
@@ -85,6 +94,24 @@ module SolidGenerate =
                 pinned cell "[<Partas.Solid.SolidComponent>]"
                 pinned cell $"let %s{wrapper cell} () ="
                 addCode 4 cell
+            | SolidCellKind.Use column ->
+                // Blamed on the use itself: it has no fence line above it.
+                let mapped indent =
+                    spans.Add
+                        {
+                            Generated = lines.Count + 1
+                            Length = 1
+                            Body = cell.Line
+                            Indent = indent
+                        }
+
+                mapped Int32.MaxValue
+                add "[<Partas.Solid.SolidComponent>]"
+                mapped Int32.MaxValue
+                add $"let %s{wrapper cell} () ="
+                // Four columns in here, and column in its line on the page.
+                mapped (4 - (column - 1))
+                add ("    " + cell.Code)
 
         (String.concat "\n" lines + "\n"), List.ofSeq spans
 

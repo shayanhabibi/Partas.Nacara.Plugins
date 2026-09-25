@@ -120,11 +120,46 @@ still fails the build, but nothing is mounted.
 p () { "Only the output of this fence is on the page." }
 ```
 
+`show=inline` renders only the result too, and drops the box around it, so
+what it renders reads as part of the page:
+
+```fsharp solid show=inline
+p (style = "font-style: italic") { "No box, no code: this paragraph came from F#." }
+```
+
+## Components in the prose
+
+A code span that starts with `solid:` renders the expression after the colon
+where the span stands, in the middle of a sentence or a list item. Declare a
+component in a fence, often a `setup` one, and use it anywhere on the page:
+
+```fsharp solid setup
+[<SolidComponent>]
+let Kbd (key: string) =
+    kbd (style = "padding: 0 .35em; border: 1px solid currentColor; border-radius: .25em; font-size: .85em") {
+        key
+    }
+
+[<SolidComponent>]
+let Clicks () =
+    let count, setCount = createSignal 0
+    button (onClick = fun _ -> setCount (count () + 1)) { $"clicked {count ()}" }
+```
+
+Press `solid: Kbd "Ctrl"` + `solid: Kbd "C"` to copy. This button,
+`solid: Clicks ()`, keeps its own count inside the sentence.
+
+On GitHub, or anywhere else that knows nothing of the plugin, a use still reads
+as the code it runs. A use can name a component declared further down the
+page, because uses compile after every fence. Set `fenceToken` and the prefix
+follows it.
+
 ### Naming a cell
 
 Cells are numbered `c1`, `c2` and so on. Add `id=name` to give one a stable
 name. The name appears on the placeholder element, which is the handle for
-styling one example on its own.
+styling one example on its own. Uses in the prose are numbered `u1`, `u2` and
+so on.
 
 ## When an example is wrong
 
@@ -141,7 +176,7 @@ the fence and save again.
 | `feed` | none | Adds a NuGet source; a local folder works |
 | `fableVersion` | `"5.13.0"` | |
 | `solidVersion` | `"2.0.0-rc.9"` | `solid-js`, `@solidjs/web` and `@solidjs/compiler` |
-| `fenceToken` | `"solid"` | The word that marks a fence |
+| `fenceToken` | `"solid"` | The word that marks a fence, and the prefix of a use in the prose |
 | `prelude` | the three `open`s above | Lines at the top of every page's module |
 | `outputPath` | `"_partas/solid"` | Where the bundles go in the output |
 | `workspacePath` | `".nacara/partas-solid"` | Where the generated project lives |
