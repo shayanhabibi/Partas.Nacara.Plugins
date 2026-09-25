@@ -99,19 +99,37 @@ let tests =
                         Expect.equal (result.Cells |> List.map _.Line) [ 2; 6 ] "lines"
                     }
 
-                    test "jsx adds a panel under the placeholder, and leaves the fence" {
+                    test "jsx puts the code and its JSX in tabs, above the placeholder" {
                         let result = scan (fence "solid jsx" "Counter ()")
                         Expect.isTrue (List.exactlyOne result.Cells).Jsx "marked"
-                        Expect.stringContains result.Body "```fsharp\nCounter ()\n```" "code"
+
+                        let tabs =
+                            String.concat
+                                "\n"
+                                [
+                                    "::::tabs"
+                                    ":::tab F#"
+                                    "```fsharp"
+                                    "Counter ()"
+                                    "```"
+                                    ":::"
+                                    ":::tab JSX"
+                                    ""
+                                    "<div data-partas-jsx-page=\"pkey\" data-partas-jsx-cell=\"c1\"></div>"
+                                    ""
+                                    ":::"
+                                    "::::"
+                                ]
+
+                        Expect.stringContains result.Body tabs "tabs"
                         let placeholder = result.Body.IndexOf "data-partas-cell=\"c1\""
-                        let panel = result.Body.IndexOf "data-partas-jsx-page=\"pkey\" data-partas-jsx-cell=\"c1\""
-                        Expect.isGreaterThan panel placeholder "panel after placeholder"
+                        Expect.isGreaterThan placeholder (result.Body.IndexOf "::::tabs") "placeholder after tabs"
                     }
 
-                    test "without jsx there is no panel" {
+                    test "without jsx there are no tabs" {
                         let result = scan (fence "solid" "Counter ()")
                         Expect.isFalse (List.exactlyOne result.Cells).Jsx "marked"
-                        Expect.isFalse (result.Body.Contains "partas-solid__jsx") "panel"
+                        Expect.isFalse (result.Body.Contains "::::tabs") "tabs"
                     }
 
                     test "showJsx marks every fence but setup" {
@@ -120,9 +138,15 @@ let tests =
                         Expect.equal (result.Cells |> List.map _.Jsx) [ true; false ] "marked"
                     }
 
-                    test "show=code still gets its panel" {
+                    test "show=code still gets its tabs" {
                         let result = scan (fence "solid show=code jsx" "Counter ()")
-                        Expect.stringContains result.Body "```\n\n<details class=\"partas-solid__jsx\"" "panel"
+                        Expect.stringContains result.Body "```\n:::\n:::tab JSX" "tabs"
+                    }
+
+                    test "show=output with jsx has only the JSX tab" {
+                        let result = scan (fence "solid show=output jsx" "Counter ()")
+                        Expect.isFalse (result.Body.Contains ":::tab F#") "no F# tab"
+                        Expect.stringContains result.Body "::::tabs\n:::tab JSX" "JSX tab"
                     }
 
                     test "a bad show= and a repeated id are problems" {
@@ -200,9 +224,6 @@ let tests =
                                 ""
                             ]
 
-                    let parse (json: string) =
-                        System.Text.Json.JsonSerializer.Deserialize<Map<string, string>> json
-
                     test "an expression shows its wrapper" {
                         Expect.equal (SolidGenerate.jsxNames (cell (fence "solid" "Counter ()"))) [ "Cell_c1" ] "names"
                     }
@@ -231,16 +252,16 @@ let tests =
                         Expect.isNone (SolidGenerate.jsxDeclaration jsx "Count") "prefix"
                     }
 
-                    test "the JSON holds only the cells marked jsx" {
+                    test "only the cells marked jsx get their JSX" {
                         let cells = (scan (fence "solid jsx" "Counter ()" + "\n" + fence "solid" "B ()")).Cells
-                        let parsed = parse (SolidGenerate.jsxJson cells jsx)
+                        let parsed = SolidGenerate.jsxCode cells jsx
                         Expect.equal (parsed |> Map.keys |> List.ofSeq) [ "c1" ] "keys"
                         Expect.stringContains parsed["c1"] "return Counter();" "c1"
                     }
 
                     test "declarations Fable left no trace of fall back to the wrapper" {
                         let cells = (scan (fence "solid render=Counter jsx" "let private helper = 1")).Cells
-                        let parsed = parse (SolidGenerate.jsxJson cells jsx)
+                        let parsed = SolidGenerate.jsxCode cells jsx
                         Expect.stringStarts parsed["c1"] "export function Cell_c1" "wrapper"
                     }
 
@@ -317,7 +338,7 @@ let tests =
                     test "showJsx leaves uses without a panel" {
                         let result = SolidScan.scan "solid" true "pkey" "Press `solid: Kbd \"C\"` now."
                         Expect.isFalse (List.exactlyOne result.Cells).Jsx "jsx"
-                        Expect.isFalse (result.Body.Contains "<details") "no panel"
+                        Expect.isFalse (result.Body.Contains "::::tabs") "no tabs"
                     }
 
                     test "uses do not shift the numbering of fences" {

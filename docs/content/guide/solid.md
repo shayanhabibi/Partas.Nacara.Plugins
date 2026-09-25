@@ -129,10 +129,10 @@ p (style = "font-style: italic") { "No box, no code: this paragraph came from F#
 
 ### Showing the JSX
 
-Add `jsx` to a fence to put a collapsed **JSX** panel under it. Opening the
-panel shows the JSX that Fable and the Partas.Solid plugin made of the cell,
-before the Solid compiler turned it into DOM code. Use it to show readers what
-Partas.Solid does with a piece of F#.
+Add `jsx` to a fence to show its code in two tabs: **F#**, as written, and
+**JSX**, what Fable and the Partas.Solid plugin made of it before the Solid
+compiler turned it into DOM code. The JSX is coloured like any `jsx` fence. Use
+it to show readers what Partas.Solid does with a piece of F#.
 
 ```fsharp solid jsx
 let name = "Solid"
@@ -140,22 +140,23 @@ let name = "Solid"
 p (class' = "greeting") { $"Hello, {name}!" }
 ```
 
-The `TodoList` fence above is marked `jsx` too, so its panel shows the
+The `TodoList` fence above is marked `jsx` too, so its JSX tab shows the
 declared component rather than a wrapper.
 
-The panel holds only the cell's own functions:
+The JSX tab holds only the cell's own functions:
 
 - For an expression, that is the wrapper component the plugin generated for it.
 - For declarations, it is each name the fence declares at column zero (`let`,
-  `type` and `and`). When Fable wrote none of them, the panel shows the
+  `type` and `and`). When Fable wrote none of them, the tab shows the
   `render=` wrapper instead.
 
 Imports, and anything Fable generated beside a declaration (such as a record's
-`_$reflection` function), are left out. `setup` fences never get a panel.
+`_$reflection` function), are left out. `setup` fences never get the tabs, and
+a `show=output` fence gets only the JSX one.
 
-`SolidExamples.showJsx true` gives every fence on the site a panel. The panels
-are filled from a `<key>.jsx.json` file written next to each page's bundle, and
-the file is fetched when a reader first opens a panel on the page.
+`SolidExamples.showJsx true` gives every fence on the site the tabs. Fable runs
+after the markdown is rendered, so the plugin puts the coloured JSX into each
+page as it is written out: the page carries it, and nothing is fetched.
 
 ## Components in the prose
 
@@ -211,4 +212,4 @@ the fence and save again.
 | `outputPath` | `"_partas/solid"` | Where the bundles go in the output |
 | `workspacePath` | `".nacara/partas-solid"` | Where the generated project lives |
 | `minify` | `true` | |
-| `showJsx` | `false` | Adds a JSX panel under every fence, as if each were marked `jsx` |
+| `showJsx` | `false` | Adds a JSX tab to every fence, as if each were marked `jsx` |

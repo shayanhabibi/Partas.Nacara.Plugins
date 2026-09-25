@@ -140,9 +140,10 @@ module SolidScan =
                         at <- found + run
         ]
 
-    /// <summary>The panel the loader fills with the JSX Fable made of a cell, once it is opened.</summary>
-    let jsxPanel (pageKey: string) (cell: SolidCell) =
-        $"""<details class="partas-solid__jsx" data-partas-jsx-page="%s{pageKey}" data-partas-jsx-cell="%s{cell.Id}"><summary>JSX</summary></details>"""
+    /// <summary>Where the JSX Fable made of a cell goes, as a highlighted block, once it has compiled.</summary>
+    /// <remarks>The markdown is rendered before Fable runs, so the block is put in the rendered page.</remarks>
+    let jsxMarker (pageKey: string) (cell: SolidCell) =
+        $"""<div data-partas-jsx-page="%s{pageKey}" data-partas-jsx-cell="%s{cell.Id}"></div>"""
 
     type private Tokens =
         {
@@ -230,7 +231,7 @@ module SolidScan =
                                 Show = SolidShow.Inline
                                 Code = used.Code
                                 Line = index + 1
-                                // A panel after a span would split the paragraph it sits in.
+                                // Tabs after a span would split the paragraph it sits in.
                                 Jsx = false
                             }
 
@@ -309,7 +310,14 @@ module SolidScan =
                         | _, SolidShow.Inline -> false
                         | _ -> true
 
+                    // With its JSX, the code is a tab beside it, so the two read as one listing.
+                    if cell.Jsx then
+                        emit "::::tabs"
+
                     if shown then
+                        if cell.Jsx then
+                            emit ":::tab F#"
+
                         emit (
                             matched.Groups["indent"].Value
                             + fence
@@ -321,6 +329,18 @@ module SolidScan =
 
                         emit (matched.Groups["indent"].Value + fence)
 
+                        if cell.Jsx then
+                            emit ":::"
+
+                    if cell.Jsx then
+                        emit ":::tab JSX"
+                        emit ""
+                        emit (jsxMarker pageKey cell)
+                        // A blank line ends the html block, or it would swallow the directive's close.
+                        emit ""
+                        emit ":::"
+                        emit "::::"
+
                     if cell.Mounts then
                         emit ""
                         emit (placeholder pageKey cell)
@@ -330,13 +350,6 @@ module SolidScan =
                         // it was written on.
                         for _ in index .. min closing (lines.Length - 1) do
                             emit ""
-
-                    if cell.Jsx then
-                        if not cell.Mounts then
-                            emit ""
-
-                        emit (jsxPanel pageKey cell)
-                        emit ""
 
                     index <- closing + 1
 

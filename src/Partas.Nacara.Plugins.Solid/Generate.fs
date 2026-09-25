@@ -157,7 +157,7 @@ export function mount(cell, element) {{
             RegexOptions.Compiled
         )
 
-    /// <summary>The names whose JSX a cell's panel shows.</summary>
+    /// <summary>The names whose JSX a cell's JSX tab shows.</summary>
     /// <remarks>
     /// An expression is its wrapper. Declarations are what the cell declares at column zero, or the
     /// component it renders when it declares nothing.
@@ -209,19 +209,18 @@ export function mount(cell, element) {{
             lines[first..last] |> String.concat "\n"
         )
 
-    /// <summary>What the loader fills a page's JSX panels from: each marked cell's id and its JSX.</summary>
-    /// <param name="cells">The page's cells; only those marked <c>jsx</c> are written.</param>
+    /// <summary>The JSX tab of each cell marked <c>jsx</c>, by cell id.</summary>
+    /// <param name="cells">The page's cells; only those marked <c>jsx</c> are kept.</param>
     /// <param name="jsx">The <c>.fs.jsx</c> Fable wrote for the page's module.</param>
-    let jsxJson (cells: SolidCell list) (jsx: string) =
-        let panels = Collections.Generic.Dictionary<string, string>()
+    let jsxCode (cells: SolidCell list) (jsx: string) =
+        [
+            for cell in cells |> List.filter _.Jsx do
+                let found =
+                    match jsxNames cell |> List.choose (jsxDeclaration jsx) with
+                    // Nothing declared by a name Fable kept: the wrapper at least shows what mounts.
+                    | [] -> jsxDeclaration jsx (wrapper cell) |> Option.toList
+                    | found -> found
 
-        for cell in cells |> List.filter _.Jsx do
-            let found =
-                match jsxNames cell |> List.choose (jsxDeclaration jsx) with
-                // Nothing declared by a name Fable kept: the wrapper at least shows what mounts.
-                | [] -> jsxDeclaration jsx (wrapper cell) |> Option.toList
-                | found -> found
-
-            panels[cell.Id] <- String.concat "\n\n" found
-
-        JsonSerializer.Serialize panels
+                cell.Id, String.concat "\n\n" found
+        ]
+        |> Map.ofList

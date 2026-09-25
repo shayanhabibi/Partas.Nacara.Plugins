@@ -102,7 +102,51 @@ module SolidExamples =
 
         context.Diagnostics.Add diagnostic
 
-    let private compileAll (options: SolidExamplesOptions) (context: HookContext) =
+    /// <summary>
+    /// What the JSX tabs are filled from: the build's highlighters and code block renderers, and the
+    /// JSX this build compiled.
+    /// </summary>
+    type private JsxTabs() =
+        /// Only a transform is given the finished registry, so the first page to pass keeps it.
+        member val Registry: Registry option = None with get, set
+        member val Code: Map<string, Map<string, string>> = Map.empty with get, set
+
+    let private jsxMarker =
+        Text.RegularExpressions.Regex(
+            """<div data-partas-jsx-page="(?<page>[^"]+)" data-partas-jsx-cell="(?<cell>[^"]+)"></div>""",
+            Text.RegularExpressions.RegexOptions.Compiled
+        )
+
+    /// <summary>Put each cell's JSX in its tab, coloured as the site colours a <c>jsx</c> fence.</summary>
+    let private fillJsx (tabs: JsxTabs) (context: AssetTransformContext) =
+        if not (context.Content.Contains "data-partas-jsx-cell") then
+            context.Content
+        else
+            let highlighters, renderers =
+                match tabs.Registry with
+                | Some registry -> Registry.extras<IHighlighter> registry, Registry.extras<ICodeBlockRenderer> registry
+                | None -> [], []
+
+            jsxMarker.Replace(
+                context.Content,
+                fun matched ->
+                    let code =
+                        tabs.Code
+                        |> Map.tryFind matched.Groups["page"].Value
+                        |> Option.bind (Map.tryFind matched.Groups["cell"].Value)
+                        |> Option.defaultValue "// Fable wrote no JSX for this example."
+
+                    CodeBlock.render
+                        renderers
+                        highlighters
+                        {
+                            Language = Some "jsx"
+                            Code = code
+                            Meta = CodeBlockMeta.empty
+                        }
+            )
+
+    let private compileAll (options: SolidExamplesOptions) (tabs: JsxTabs) (context: HookContext) =
         let units =
             context.Pages
             |> List.choose (fun page -> page.TryData<SolidPageUnit> dataKey)
@@ -118,6 +162,7 @@ module SolidExamples =
                 context.Write $"%s{options.OutputPath}/%s{name}" text |> ignore
 
             compiled.Messages |> List.iter (report context)
+            tabs.Code <- SolidCompile.jsx options (AbsolutePath.value context.ProjectRoot) units
 
             if started.ElapsedMilliseconds > 1000L then
                 Log.info $"solid: %d{units.Length} page(s) of examples in %d{started.ElapsedMilliseconds}ms"
@@ -128,6 +173,7 @@ module SolidExamples =
 
             member _.Configure registry =
                 let loaderPath = $"%s{options.OutputPath}/loader.js"
+                let tabs = JsxTabs()
 
                 let registry =
                     registry
@@ -135,7 +181,12 @@ module SolidExamples =
                         {
                             Name = "partas-solid"
                             Extensions = [ ".md"; ".markdown" ]
-                            Transform = transformPage options
+                            Transform =
+                                fun context page ->
+                                    if tabs.Registry.IsNone then
+                                        tabs.Registry <- Some context.Registry
+
+                                    transformPage options context page
                         }
 
                 // First in line, so the fences are rewritten before whichever plugin renders the
@@ -146,7 +197,13 @@ module SolidExamples =
                 { registry with Transforms = transforms }
                 |> Registry.asset (WriteText(loader.Value, RelativePath.create loaderPath))
                 |> Registry.extra (Script(loaderPath, true))
-                |> Registry.onPagesRouted (compileAll options)
+                |> Registry.onPagesRouted (compileAll options tabs)
+                |> Registry.assetTransform
+                    {
+                        Name = "partas-solid-jsx"
+                        Extensions = [ ".html" ]
+                        Transform = fillJsx tabs
+                    }
 
     let create () = SolidExamplesPlugin(defaults ()) :> IPlugin
 

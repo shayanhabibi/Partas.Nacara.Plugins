@@ -117,6 +117,23 @@ module SolidCompile =
         |> String.concat "\u0000"
         |> SolidGenerate.hash 16
 
+    /// <summary>The JSX Fable made of each cell marked <c>jsx</c>, by page key and cell id.</summary>
+    /// <remarks>
+    /// Read from Fable's output rather than the bundle, which the Solid compiler has already
+    /// rewritten. A page Fable has not written yet has none.
+    /// </remarks>
+    let jsx (options: SolidExamplesOptions) (root: string) (units: SolidPageUnit list) =
+        let workspace = Path.GetFullPath(Path.Combine(root, options.WorkspacePath))
+
+        [
+            for unit in units do
+                let file = Path.Combine(workspace, SolidGenerate.fileName unit.Key + ".jsx")
+
+                if unit.Cells |> List.exists _.Jsx && File.Exists file then
+                    unit.Key, SolidGenerate.jsxCode unit.Cells (File.ReadAllText file)
+        ]
+        |> Map.ofList
+
     let private fableArguments =
         [ "Docs.fsproj"; "-e"; ".fs.jsx"; "-c"; "Release"; "--optimize"; "--exclude"; "Partas.Solid.FablePlugin" ]
 
@@ -340,12 +357,6 @@ module SolidCompile =
         if bundled.ExitCode <> 0 then
             failed (messages @ [ general true $"bundling failed:\n%s{tail bundled.Output}" ])
         else
-
-        // Read from Fable's output rather than the bundle, which the Solid compiler has already rewritten.
-        for unit in units do
-            if unit.Cells |> List.exists _.Jsx then
-                let jsx = File.ReadAllText(at (SolidGenerate.fileName unit.Key + ".jsx"))
-                File.WriteAllText(Path.Combine(outDir, $"%s{unit.Key}.jsx.json"), SolidGenerate.jsxJson unit.Cells jsx)
 
         File.WriteAllText(stampFile, key)
 
