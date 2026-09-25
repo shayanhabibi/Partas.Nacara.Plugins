@@ -9,3 +9,6 @@ node_modules/
 # Generated documentation site
 docs/output/
 src/Partas.Nacara.Theme/build/
+
+# Workspace the Solid examples plugin compiles in
+.nacara/

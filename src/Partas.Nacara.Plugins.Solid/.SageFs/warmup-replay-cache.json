@@ -1,0 +1,339 @@
+{
+  "fingerprint": {
+    "schemaVersion": 5,
+    "autoOpenNamespaces": true,
+    "fsiArgs": [
+      "fsi",
+      "--multiemit-",
+      "-r:C:\\Users\\shaya\\.nuget\\packages\\feliz.viewengine\\1.0.3\\lib\\netstandard2.0\\Feliz.ViewEngine.dll",
+      "-r:C:\\Users\\shaya\\.nuget\\packages\\fsharp.core\\11.0.101-rc1.26425.128\\lib\\net10.0\\FSharp.Core.dll",
+      "-r:C:\\Users\\shaya\\.nuget\\packages\\microsoft.extensions.filesystemglobbing\\10.0.11\\lib\\net10.0\\Microsoft.Extensions.FileSystemGlobbing.dll",
+      "-r:C:\\Users\\shaya\\.nuget\\packages\\nacara.core\\2.0.0-beta.6\\lib\\net10.0\\Nacara.Core.dll",
+      "-r:C:\\Users\\shaya\\.nuget\\packages\\yamldotnet\\18.1.0\\lib\\net10.0\\YamlDotNet.dll",
+      "-r:C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\bin\\Debug\\net10.0\\Partas.Nacara.Plugins.Solid.dll",
+      "--langversion:latest",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\Microsoft.CSharp.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\Microsoft.VisualBasic.Core.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\Microsoft.VisualBasic.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\Microsoft.Win32.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\Microsoft.Win32.Registry.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\mscorlib.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\netstandard.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.AppContext.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Buffers.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Collections.Concurrent.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Collections.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Collections.Immutable.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Collections.NonGeneric.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Collections.Specialized.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.Annotations.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.DataAnnotations.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.EventBasedAsync.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ComponentModel.TypeConverter.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Configuration.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Console.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Core.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Data.Common.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Data.DataSetExtensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Data.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.Contracts.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.Debug.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.DiagnosticSource.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.FileVersionInfo.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.Process.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.StackTrace.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.TextWriterTraceListener.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.Tools.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.TraceSource.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Diagnostics.Tracing.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Drawing.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Drawing.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Dynamic.Runtime.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Formats.Asn1.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Formats.Tar.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Globalization.Calendars.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Globalization.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Globalization.Extensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Compression.Brotli.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Compression.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Compression.FileSystem.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Compression.ZipFile.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.FileSystem.AccessControl.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.FileSystem.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.FileSystem.DriveInfo.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.FileSystem.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.FileSystem.Watcher.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.IsolatedStorage.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.MemoryMappedFiles.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Pipelines.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Pipes.AccessControl.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.Pipes.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.IO.UnmanagedMemoryStream.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Linq.AsyncEnumerable.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Linq.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Linq.Expressions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Linq.Parallel.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Linq.Queryable.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Memory.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Http.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Http.Json.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.HttpListener.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Mail.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.NameResolution.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.NetworkInformation.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Ping.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Quic.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Requests.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Security.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.ServerSentEvents.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.ServicePoint.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.Sockets.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.WebClient.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.WebHeaderCollection.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.WebProxy.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.WebSockets.Client.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Net.WebSockets.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Numerics.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Numerics.Vectors.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ObjectModel.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.DispatchProxy.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Emit.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Emit.ILGeneration.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Emit.Lightweight.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Extensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Metadata.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Reflection.TypeExtensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Resources.Reader.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Resources.ResourceManager.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Resources.Writer.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.CompilerServices.Unsafe.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.CompilerServices.VisualC.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Extensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Handles.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.InteropServices.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.InteropServices.JavaScript.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.InteropServices.RuntimeInformation.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Intrinsics.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Loader.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Numerics.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Serialization.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Serialization.Formatters.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Serialization.Json.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Serialization.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Runtime.Serialization.Xml.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.AccessControl.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Claims.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.Algorithms.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.Cng.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.Csp.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.Encoding.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.OpenSsl.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.Primitives.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Cryptography.X509Certificates.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Principal.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.Principal.Windows.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Security.SecureString.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ServiceModel.Web.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ServiceProcess.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.Encoding.CodePages.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.Encoding.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.Encoding.Extensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.Encodings.Web.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.Json.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Text.RegularExpressions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.AccessControl.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Channels.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Overlapped.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Tasks.Dataflow.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Tasks.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Tasks.Extensions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Tasks.Parallel.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Thread.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.ThreadPool.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Threading.Timer.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Transactions.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Transactions.Local.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.ValueTuple.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Web.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Web.HttpUtility.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Windows.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.Linq.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.ReaderWriter.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.Serialization.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.XDocument.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.XmlDocument.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.XmlSerializer.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.XPath.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\System.Xml.XPath.XDocument.dll",
+      "-r:C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0\\WindowsBase.dll"
+    ],
+    "startupFiles": [],
+    "sourceFiles": [
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\obj\\Debug\\net10.0\\Partas.Nacara.Plugins.Solid.AssemblyInfo.fs",
+        "exists": true,
+        "length": 1012,
+        "lastWriteTimeUtcTicks": 639259271800372934
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\obj\\Debug\\net10.0\\.NETCoreApp,Version=v10.0.AssemblyAttributes.fs",
+        "exists": true,
+        "length": 193,
+        "lastWriteTimeUtcTicks": 639259271800222645
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Types.fs",
+        "exists": true,
+        "length": 4246,
+        "lastWriteTimeUtcTicks": 639259269926012373
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Scan.fs",
+        "exists": true,
+        "length": 8239,
+        "lastWriteTimeUtcTicks": 639259272252724006
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Generate.fs",
+        "exists": true,
+        "length": 4451,
+        "lastWriteTimeUtcTicks": 639259272252819195
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Workspace.fs",
+        "exists": true,
+        "length": 4894,
+        "lastWriteTimeUtcTicks": 639259272252914512
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Compile.fs",
+        "exists": true,
+        "length": 9987,
+        "lastWriteTimeUtcTicks": 639259272253079786
+      },
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Solid.fs",
+        "exists": true,
+        "length": 6674,
+        "lastWriteTimeUtcTicks": 639259272253388072
+      }
+    ],
+    "assemblyFiles": [
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\bin\\Debug\\net10.0\\Partas.Nacara.Plugins.Solid.dll",
+        "exists": true,
+        "length": 85504,
+        "lastWriteTimeUtcTicks": 639259272272027290
+      }
+    ],
+    "projectFiles": [
+      {
+        "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Partas.Nacara.Plugins.Solid.fsproj",
+        "exists": true,
+        "contentHash": "cc740afde378e1af347d8e92a3603596f051edeea97253145a4183aece35e0e1"
+      }
+    ]
+  },
+  "sourceFilesScanned": 8,
+  "assembliesLoaded": [
+    {
+      "name": "Partas.Nacara.Plugins.Solid",
+      "path": "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\bin\\Debug\\net10.0\\Partas.Nacara.Plugins.Solid.dll",
+      "namespaceCount": 1,
+      "moduleCount": 0
+    }
+  ],
+  "namesToOpen": [
+    {
+      "name": "System",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Reflection",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Text",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Text.RegularExpressions",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "Nacara.Plugins",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Security.Cryptography",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Diagnostics",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.IO",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "System.Security",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "Nacara.Core",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "Nacara.Plugins.Internal",
+      "kind": {
+        "Case": "Namespace"
+      }
+    },
+    {
+      "name": "Nacara",
+      "kind": {
+        "Case": "Namespace"
+      }
+    }
+  ],
+  "projectFileNames": [
+    "C:\\Users\\shaya\\RiderProjects\\Partas.Nacara.Plugins-solid\\src\\Partas.Nacara.Plugins.Solid\\Partas.Nacara.Plugins.Solid.fsproj"
+  ],
+  "discoveryWarnings": [
+    "Project assembly loaded only partially: C:\\Users\\shaya\\AppData\\Local\\Temp\\sagefs-shadow-51608-811d666f\\Partas.Nacara.Plugins.Solid.dll \u2014 5 of its type(s) could not be loaded (Could not load file or assembly \u0027Nacara.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null\u0027. The system cannot find the file specified.). Run \u0027dotnet build\u0027 to restore any missing dependency; namespaces/modules from the unloaded types could not be auto-opened."
+  ]
+}
