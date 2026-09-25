@@ -59,6 +59,7 @@ module Theme =
             Tokens = Tokens.defaults
             Footer = None
             FavIcon = None
+            BrandIcon = None
             MenuGroupLimit = 150
         }
 
@@ -337,6 +338,19 @@ module Theme =
     let favIcon value (options: ThemeOptions) =
         { options with
             FavIcon = Some value
+        }
+
+    /// <summary>An icon before the site's title in the navbar.</summary>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults |> Theme.brandIcon (BrandIcon.Image "logo.svg")
+    /// </code>
+    /// </example>
+    /// <param name="value">An image path relative to the site root, or inline SVG.</param>
+    /// <param name="options">The options so far.</param>
+    let brandIcon value (options: ThemeOptions) =
+        { options with
+            BrandIcon = Some value
         }
 
     /// Assets carry a content hash in their name, so a deployed site can cache them forever and

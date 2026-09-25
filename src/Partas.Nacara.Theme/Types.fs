@@ -27,6 +27,14 @@ type NavbarItem =
     /// something only settled by then - which version this build is, say.
     | NavbarDynamicWidget of render: (SiteInfo -> string)
 
+/// <summary>The icon shown before the site's title in the navbar.</summary>
+[<RequireQualifiedAccess>]
+type BrandIcon =
+    /// An image, by its path relative to the site root.
+    | Image of path: string
+    /// Inline SVG markup. Drawn with <c>currentColor</c>, it follows the colour scheme.
+    | Svg of svg: string
+
 /// <summary>A mark beside a menu entry: new, deprecated, whatever a site needs to say.</summary>
 /// <remarks>
 /// <c>Kind</c> is the styling hook rather than the text, so a badge reading "Nouveau" can still be
@@ -228,6 +236,8 @@ type ThemeOptions =
         Footer: ReactElement option
         /// Path of the favicon, relative to the site root.
         FavIcon: string option
+        /// <summary>The icon shown before the site's title in the navbar.</summary>
+        BrandIcon: BrandIcon option
         /// <summary>How many pages a menu group lists before it points at its own page instead.</summary>
         /// <remarks>A generated section of thousands of pages would otherwise write every one of
         /// them into every page of the site. <c>0</c> lists them all, whatever it costs.</remarks>
