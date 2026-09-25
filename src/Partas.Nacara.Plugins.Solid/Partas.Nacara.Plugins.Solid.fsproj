@@ -11,6 +11,8 @@
         <Description>Live Partas.Solid examples in Nacara pages, compiled at build time.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+        <!-- Not published until Partas.Solid 3 is on NuGet: its default version would resolve the old one. -->
+        <IsPackable>false</IsPackable>
         <WarningsAsErrors>$(WarningsAsErrors);FS0025</WarningsAsErrors>
     </PropertyGroup>
 
