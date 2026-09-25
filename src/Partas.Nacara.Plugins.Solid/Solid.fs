@@ -23,6 +23,8 @@ module SolidExamples =
         {
             PartasVersion = "3.*"
             Feeds = []
+            NuGetPackages = []
+            NpmPackages = []
             FableVersion = "5.13.0"
             SolidVersion = "2.0.0-rc.9"
             RolldownVersion = "1.2.11"
@@ -37,6 +39,21 @@ module SolidExamples =
 
     let partasVersion value (options: SolidExamplesOptions) = { options with PartasVersion = value }
     let feed value (options: SolidExamplesOptions) = { options with Feeds = options.Feeds @ [ value ] }
+
+    /// Adds a package at the end, dropping an earlier entry of the same name.
+    let private setPackage (comparison: StringComparison) (name: string) (version: string) packages =
+        (packages
+         |> List.filter (fun (existing: string, _: string) -> not (String.Equals(existing, name, comparison))))
+        @ [ name, version ]
+
+    /// <summary>Adds an npm package the examples can import. A later call for the same name replaces it.</summary>
+    let npm name version (options: SolidExamplesOptions) =
+        { options with NpmPackages = setPackage StringComparison.Ordinal name version options.NpmPackages }
+
+    /// <summary>Adds a NuGet package the examples compile against. A later call for the same id replaces it.</summary>
+    let nuget id version (options: SolidExamplesOptions) =
+        { options with NuGetPackages = setPackage StringComparison.OrdinalIgnoreCase id version options.NuGetPackages }
+
     let fableVersion value (options: SolidExamplesOptions) = { options with FableVersion = value }
     let solidVersion value (options: SolidExamplesOptions) = { options with SolidVersion = value }
     let rolldownVersion value (options: SolidExamplesOptions) = { options with RolldownVersion = value }

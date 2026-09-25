@@ -199,12 +199,46 @@ the generated module. `nacara build` fails on them, like it does on a broken
 link. `nacara watch` reports them as warnings and keeps serving, so you can fix
 the fence and save again.
 
+## Using other packages
+
+Examples compile against Partas.Solid and nothing else. To use more, name the
+packages when you register the plugin. `nuget` adds a NuGet package, such as F#
+bindings for a library. `npm` adds an npm package for the bundle to import.
+
+```fsharp
+let site =
+    Site.create "My site"
+    |> Markdown.register
+    |> SolidExamples.registerWith (
+        SolidExamples.nuget "Fable.Browser.Dom" "2.18.0"
+        >> SolidExamples.npm "animejs" "3.2.2"
+    )
+```
+
+Each call adds one package. Call either again with the same name and the later
+version replaces the earlier one. Adding, changing or removing a package makes
+the next build install and compile again.
+
+An example then imports from the npm package as any Fable code does:
+
+```fsharp
+[<Import("default", "animejs")>]
+let anime: obj -> unit = jsNative
+```
+
+The examples run on Solid 2. A library built on Solid 1.x will not work: the
+plugin holds `solid-js` and `@solidjs/web` at `solidVersion` for every package,
+so such a library gets Solid 2 in place of the Solid it expects. Libraries that
+do not use Solid at all, like `animejs`, are fine.
+
 ## Options
 
 | Option | Default | |
 | --- | --- | --- |
 | `partasVersion` | `"3.*"` | The Partas.Solid package the examples compile against |
 | `feed` | none | Adds a NuGet source; a local folder works |
+| `nuget` | none | Adds a NuGet package the examples compile against |
+| `npm` | none | Adds an npm package the examples can import |
 | `fableVersion` | `"5.13.0"` | |
 | `solidVersion` | `"2.0.0-rc.9"` | `solid-js`, `@solidjs/web` and `@solidjs/compiler` |
 | `fenceToken` | `"solid"` | The word that marks a fence, and the prefix of a use in the prose |

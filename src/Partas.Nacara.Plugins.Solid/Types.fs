@@ -86,6 +86,23 @@ type SolidExamplesOptions =
         /// <summary>Extra NuGet sources, tried alongside nuget.org. A local folder feed works.</summary>
         /// <defaultValue><c>[]</c></defaultValue>
         Feeds: string list
+        /// <summary>
+        /// More NuGet packages the examples compile against, as (id, version): F# bindings, say.
+        /// </summary>
+        /// <remarks>An entry for <c>Partas.Solid</c> is ignored: <c>PartasVersion</c> sets it.</remarks>
+        /// <defaultValue><c>[]</c></defaultValue>
+        NuGetPackages: (string * string) list
+        /// <summary>
+        /// More npm packages the examples can import, as (name, version): a framework-free library
+        /// such as <c>animejs</c>, say.
+        /// </summary>
+        /// <remarks>
+        /// Entries for the packages the plugin installs itself are ignored. <c>solid-js</c> and
+        /// <c>@solidjs/web</c> stay pinned to <c>SolidVersion</c> for every package, so a library
+        /// built on Solid 1 cannot bring a second, older Solid with it, and does not work.
+        /// </remarks>
+        /// <defaultValue><c>[]</c></defaultValue>
+        NpmPackages: (string * string) list
         /// <defaultValue><c>"5.13.0"</c></defaultValue>
         FableVersion: string
         /// <summary>The version of <c>solid-js</c>, <c>@solidjs/web</c> and <c>@solidjs/compiler</c>.</summary>

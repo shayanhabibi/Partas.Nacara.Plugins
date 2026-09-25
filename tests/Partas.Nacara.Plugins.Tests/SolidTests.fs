@@ -278,6 +278,124 @@ let tests =
                 ]
 
             testList
+                "packages"
+                [
+                    let defaults = SolidExamples.defaults ()
+
+                    test "there are no extra packages by default" {
+                        Expect.isEmpty defaults.NpmPackages "npm"
+                        Expect.isEmpty defaults.NuGetPackages "nuget"
+                    }
+
+                    test "npm appends, and a later call for the same name replaces the earlier one" {
+                        let options =
+                            defaults
+                            |> SolidExamples.npm "animejs" "3.2.2"
+                            |> SolidExamples.npm "canvas-confetti" "1.9.3"
+                            |> SolidExamples.npm "animejs" "4.0.0"
+
+                        Expect.equal
+                            options.NpmPackages
+                            [ "canvas-confetti", "1.9.3"; "animejs", "4.0.0" ]
+                            "packages"
+                    }
+
+                    test "nuget appends, and a later call for the same id replaces the earlier one" {
+                        let options =
+                            defaults
+                            |> SolidExamples.nuget "Fable.Browser.Dom" "2.18.0"
+                            |> SolidExamples.nuget "Thoth.Json" "10.2.0"
+                            |> SolidExamples.nuget "fable.browser.dom" "2.19.0"
+
+                        Expect.equal
+                            options.NuGetPackages
+                            [ "Thoth.Json", "10.2.0"; "fable.browser.dom", "2.19.0" ]
+                            "packages"
+                    }
+
+                    test "npm packages are dependencies, and Solid stays overridden" {
+                        let json =
+                            defaults
+                            |> SolidExamples.npm "animejs" "^3.2.2"
+                            |> SolidExamples.npm "odd\"name" "1.0.0"
+                            |> SolidWorkspace.packageJson
+
+                        use document = System.Text.Json.JsonDocument.Parse json
+                        let root = document.RootElement
+                        let dependencies = root.GetProperty "dependencies"
+                        Expect.equal (dependencies.GetProperty("animejs").GetString()) "^3.2.2" "animejs"
+                        Expect.equal (dependencies.GetProperty("odd\"name").GetString()) "1.0.0" "escaped"
+                        Expect.equal (dependencies.GetProperty("solid-js").GetString()) defaults.SolidVersion "solid-js"
+                        let overrides = root.GetProperty "overrides"
+                        Expect.equal (overrides.GetProperty("solid-js").GetString()) defaults.SolidVersion "override"
+                        Expect.equal (overrides.GetProperty("@solidjs/web").GetString()) defaults.SolidVersion "web override"
+                    }
+
+                    test "an npm package cannot replace one the plugin installs" {
+                        let json = defaults |> SolidExamples.npm "solid-js" "1.9.0" |> SolidWorkspace.packageJson
+                        use document = System.Text.Json.JsonDocument.Parse json
+                        let dependencies = document.RootElement.GetProperty "dependencies"
+                        let solid = dependencies.EnumerateObject() |> Seq.filter (fun p -> p.Name = "solid-js") |> List.ofSeq
+                        Expect.equal (solid |> List.map _.Value.GetString()) [ defaults.SolidVersion ] "one solid-js"
+                    }
+
+                    test "without extra packages package.json is what it was" {
+                        let json = SolidWorkspace.packageJson defaults
+                        use document = System.Text.Json.JsonDocument.Parse json
+                        let names = document.RootElement.GetProperty("dependencies").EnumerateObject() |> Seq.map _.Name |> List.ofSeq
+                        Expect.equal names [ "@solidjs/compiler"; "@solidjs/web"; "solid-js"; "rolldown" ] "names"
+                    }
+
+                    test "nuget packages are package references, escaped" {
+                        let project =
+                            defaults
+                            |> SolidExamples.nuget "Fable.Browser.Dom" "2.18.0"
+                            |> SolidExamples.nuget "Odd&Id" "[1.0,2.0)"
+                            |> fun options -> SolidWorkspace.projectFile options [ "Pkey.fs" ]
+
+                        let document = System.Xml.Linq.XDocument.Parse project
+
+                        let references =
+                            document.Descendants(System.Xml.Linq.XName.Get "PackageReference")
+                            |> Seq.map (fun element -> element.Attribute(System.Xml.Linq.XName.Get "Include").Value, element.Attribute(System.Xml.Linq.XName.Get "Version").Value)
+                            |> List.ofSeq
+
+                        Expect.equal
+                            references
+                            [ "Partas.Solid", defaults.PartasVersion; "Fable.Browser.Dom", "2.18.0"; "Odd&Id", "[1.0,2.0)" ]
+                            "references"
+                    }
+
+                    test "a nuget entry for Partas.Solid is left to partasVersion" {
+                        let project =
+                            defaults
+                            |> SolidExamples.nuget "partas.solid" "1.0.0"
+                            |> fun options -> SolidWorkspace.projectFile options []
+
+                        Expect.isFalse (project.Contains "1.0.0") "ignored"
+                    }
+
+                    test "adding, changing or removing a package changes the fingerprint" {
+                        let units = [ unitOf (scan (fence "solid" "Counter ()")).Cells ]
+                        let print options = SolidCompile.fingerprint options units
+                        let withNpm = defaults |> SolidExamples.npm "animejs" "3.2.2"
+                        let withNuget = defaults |> SolidExamples.nuget "Thoth.Json" "10.2.0"
+
+                        let prints =
+                            [
+                                print defaults
+                                print withNpm
+                                print (withNpm |> SolidExamples.npm "animejs" "4.0.0")
+                                print withNuget
+                                print (withNuget |> SolidExamples.nuget "Thoth.Json" "10.3.0")
+                            ]
+
+                        Expect.equal (List.distinct prints) prints "all differ"
+                        Expect.equal (print { withNpm with NpmPackages = [] }) (print defaults) "removed"
+                    }
+                ]
+
+            testList
                 "inline"
                 [
                     test "show=inline mounts without the code, in an unboxed div" {
