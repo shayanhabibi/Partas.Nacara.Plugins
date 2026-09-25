@@ -113,12 +113,59 @@ module SolidCompile =
         |> String.concat "\u0000"
         |> SolidGenerate.hash 16
 
+    let private fableArguments =
+        [ "Docs.fsproj"; "-e"; ".fs.jsx"; "-c"; "Release"; "--optimize"; "--exclude"; "Partas.Solid.FablePlugin" ]
+
+    /// <summary>A watcher, and the output of the last compilation it finished.</summary>
+    type private Watching =
+        {
+            Watcher: SolidFableWatcher
+            mutable Last: string
+        }
+
+    /// Watchers by workspace. Only <c>nacara watch</c> starts one, and it lives as long as the process.
+    let private watchers = Collections.Generic.Dictionary<string, Watching>()
+
+    let private stopWatching (workspace: string) =
+        match watchers.TryGetValue workspace with
+        | true, watching ->
+            (watching.Watcher :> IDisposable).Dispose()
+            watchers.Remove workspace |> ignore
+        | _ -> ()
+
+    /// <summary>The running watcher for a workspace, started when there is none.</summary>
+    /// <returns>The watcher, and whether it was started just now.</returns>
+    let private watcherFor (workspace: string) =
+        match watchers.TryGetValue workspace with
+        | true, watching when not watching.Watcher.HasExited -> watching, false
+        | _ ->
+            stopWatching workspace
+
+            let watching =
+                {
+                    Watcher = new SolidFableWatcher(workspace, fableArguments)
+                    Last = ""
+                }
+
+            watchers[workspace] <- watching
+            watching, true
+
     /// <summary>Bring the workspace up to date and compile it.</summary>
     /// <param name="options">The plugin's options.</param>
     /// <param name="root">The site's project root.</param>
+    /// <param name="watch">
+    /// Keep a <c>dotnet fable watch</c> running between calls, so an edit recompiles one module rather
+    /// than starting Fable cold.
+    /// </param>
     /// <param name="log">Told what is taking the time.</param>
     /// <param name="units">Every page with examples.</param>
-    let compile (options: SolidExamplesOptions) (root: string) (log: string -> unit) (units: SolidPageUnit list) =
+    let compile
+        (options: SolidExamplesOptions)
+        (root: string)
+        (watch: bool)
+        (log: string -> unit)
+        (units: SolidPageUnit list)
+        =
         let workspace = Path.GetFullPath(Path.Combine(root, options.WorkspacePath))
         let outDir = Path.Combine(workspace, "out")
         let stampFile = Path.Combine(workspace, ".stamp")
@@ -135,6 +182,10 @@ module SolidCompile =
             }
 
         if File.Exists stampFile && File.ReadAllText stampFile = key && Directory.Exists outDir then
+            // Started now, the watcher has its first compilation done before the first edit arrives.
+            if watch then
+                watcherFor workspace |> ignore
+
             {
                 Files = previous ()
                 Messages = []
@@ -149,14 +200,28 @@ module SolidCompile =
 
         let sources = units |> List.map (fun unit -> SolidGenerate.fileName unit.Key)
 
-        SolidWorkspace.write (at "nuget.config") (SolidWorkspace.nugetConfig options) |> ignore
+        // Taken before anything is written, so the compilation the writes cause is the one waited for.
+        let mark =
+            match watchers.TryGetValue workspace with
+            | true, watching -> watching.Watcher.Mark()
+            | _ -> 0
+
+        let configChanged = SolidWorkspace.write (at "nuget.config") (SolidWorkspace.nugetConfig options)
         SolidWorkspace.write (at "bundle.mjs") bundleScript.Value |> ignore
-        SolidWorkspace.write (at "Docs.fsproj") (SolidWorkspace.projectFile options sources) |> ignore
+        let projectChanged = SolidWorkspace.write (at "Docs.fsproj") (SolidWorkspace.projectFile options sources)
         let toolsChanged = SolidWorkspace.write (at ".config/dotnet-tools.json") (SolidWorkspace.toolManifest options)
         let packagesChanged = SolidWorkspace.write (at "package.json") (SolidWorkspace.packageJson options)
 
+        // A watcher reads the project once; one with a stale view of it is started again.
+        if configChanged || projectChanged || toolsChanged then
+            stopWatching workspace
+
+        let mutable sourcesChanged = false
+
         for unit in units do
-            SolidWorkspace.write (at (SolidGenerate.fileName unit.Key)) unit.Code |> ignore
+            if SolidWorkspace.write (at (SolidGenerate.fileName unit.Key)) unit.Code then
+                sourcesChanged <- true
+
             SolidWorkspace.write (at $"entries/%s{unit.Key}.js") (SolidGenerate.entry unit.Key unit.Cells) |> ignore
 
         // Pages that no longer have examples leave their module behind otherwise.
@@ -197,22 +262,43 @@ module SolidCompile =
             failed [ general true $"dotnet tool restore failed:\n%s{tail tools.Output}" ]
         else
 
-        log $"compiling %d{units.Length} page(s) of examples with Fable"
-
         let fable =
-            run
-                "dotnet"
-                [
-                    "fable"
-                    "Docs.fsproj"
-                    "-e"
-                    ".fs.jsx"
-                    "-c"
-                    "Release"
-                    "--optimize"
-                    "--exclude"
-                    "Partas.Solid.FablePlugin"
-                ]
+            if watch then
+                let watching, started = watcherFor workspace
+
+                if started then
+                    log $"starting Fable's watch over %d{units.Length} page(s) of examples"
+
+                let finished (output: string) =
+                    let failed = fableMessages units output |> List.exists _.IsError
+
+                    {
+                        ExitCode = (if failed then 1 else 0)
+                        Output = output
+                        TimedOut = false
+                    }
+
+                if started || sourcesChanged then
+                    let mark = if started then 0 else mark
+
+                    match watching.Watcher.Wait(mark, TimeSpan.FromMilliseconds 300., options.Timeout) with
+                    | Ok output ->
+                        watching.Last <- output
+                        finished output
+                    | Error problem ->
+                        stopWatching workspace
+
+                        {
+                            ExitCode = -1
+                            Output = problem
+                            TimedOut = false
+                        }
+                else
+                    // Nothing Fable reads changed, so its last compilation stands.
+                    finished watching.Last
+            else
+                log $"compiling %d{units.Length} page(s) of examples with Fable"
+                run "dotnet" fableArguments
 
         let messages = fableMessages units fable.Output
 

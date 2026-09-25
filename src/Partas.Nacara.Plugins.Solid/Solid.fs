@@ -110,7 +110,7 @@ module SolidExamples =
             let started = Diagnostics.Stopwatch.StartNew()
 
             let compiled =
-                SolidCompile.compile options (AbsolutePath.value context.ProjectRoot) (fun line -> Log.info $"solid: %s{line}") units
+                SolidCompile.compile options (AbsolutePath.value context.ProjectRoot) context.IsWatch (fun line -> Log.info $"solid: %s{line}") units
 
             for name, text in compiled.Files do
                 context.Write $"%s{options.OutputPath}/%s{name}" text |> ignore

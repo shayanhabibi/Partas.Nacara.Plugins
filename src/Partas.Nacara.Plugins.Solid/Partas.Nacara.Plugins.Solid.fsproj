@@ -21,6 +21,7 @@
         <Compile Include="Scan.fs" />
         <Compile Include="Generate.fs" />
         <Compile Include="Workspace.fs" />
+        <Compile Include="Watch.fs" />
         <Compile Include="Compile.fs" />
         <Compile Include="Solid.fs" />
         <EmbeddedResource Include="assets/loader.js" LogicalName="Partas.Nacara.Plugins.Solid.assets.loader.js" />

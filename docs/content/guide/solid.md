@@ -40,7 +40,8 @@ The plugin needs `dotnet` and Node 22.12 or later on the `PATH`. On the first
 build it restores Fable and installs `solid-js`, `@solidjs/web`,
 `@solidjs/compiler` and `rolldown`. It keeps them in `.nacara/partas-solid`,
 next to your site, so later builds reuse them. When no example on the site has
-changed, a build skips the compilers entirely.
+changed, a build skips the compilers entirely. Under `nacara watch` the plugin
+keeps Fable running, so saving a page recompiles only that page's examples.
 
 ## Writing examples
 

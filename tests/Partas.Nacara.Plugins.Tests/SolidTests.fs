@@ -175,4 +175,44 @@ let tests =
                         Expect.isNone message.At "at"
                     }
                 ]
+
+            testList
+                "fable watch"
+                [
+                    let started = "Started Fable compilation..."
+                    let watching = "Watching ."
+                    let first = [ "Parsing Docs.fsproj..."; started; "Fable compilation finished in 6922ms"; watching ]
+
+                    test "a change made while idle waits for a compilation of its own" {
+                        Expect.isNone (SolidFableCycle.finished first first.Length) "nothing yet"
+                    }
+
+                    test "the compilation a change started is returned once it finishes" {
+                        let lines = first @ [ started; "an error"; watching ]
+                        let cycle = SolidFableCycle.finished lines first.Length
+                        Expect.equal cycle (Some [ started; "an error"; watching ]) "cycle"
+                    }
+
+                    test "a compilation still running is waited for" {
+                        let lines = first @ [ started; "an error" ]
+                        Expect.isNone (SolidFableCycle.finished lines first.Length) "running"
+                    }
+
+                    test "a change made mid-compilation may be folded into it" {
+                        let mark = 2
+                        let cycle = SolidFableCycle.finished first mark
+                        Expect.equal cycle (Some [ "Fable compilation finished in 6922ms"; watching ]) "cycle"
+                    }
+
+                    test "a compilation queued after the first is waited for" {
+                        let lines = first @ [ started ]
+                        Expect.isNone (SolidFableCycle.finished lines 2) "queued"
+                    }
+
+                    test "of several finished compilations, the last is returned" {
+                        let lines = first @ [ started; "old error"; watching; started; "new error"; watching ]
+                        let cycle = SolidFableCycle.finished lines first.Length
+                        Expect.equal cycle (Some [ started; "new error"; watching ]) "cycle"
+                    }
+                ]
         ]
