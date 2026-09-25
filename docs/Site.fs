@@ -58,8 +58,9 @@ PluginLayers.offer
     { Name = "directives"
       Css = ".nacara-steps { list-style: none; } .nacara-step { margin-block: 1rem; }" }
 
-/// Which Partas.Solid the live examples compile against. PARTAS_SOLID_FEED points at a folder of
-/// locally packed nupkgs, for trying the docs against an unreleased Partas.Solid.
+/// Which Partas.Solid the live examples compile against. Until the Solid 2 packages are on
+/// NuGet, a prebuilt pair is committed under docs/feed. PARTAS_SOLID_FEED and
+/// PARTAS_SOLID_VERSION override them, for trying the docs against another local build.
 let private solidExamples (options: SolidExamplesOptions) =
     let fromEnvironment name =
         match System.Environment.GetEnvironmentVariable name with
@@ -68,8 +69,11 @@ let private solidExamples (options: SolidExamplesOptions) =
         | value -> Some value
 
     options
-    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.*")
-    |> (fromEnvironment "PARTAS_SOLID_FEED" |> Option.map SolidExamples.feed |> Option.defaultValue id)
+    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.0.0-local.822796f")
+    |> SolidExamples.feed (
+        fromEnvironment "PARTAS_SOLID_FEED"
+        |> Option.defaultValue (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "feed"))
+    )
 
 let site =
     Site.create "Partas.Nacara.Plugins"
