@@ -48,7 +48,8 @@ module SolidCompile =
                 let matched = fableLine.Match(line.TrimEnd('\r'))
 
                 if matched.Success then
-                    let file = Path.GetFileName matched.Groups["file"].Value
+                    // Split by hand: Path.GetFileName on Linux leaves a Windows path whole.
+                    let file = matched.Groups["file"].Value.Split([| '/'; '\\' |]) |> Array.last
                     let isError = matched.Groups["severity"].Value = "error"
                     let page = units |> List.tryFind (fun unit -> SolidGenerate.fileName unit.Key = file)
 
