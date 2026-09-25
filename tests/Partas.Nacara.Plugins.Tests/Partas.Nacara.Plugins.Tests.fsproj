@@ -12,12 +12,14 @@
         <Compile Include="Tests.fs"/>
         <Compile Include="DirectivesTests.fs"/>
         <Compile Include="TokensTests.fs"/>
+        <Compile Include="SolidTests.fs"/>
         <Compile Include="Main.fs"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="../../src/Partas.Nacara.Plugins.Directives/Partas.Nacara.Plugins.Directives.fsproj" />
         <ProjectReference Include="../../src/Partas.Nacara.Theme/Partas.Nacara.Theme.fsproj" />
+        <ProjectReference Include="../../src/Partas.Nacara.Plugins.Solid/Partas.Nacara.Plugins.Solid.fsproj" />
     </ItemGroup>
 
     <ItemGroup>
