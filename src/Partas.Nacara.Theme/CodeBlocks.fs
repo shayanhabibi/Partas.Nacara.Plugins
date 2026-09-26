@@ -103,7 +103,7 @@ type NacaraCodeBlockRenderer() =
         builder.Append "\n</span>" |> ignore
         builder.ToString()
 
-    /// Consecutive lines that are collapsed together become one disclosure.
+    /// <summary>Consecutive lines that are collapsed together become one disclosure.</summary>
     let runs (lines: CodeLine list) =
         lines
         |> List.fold

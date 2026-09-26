@@ -14,8 +14,10 @@ module TailwindCssBinary =
         | Latest
         | Version of major: int * minor: int * patch: int
         | GitHubTag of tag: string
+    /// <summary>
     /// Where to find the TailwindCss binary.
     /// If implicit, then the provided information is used to download the binary if not cached.
+    /// </summary>
     type Strategy =
         | Implicit of version: Version * platform: Platform
         | Explicit of path: string

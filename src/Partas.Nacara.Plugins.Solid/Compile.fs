@@ -9,7 +9,7 @@ open Nacara.Plugins
 type SolidMessage =
     {
         Page: SolidPageUnit option
-        /// The body line and column, when the message came from a cell.
+        /// <summary>The body line and column, when the message came from a cell.</summary>
         At: (int * int) option
         IsError: bool
         Message: string
@@ -18,10 +18,10 @@ type SolidMessage =
 /// <summary>What compiling every page's examples produced.</summary>
 type SolidCompiled =
     {
-        /// Output files, relative to the plugin's output path, with their text.
+        /// <summary>Output files, relative to the plugin's output path, with their text.</summary>
         Files: (string * string) list
         Messages: SolidMessage list
-        /// False when the output is what an earlier build left, because this one could not run.
+        /// <summary>False when the output is what an earlier build left, because this one could not run.</summary>
         Fresh: bool
     }
 
@@ -144,7 +144,7 @@ module SolidCompile =
             mutable Last: string
         }
 
-    /// Watchers by workspace. Only <c>nacara watch</c> starts one, and it lives as long as the process.
+    /// <summary>Watchers by workspace. Only <c>nacara watch</c> starts one, and it lives as long as the process.</summary>
     let private watchers = Collections.Generic.Dictionary<string, Watching>()
 
     let private stopWatching (workspace: string) =

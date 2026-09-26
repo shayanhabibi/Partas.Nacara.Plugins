@@ -5,39 +5,41 @@ open System
 /// <summary>What a solid fence puts on the page.</summary>
 [<RequireQualifiedAccess>]
 type SolidShow =
-    /// The code, then what it renders.
+    /// <summary>The code, then what it renders.</summary>
     | Both
-    /// The code alone, although it still compiles with the page.
+    /// <summary>The code alone, although it still compiles with the page.</summary>
     | Code
-    /// What it renders, without the code.
+    /// <summary>What it renders, without the code.</summary>
     | Output
-    /// What it renders, without the code or the box around it, as though it were part of the page.
+    /// <summary>What it renders, without the code or the box around it, as though it were part of the page.</summary>
     | Inline
 
 /// <summary>How the code of a solid fence is read.</summary>
 [<RequireQualifiedAccess>]
 type SolidCellKind =
+    /// <summary>
     /// Module-level declarations. Nothing renders unless the fence names a component with
     /// <c>render=</c>.
+    /// </summary>
     | Declarations of render: string option
-    /// A single expression, rendered as the body of a component.
+    /// <summary>A single expression, rendered as the body of a component.</summary>
     | Expression
-    /// Declarations the page needs but the reader does not: compiled, never shown.
+    /// <summary>Declarations the page needs but the reader does not: compiled, never shown.</summary>
     | Setup
-    /// An expression written in the prose as a code span, rendered where it stands.
+    /// <summary>An expression written in the prose as a code span, rendered where it stands.</summary>
     | Use of column: int
 
 /// <summary>One solid fence, as the scanner found it.</summary>
 type SolidCell =
     {
-        /// Unique within its page: <c>c1</c>, <c>c2</c>, or what the fence named with <c>id=</c>.
+        /// <summary>Unique within its page: <c>c1</c>, <c>c2</c>, or what the fence named with <c>id=</c>.</summary>
         Id: string
         Kind: SolidCellKind
         Show: SolidShow
         Code: string
-        /// The line of the body the code starts on, counting from one.
+        /// <summary>The line of the body the code starts on, counting from one.</summary>
         Line: int
-        /// Whether the page shows the JSX Fable made of the cell, under it.
+        /// <summary>Whether the page shows the JSX Fable made of the cell, under it.</summary>
         Jsx: bool
     }
 
@@ -53,26 +55,26 @@ type SolidCell =
 /// <summary>A run of generated lines that came from a page's body.</summary>
 type SolidLineSpan =
     {
-        /// First generated line, counting from one.
+        /// <summary>First generated line, counting from one.</summary>
         Generated: int
         Length: int
-        /// The body line the first generated line came from.
+        /// <summary>The body line the first generated line came from.</summary>
         Body: int
-        /// Columns the generator moved the code right by: negative when it moved left.
+        /// <summary>Columns the generator moved the code right by: negative when it moved left.</summary>
         Indent: int
     }
 
 /// <summary>Everything the compile step needs of one page.</summary>
 type SolidPageUnit =
     {
-        /// Names the module, the entry and the bundle: <c>p1a2b3c4d</c>.
+        /// <summary>Names the module, the entry and the bundle: <c>p1a2b3c4d</c>.</summary>
         Key: string
-        /// The page's source, which diagnostics point at.
+        /// <summary>The page's source, which diagnostics point at.</summary>
         Source: string option
-        /// Added to a body line to reach the line of the file.
+        /// <summary>Added to a body line to reach the line of the file.</summary>
         BodyLine: int
         Cells: SolidCell list
-        /// The generated F# module.
+        /// <summary>The generated F# module.</summary>
         Code: string
         Spans: SolidLineSpan list
     }
@@ -81,39 +83,43 @@ type SolidPageUnit =
 type SolidExamplesOptions =
     {
         /// <summary>The Partas.Solid package the examples compile against.</summary>
-        /// <defaultValue><c>"3.*"</c></defaultValue>
+        /// <remarks>Defaults to <c>"3.*"</c>.</remarks>
         PartasVersion: string
         /// <summary>Extra NuGet sources, tried alongside nuget.org. A local folder feed works.</summary>
-        /// <defaultValue><c>[]</c></defaultValue>
+        /// <remarks>Defaults to <c>[]</c>.</remarks>
         Feeds: string list
-        /// <defaultValue><c>"5.13.0"</c></defaultValue>
+        /// <summary>The Fable the examples compile with.</summary>
+        /// <remarks>Defaults to <c>"5.13.0"</c>.</remarks>
         FableVersion: string
         /// <summary>The version of <c>solid-js</c>, <c>@solidjs/web</c> and <c>@solidjs/compiler</c>.</summary>
-        /// <defaultValue><c>"2.0.0-rc.9"</c></defaultValue>
+        /// <remarks>Defaults to <c>"2.0.0-rc.9"</c>.</remarks>
         SolidVersion: string
-        /// <defaultValue><c>"1.2.11"</c></defaultValue>
+        /// <summary>The version of <c>rolldown</c>, which bundles each page's examples.</summary>
+        /// <remarks>Defaults to <c>"1.2.11"</c>.</remarks>
         RolldownVersion: string
         /// <summary>The word in a fence's info string that makes it a solid example.</summary>
-        /// <defaultValue><c>"solid"</c></defaultValue>
+        /// <remarks>Defaults to <c>"solid"</c>.</remarks>
         FenceToken: string
         /// <summary>Lines at the top of every page's module.</summary>
-        /// <defaultValue><c>[ "open Partas.Solid"; "open Fable.Core"; "open Fable.Core.JsInterop" ]</c></defaultValue>
+        /// <remarks>Defaults to <c>[ "open Partas.Solid"; "open Fable.Core"; "open Fable.Core.JsInterop" ]</c>.</remarks>
         Prelude: string list
         /// <summary>Where the bundles are written, relative to the output directory.</summary>
-        /// <defaultValue><c>"_partas/solid"</c></defaultValue>
+        /// <remarks>Defaults to <c>"_partas/solid"</c>.</remarks>
         OutputPath: string
         /// <summary>Where the generated project lives, relative to the project root.</summary>
-        /// <remarks>A dotted directory, so watch mode does not rebuild when the plugin writes it.</remarks>
-        /// <defaultValue><c>".nacara/partas-solid"</c></defaultValue>
+        /// <remarks>
+        /// A dotted directory, so watch mode does not rebuild when the plugin writes it. Defaults to <c>".nacara/partas-solid"</c>.
+        /// </remarks>
         WorkspacePath: string
-        /// <defaultValue><c>true</c></defaultValue>
+        /// <summary>Whether the bundles are minified.</summary>
+        /// <remarks>Defaults to <c>true</c>.</remarks>
         Minify: bool
         /// <summary>
         /// Show the JSX Fable made of every example, not only of fences marked <c>jsx</c>.
         /// </summary>
-        /// <defaultValue><c>false</c></defaultValue>
+        /// <remarks>Defaults to <c>false</c>.</remarks>
         ShowJsx: bool
         /// <summary>How long one tool run may take before it is abandoned.</summary>
-        /// <defaultValue>Five minutes.</defaultValue>
+        /// <remarks>Defaults to five minutes.</remarks>
         Timeout: TimeSpan
     }

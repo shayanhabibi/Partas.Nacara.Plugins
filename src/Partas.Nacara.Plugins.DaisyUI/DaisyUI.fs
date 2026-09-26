@@ -10,15 +10,15 @@ type DaisyUIOptions = {
     /// The strategy to use to find the tailwindcss binary. <c>Implicit</c> strategies will download the binary to a cache using
     /// the provided version and platform parameters.
     /// </summary>
-    /// <defaultValue><c>TailwindCssBinary.Implicit(TailwindCssBinary.Version(4,3,3), TailwindCssBinary.Platform.Auto)</c></defaultValue>
+    /// <remarks>Defaults to <c>TailwindCssBinary.Implicit(TailwindCssBinary.Version(4,3,3), TailwindCssBinary.Platform.Auto)</c>.</remarks>
     TailwindBinary: TailwindCssBinary.Strategy
     DaisyUIVersion: TailwindCssBinary.Version
     /// <summary>
     /// The extensions that will be processed by the tailwindcss plugin.
     /// This intended to be used to filter tailwindcss processing for specific files using
-    /// a composite extension pattern:<br/> <c>&lt;FileName>.*.css</c>
+    /// a composite extension pattern: <c>&lt;FileName&gt;.*.css</c>
     /// </summary>
-    /// <defaultValue><c>[".css"]</c></defaultValue>
+    /// <remarks>Defaults to <c>[".css"]</c>.</remarks>
     TailwindTargetExtensions: string list
     /// <summary>
     /// The header that is injected into the target entry style sheet to import the tailwindcss library
@@ -28,8 +28,7 @@ type DaisyUIOptions = {
     /// If the header is empty, it will automatically inject <c>@import "tailwindcss";</c>
     /// and <c>@plugin "&lt;DAISY_UI_MJS>";</c>.
     /// <para>Use <c>&lt;DAISY_UI_THEME_MJS></c> if you want to use DaisyUI themes.</para>
-    /// </remarks>
-    /// <defaultValue>
+    /// <para>Defaults to:</para>
     /// <code lang="fsharp">
     /// [
     ///     "@layer theme, base, components, utilities;"
@@ -38,12 +37,12 @@ type DaisyUIOptions = {
     ///     "@plugin \"&lt;DAISY_UI_MJS>\";"
     /// ]
     /// </code>
-    /// </defaultValue>
+    /// </remarks>
     TailwindEntryHeader: string list
     /// <summary>
     /// The footer is injected at the end of the entry file.
     /// </summary>
-    /// <defaultValue><c>[]</c></defaultValue>
+    /// <remarks>Defaults to <c>[]</c>.</remarks>
     TailwindEntryFooter: string list
     // This is required for tailwind to properly handle references.
     /// <summary>
@@ -55,8 +54,8 @@ type DaisyUIOptions = {
     /// <remarks>
     /// If the returned string ends with <c>;</c>, then the string is injected verbatim after the <c>@import &lt;returnValue></c>
     /// statement.
+    /// <para>Defaults to <c>fun { AbsoluteDirPath = d; Import = i } -> System.IO.Path.Combine(d, i) |> Ok</c>.</para>
     /// </remarks>
-    /// <defaultValue><c>fun { AbsoluteDirPath = d; Import = i } -> System.IO.Path.Combine(d, i) |> Ok</c></defaultValue>
     ReferenceHandler: TailwindCssImportStatement -> Result<string, string>
 }
 

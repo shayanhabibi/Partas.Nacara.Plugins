@@ -12,9 +12,9 @@ open Nacara.Core
 /// </remarks>
 [<RequireQualifiedAccess>]
 type internal FaultSeverity =
-    /// The directive could not do what the author asked of it.
+    /// <summary>The directive could not do what the author asked of it.</summary>
     | Error
-    /// Worth saying, though the directive carried on regardless.
+    /// <summary>Worth saying, though the directive carried on regardless.</summary>
     | Warning
 
 /// <summary>What a directive can find out about where it sits.</summary>
@@ -27,13 +27,13 @@ type internal FaultSeverity =
 type DirectiveContext =
     internal
         {
-            /// Decoded arguments of enclosing directives, nearest first.
+            /// <summary>Decoded arguments of enclosing directives, nearest first.</summary>
             Ancestors: obj list
-            /// Position among siblings of the same name under one parent, from zero.
+            /// <summary>Position among siblings of the same name under one parent, from zero.</summary>
             SiblingIndex: int
-            /// How many directives enclose this one.
+            /// <summary>How many directives enclose this one.</summary>
             Nesting: int
-            /// Says something went wrong, in whatever way the build wants it said.
+            /// <summary>Says something went wrong, in whatever way the build wants it said.</summary>
             Report: FaultSeverity * string -> unit
         }
 
@@ -85,12 +85,14 @@ type DirectiveContext =
 type Directive =
     internal
         {
-            /// The word after <c>:::</c>.
+            /// <summary>The word after <c>:::</c>.</summary>
             DirectiveName: string
+            /// <summary>
             /// Reads the opening line's arguments, boxed so directives of different argument
             /// types can sit in one list.
+            /// </summary>
             Decode: int -> string -> Result<obj, string>
-            /// Renders the directive, unboxing what <c>Decode</c> produced.
+            /// <summary>Renders the directive, unboxing what <c>Decode</c> produced.</summary>
             RenderWith: DirectiveContext -> obj -> ReactElement -> ReactElement
         }
 

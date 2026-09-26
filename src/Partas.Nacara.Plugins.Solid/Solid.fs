@@ -16,7 +16,7 @@ module SolidExamples =
 
     let private loader = lazy readResource "loader.js"
 
-    /// What the transform leaves on a page for the compile hook to find.
+    /// <summary>What the transform leaves on a page for the compile hook to find.</summary>
     let private dataKey = "partas-solid"
 
     let defaults () =
@@ -107,7 +107,7 @@ module SolidExamples =
     /// JSX this build compiled.
     /// </summary>
     type private JsxTabs() =
-        /// Only a transform is given the finished registry, so the first page to pass keeps it.
+        /// <summary>Only a transform is given the finished registry, so the first page to pass keeps it.</summary>
         member val Registry: Registry option = None with get, set
         member val Code: Map<string, Map<string, string>> = Map.empty with get, set
 

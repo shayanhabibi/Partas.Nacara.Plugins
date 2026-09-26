@@ -339,8 +339,10 @@ module Theme =
             FavIcon = Some value
         }
 
+    /// <summary>
     /// Assets carry a content hash in their name, so a deployed site can cache them forever and
     /// still pick up a change immediately.
+    /// </summary>
     let private fingerprinted (name: string) (extension: string) =
         lazy
             (let content = readResource (name + extension)
@@ -384,8 +386,10 @@ module Theme =
         ]
         |> String.concat "\n"
 
+    /// <summary>
     /// A part is wrapped where it is bundled rather than in its source file, so the sources stay
     /// ordinary stylesheets an editor can still make sense of.
+    /// </summary>
     let private wrapped (layer: StyleLayer) =
         $"@layer nacara.%s{layer.Name} {{\n%s{layer.Css}\n}}\n"
 

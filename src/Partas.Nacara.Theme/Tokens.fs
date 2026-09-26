@@ -50,7 +50,7 @@ type Tokens =
         PrimaryContrast: string
         PrimarySubtle: string
         Shadow: string
-        /// What floats over the page. Reads <c>Shadow</c> unless you give it its own value.
+        /// <summary>What floats over the page. Reads <c>Shadow</c> unless you give it its own value.</summary>
         ShadowFloating: string
         Note: string
         Tip: string
@@ -60,7 +60,7 @@ type Tokens =
         CodeInlineBg: string
         CodeInlineBorder: string
         CodeInlineText: string
-        /// How tall a code block grows before it scrolls. <c>none</c> lets it run.
+        /// <summary>How tall a code block grows before it scrolls. <c>none</c> lets it run.</summary>
         CodeMaxHeight: string
     }
 

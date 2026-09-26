@@ -8,10 +8,10 @@ open Nacara.Plugins
 /// <summary>What scanning a page's body found.</summary>
 type SolidScan =
     {
-        /// The body with every solid fence rewritten to what the page shows.
+        /// <summary>The body with every solid fence rewritten to what the page shows.</summary>
         Body: string
         Cells: SolidCell list
-        /// Problems with how a fence was written, by body line.
+        /// <summary>Problems with how a fence was written, by body line.</summary>
         Problems: (int * string) list
     }
 
@@ -73,11 +73,11 @@ module SolidScan =
     /// <summary>A code span in prose that holds an expression to render.</summary>
     type SolidUse =
         {
-            /// Where the span starts in its line, counting from zero, backticks included.
+            /// <summary>Where the span starts in its line, counting from zero, backticks included.</summary>
             Start: int
             Length: int
             Code: string
-            /// The column the expression starts on, counting from one.
+            /// <summary>The column the expression starts on, counting from one.</summary>
             Column: int
         }
 

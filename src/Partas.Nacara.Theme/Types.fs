@@ -15,16 +15,18 @@ type NavbarItem =
     | NavbarSection of label: string * section: string * url: string
     | NavbarDropdown of label: string * items: NavbarItem list
     | NavbarDivider
-    /// An icon-only link. The icon is inline SVG markup.
+    /// <summary>An icon-only link. The icon is inline SVG markup.</summary>
     | NavbarIcon of label: string * url: string * svg: string
-    /// A link with a description, for use inside a dropdown.
+    /// <summary>A link with a description, for use inside a dropdown.</summary>
     | NavbarDescribed of label: string * description: string * url: string
-    /// Lists the locales of the site, linking to the translation of the page being read.
+    /// <summary>Lists the locales of the site, linking to the translation of the page being read.</summary>
     | NavbarLocalePicker
-    /// Raw markup, which is how a plugin contributes a widget of its own.
+    /// <summary>Raw markup, which is how a plugin contributes a widget of its own.</summary>
     | NavbarWidget of html: string
+    /// <summary>
     /// Markup rendered from the site as it is being built, for a widget that needs to know
     /// something only settled by then - which version this build is, say.
+    /// </summary>
     | NavbarDynamicWidget of render: (SiteInfo -> string)
 
 /// <summary>A mark beside a menu entry: new, deprecated, whatever a site needs to say.</summary>
@@ -41,9 +43,9 @@ type MenuBadge =
 
 /// <summary>What a menu entry points at.</summary>
 type MenuEntry =
-    /// A page of a collection, referenced by the path of its source file.
+    /// <summary>A page of a collection, referenced by the path of its source file.</summary>
     | MenuPage of path: string
-    /// A label over a set of entries. At the top of a menu it is a heading; nested, it folds.
+    /// <summary>A label over a set of entries. At the top of a menu it is a heading; nested, it folds.</summary>
     | MenuSection of label: string * items: MenuItem list
     /// <summary>A group whose label is a page of its own - the overview of what it holds.</summary>
     /// <remarks>
@@ -196,13 +198,17 @@ type ThemeOptions =
     {
         Navbar: NavbarItem list
         NavbarEnd: NavbarItem list
+        /// <summary>
         /// Explicit menus, keyed by the first segment of a page's route.
         /// Sections with no entry here get a menu built from their pages.
+        /// </summary>
         Menus: Map<string, MenuItem list>
+        /// <summary>
         /// Base URL for "edit this page" links, for example
         /// <c>https://github.com/MangelMaxime/Nacara/edit/main/</c>.
+        /// </summary>
         EditUrlBase: string option
-        /// Extra markup injected at the end of <c>&lt;head&gt;</c>.
+        /// <summary>Extra markup injected at the end of <c>&lt;head&gt;</c>.</summary>
         HeadExtra: ReactElement list
         /// <summary>CSS added to every page, after the theme's own.</summary>
         /// <remarks>For a rule or two. A stylesheet of your own belongs in a file, shipped as a
@@ -226,7 +232,7 @@ type ThemeOptions =
         /// </remarks>
         Tokens: ThemeTokens
         Footer: ReactElement option
-        /// Path of the favicon, relative to the site root.
+        /// <summary>Path of the favicon, relative to the site root.</summary>
         FavIcon: string option
         /// <summary>How many pages a menu group lists before it points at its own page instead.</summary>
         /// <remarks>A generated section of thousands of pages would otherwise write every one of
@@ -243,11 +249,11 @@ type DocPage =
     {
         Title: string
         Description: string option
-        /// Show the table of contents next to the content.
+        /// <summary>Show the table of contents next to the content.</summary>
         ShowToc: bool
-        /// Show previous and next links at the bottom.
+        /// <summary>Show previous and next links at the bottom.</summary>
         ShowPageNav: bool
-        /// Show the sidebar menu.
+        /// <summary>Show the sidebar menu.</summary>
         ShowMenu: bool
         /// <summary>Offer a box that filters the menu.</summary>
         /// <remarks><c>None</c> leaves it to the theme, which offers one when the menu is
@@ -387,9 +393,9 @@ module DocPage =
 
 /// <summary>What a page says about its table of contents.</summary>
 type TocSetting =
-    /// No table of contents beside the content.
+    /// <summary>No table of contents beside the content.</summary>
     | TocOff
-    /// The heading levels it holds.
+    /// <summary>The heading levels it holds.</summary>
     | TocLevels of TocRange
 
 /// <summary>
@@ -443,7 +449,7 @@ type DocFrontMatter =
         MenuMemory: bool option
         /// <summary>
         /// The table of contents: <c>toc: false</c> for none, or the heading levels it holds.
-        /// <code>
+        /// <code lang="yaml">
         /// toc:
         ///   from: 2
         ///   to: 2
@@ -458,7 +464,7 @@ type DocFrontMatter =
         Toc: TocSetting option
         /// <summary>
         /// Attributes to put on the page's <c>&lt;main&gt;</c>:
-        /// <code>
+        /// <code lang="yaml">
         /// main:
         ///   data-pagefind-weight: "0.3"
         /// </code>
@@ -471,7 +477,7 @@ type DocFrontMatter =
 [<RequireQualifiedAccess>]
 module DocFrontMatter =
 
-    /// The theme puts these on <main> itself.
+    /// <summary>The theme puts these on <c>&lt;main&gt;</c> itself.</summary>
     let private reserved =
         set
             [
