@@ -7,6 +7,29 @@ open Partas.Nacara.Theme
 
 let versions = [SiteVersion.root "1.0"]
 
+/// The API of every package this repository publishes, read from the assemblies this site is
+/// built with. Solid is left out until it ships.
+let apiOptions =
+    { FSharpApi.defaults with
+        Root = "reference"
+        Exclude = [ "Nacara.Plugins.Internal" ]
+        Sources =
+            [
+                let beside =
+                    System.Reflection.Assembly.GetExecutingAssembly().Location
+                    |> System.IO.Path.GetDirectoryName
+
+                for name in
+                    [
+                        "Partas.Nacara.Theme"
+                        "Partas.Nacara.Theme.Contracts"
+                        "Partas.Nacara.Plugins.Directives"
+                        "Partas.Nacara.Plugins.Tailwind"
+                        "Partas.Nacara.Plugins.DaisyUI"
+                    ] -> FSharpApiSource.create (System.IO.Path.Combine(beside, $"%s{name}.dll"))
+            ]
+    }
+
 let private steps =
     Directive.create "steps" (Decode.object (fun get ->
         {| Start = get.Optional.Field "start" Decode.int |> Option.defaultValue 1 |}))
@@ -29,7 +52,9 @@ let private step =
 
 let theme =
     Theme.defaults
-    |> Theme.navbar [NavbarSection("Guide", "guide", "/guide/getting-started/")]
+    |> Theme.navbar
+           [ NavbarSection("Guide", "guide", "/guide/getting-started/")
+             NavbarSection("Reference", "reference", "/reference/") ]
     // One section per package, so the menu reads as the list of things on offer
     // rather than as a flat pile of pages.
     |> Theme.menu
@@ -75,6 +100,11 @@ let private solidExamples (options: SolidExamplesOptions) =
         |> Option.defaultValue (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "feed"))
     )
 
+let reference =
+    FSharpApi.collection "reference" DocFrontMatter.decoder apiOptions
+    |> Collection.title _.Title
+    |> Collection.layout (Theme.layout theme)
+
 let site =
     Site.create "Partas.Nacara.Plugins"
     |> Site.baseUrl "/Partas.Nacara.Plugins/"
@@ -86,6 +116,7 @@ let site =
     |> Literate.register
     // |> Search.register
     |> Sitemap.register
+    |> FSharpApi.register apiOptions
     |> LinkValidator.register
     |> DaisyUI.register
     |> Directives.register [ steps; step ]
@@ -98,6 +129,7 @@ let site =
     |> GitHubPages.register
     |> Theme.register theme
     |> Site.collection (Theme.docs theme "content")
+    |> Site.collection reference
 
 [<EntryPoint>]
 let main argv = Nacara.run site argv

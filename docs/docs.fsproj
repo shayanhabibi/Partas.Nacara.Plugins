@@ -23,6 +23,7 @@
         <PackageReference Include="Nacara.Plugin.Assets.Esbuild" Version="1.0.0-*"/>
         <PackageReference Include="Nacara.Plugin.Assets.Nuglify" Version="1.0.0-*"/>
         <PackageReference Include="Nacara.Plugin.Deploy.GitHubPages" Version="1.0.0-*"/>
+        <PackageReference Include="Nacara.Plugin.FSharpApi" Version="1.0.0-*"/>
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\src\Partas.Nacara.Theme\Partas.Nacara.Theme.fsproj" />
