@@ -3,6 +3,8 @@
 1. [Tailwind](#tailwind)
 2. [DaisyUI](#daisyui)
 3. [Directives](#directives)
+4. [OgImage](#ogimage)
+5. [AgentFriendly](#agentfriendly)
 
 ## Tailwind
 
@@ -250,6 +252,58 @@ so the build cannot choose. `Directives.duplicates` answers the same question
 without raising, returning the names claimed more than once, which is what to call
 if you are validating a list you assembled from somewhere else.
 
+## OgImage
+
+Link preview images: `og:image` and `twitter:image` tags from front matter, with
+fallbacks to a setting.
+
+```bash
+dotnet add package Partas.Nacara.Plugins.OgImage
+```
+
+```fsharp
+let site =
+    Site.create "My site"
+    |> Site.origin "https://example.com"
+    |> Markdown.register
+    |> OgImage.registerWith (fun options ->
+        options
+        // Asked for any page whose front matter names no image
+        |> OgImage.fallback (fun page ->
+            if page.Collection = "blog" then Some(OgImage.image "/images/blog.png") else None)
+        // And this for every page nothing else gave one
+        |> OgImage.defaultImage (OgImage.image "/images/card.png" |> OgImage.withSize 1200 630))
+```
+
+A page names its own with `og_image: /images/page.png` (plus `og_image_alt`), or
+a mapping of `url`, `alt`, `width` and `height`; `og_image: false` opts it out.
+The tags are added to the rendered head, so any theme works, and a head that
+already has an `og:image` is left alone. Paths are made absolute with the site's
+origin, and one whose file is missing from the output is warned about.
+
+## AgentFriendly
+
+A site agents can read: an [`llms.txt`](https://llmstxt.org) index, an
+`llms-full.txt` of every page, and a markdown copy of each page beside its html
+(`/guide/setup/` → `/guide/setup.md`), linked from its head with
+`<link rel="alternate" type="text/markdown">`.
+
+```bash
+dotnet add package Partas.Nacara.Plugins.AgentFriendly
+```
+
+```fsharp
+let site =
+    Site.create "My site"
+    |> Site.origin "https://example.com"
+    |> Markdown.register
+    |> AgentFriendly.registerWith (AgentFriendly.summary "What this site is about")
+```
+
+Only markdown pages get a copy; every page is listed in `llms.txt`, under a
+heading for the first segment of its route. Each part can be turned off, and the
+sections, the summary and the excluded collections are yours to set.
+
 ## Solid
 
 Live [Partas.Solid](https://github.com/shayanhabibi/Partas.Solid) examples. An
@@ -392,5 +446,6 @@ top, and the full terms are in [LICENSE](LICENSE) with the attribution in
 Apache-2.0 code cannot be redistributed under a more permissive label, so the theme
 package keeps its own licence rather than the repository-wide MIT. The remaining
 projects - `Partas.Nacara.Theme.Contracts`, `Partas.Nacara.Plugins.Directives`,
-`Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI` and `Partas.Nacara.Plugins.Solid` - are original
+`Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI`, `Partas.Nacara.Plugins.Solid`,
+`Partas.Nacara.Plugins.OgImage` and `Partas.Nacara.Plugins.AgentFriendly` - are original
 work and stay MIT.

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>Partas.Nacara.Plugins.AgentFriendly</RootNamespace>
+        <AssemblyName>Partas.Nacara.Plugins.AgentFriendly</AssemblyName>
+        <PackageId>Partas.Nacara.Plugins.AgentFriendly</PackageId>
+        <Title>Partas.Nacara.Plugins.AgentFriendly</Title>
+        <Description>llms.txt, llms-full.txt and a markdown copy of every page, so agents can read a Nacara site.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="../Shared/PageSupport.fs" Link="PageSupport.fs" />
+        <Compile Include="AgentFriendly.fs" />
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Nacara.Core" Version="2.0.0-beta.6" />
+    </ItemGroup>
+
+</Project>

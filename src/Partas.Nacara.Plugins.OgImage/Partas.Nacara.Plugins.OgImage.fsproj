@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>Partas.Nacara.Plugins.OgImage</RootNamespace>
+        <AssemblyName>Partas.Nacara.Plugins.OgImage</AssemblyName>
+        <PackageId>Partas.Nacara.Plugins.OgImage</PackageId>
+        <Title>Partas.Nacara.Plugins.OgImage</Title>
+        <Description>Open Graph and Twitter image tags for Nacara pages, from front matter with fallbacks.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="../Shared/PageSupport.fs" Link="PageSupport.fs" />
+        <Compile Include="OgImage.fs" />
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Nacara.Core" Version="2.0.0-beta.6" />
+    </ItemGroup>
+
+</Project>

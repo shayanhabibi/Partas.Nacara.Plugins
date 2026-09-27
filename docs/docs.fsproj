@@ -31,6 +31,8 @@
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Tailwind\Partas.Nacara.Plugins.Tailwind.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Directives\Partas.Nacara.Plugins.Directives.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Solid\Partas.Nacara.Plugins.Solid.fsproj" />
+      <ProjectReference Include="..\src\Partas.Nacara.Plugins.OgImage\Partas.Nacara.Plugins.OgImage.fsproj" />
+      <ProjectReference Include="..\src\Partas.Nacara.Plugins.AgentFriendly\Partas.Nacara.Plugins.AgentFriendly.fsproj" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="static\" />
