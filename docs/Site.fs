@@ -26,6 +26,8 @@ let apiOptions =
                         "Partas.Nacara.Plugins.Directives"
                         "Partas.Nacara.Plugins.Tailwind"
                         "Partas.Nacara.Plugins.DaisyUI"
+                        "Partas.Nacara.Plugins.OgImage"
+                        "Partas.Nacara.Plugins.AgentFriendly"
                     ] -> FSharpApiSource.create (System.IO.Path.Combine(beside, $"%s{name}.dll"))
             ]
     }
@@ -63,6 +65,10 @@ let theme =
              Menu.section "Directives" [ Menu.page "guide/directives.md" ]
              |> Menu.badge "New"
              Menu.section "Solid" [ Menu.page "guide/solid.md" ]
+             |> Menu.badge "New"
+             Menu.section "OgImage" [ Menu.page "guide/og-image.md" ]
+             |> Menu.badge "New"
+             Menu.section "AgentFriendly" [ Menu.page "guide/agent-friendly.md" ]
              |> Menu.badge "New"
              Menu.section "Tailwind" [ Menu.page "guide/tailwind.md" ]
              Menu.section "DaisyUI" [ Menu.page "guide/daisyui.md" ]
@@ -121,6 +127,14 @@ let site =
     |> DaisyUI.register
     |> Directives.register [ steps; step ]
     |> SolidExamples.registerWith solidExamples
+    |> OgImage.registerWith (
+        OgImage.defaultImage (
+            OgImage.image "https://opengraph.githubassets.com/1/shayanhabibi/Partas.Nacara.Plugins"
+            |> OgImage.withAlt "Partas.Nacara.Plugins on GitHub"
+            |> OgImage.withSize 1200 600
+        )
+    )
+    |> AgentFriendly.register
     // |> Rumdl.register
     // |> LightningCss.register
     |> Esbuild.register

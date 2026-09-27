@@ -10,6 +10,8 @@ is no umbrella package to install first.
 | `Partas.Nacara.Plugins.Directives` | Your own `:::` blocks, as typed F# functions |
 | `Partas.Nacara.Plugins.Tailwind` | Tailwind over the built site |
 | `Partas.Nacara.Plugins.DaisyUI` | DaisyUI, through the Tailwind plugin |
+| `Partas.Nacara.Plugins.OgImage` | Link preview images, from front matter with fallbacks |
+| `Partas.Nacara.Plugins.AgentFriendly` | `llms.txt` and markdown copies of every page, for agents |
 | `Partas.Nacara.Theme` | The documentation theme, in replaceable cascade layers |
 | `Partas.Nacara.Theme.Contracts` | What a theme and a styling plugin agree on |
 
