@@ -25,6 +25,17 @@
     font-weight: 650;
     color: var(--nacara-text);
 }
+.nacara-navbar__brand-icon {
+    display: inline-flex;
+    flex: none;
+    height: 1.5rem;
+    width: auto;
+}
+.nacara-navbar__brand-icon svg {
+    display: block;
+    height: 1.5rem;
+    width: auto;
+}
 .nacara-navbar__items {
     display: flex;
     align-items: center;

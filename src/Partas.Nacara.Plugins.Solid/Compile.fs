@@ -100,6 +100,11 @@ module SolidCompile =
         [
             options.PartasVersion
             yield! options.Feeds
+            // Packages change the project and package.json, and so what Fable and rolldown produce.
+            for id, version in options.NuGetPackages do
+                $"nuget:%s{id}@%s{version}"
+            for name, version in options.NpmPackages do
+                $"npm:%s{name}@%s{version}"
             options.FableVersion
             options.SolidVersion
             options.RolldownVersion

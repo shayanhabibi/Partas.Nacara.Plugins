@@ -297,7 +297,26 @@ module Components =
                             [
                                 prop.className "nacara-navbar__brand"
                                 prop.href (site.UrlOf(Route.home site.RootLocale))
-                                prop.text site.Title
+                                prop.children
+                                    [
+                                        match options.BrandIcon with
+                                        | Some(BrandIcon.Image path) ->
+                                            // The title beside it already names the site.
+                                            Html.img
+                                                [
+                                                    prop.className "nacara-navbar__brand-icon"
+                                                    prop.src (site.UrlOfAsset path)
+                                                    prop.alt ""
+                                                ]
+                                        | Some(BrandIcon.Svg svg) ->
+                                            Html.span
+                                                [
+                                                    prop.className "nacara-navbar__brand-icon"
+                                                    prop.children [ rawHtml svg ]
+                                                ]
+                                        | None -> Html.none
+                                        Html.span site.Title
+                                    ]
                             ]
                         Html.ul
                             [

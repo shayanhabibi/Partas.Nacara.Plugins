@@ -24,6 +24,17 @@ let site =
 `Theme.register` installs it; `Theme.docs` builds the collection that renders
 your Markdown with it.
 
+To put a logo before the site's title in the navbar, give `Theme.brandIcon` an
+image path relative to the site root, or inline SVG:
+
+```fsharp
+Theme.defaults |> Theme.brandIcon (BrandIcon.Image "logo.svg")
+Theme.defaults |> Theme.brandIcon (BrandIcon.Svg """<svg viewBox="0 0 24 24">...</svg>""")
+```
+
+The icon is `1.5rem` tall. SVG drawn with `currentColor` follows the colour
+scheme.
+
 ## Design tokens
 
 The `tokens` layer is the one layer you do not write CSS for. It is a record, and
