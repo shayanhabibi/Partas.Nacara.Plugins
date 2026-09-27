@@ -1,10 +1,21 @@
 # Partas.Nacara.Plugins
 
-1. [Tailwind](#tailwind)
-2. [DaisyUI](#daisyui)
-3. [Directives](#directives)
-4. [OgImage](#ogimage)
-5. [AgentFriendly](#agentfriendly)
+Plugins and a documentation theme for [Nacara](https://github.com/MangelMaxime/Nacara).
+Each package is independent. The full documentation is at
+<https://shayanhabibi.github.io/Partas.Nacara.Plugins/>.
+
+| Package | NuGet |
+| --- | --- |
+| [Partas.Nacara.Plugins.Tailwind](#tailwind) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.Tailwind)](https://www.nuget.org/packages/Partas.Nacara.Plugins.Tailwind) |
+| [Partas.Nacara.Plugins.DaisyUI](#daisyui) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.DaisyUI)](https://www.nuget.org/packages/Partas.Nacara.Plugins.DaisyUI) |
+| [Partas.Nacara.Plugins.Directives](#directives) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.Directives)](https://www.nuget.org/packages/Partas.Nacara.Plugins.Directives) |
+| [Partas.Nacara.Plugins.OgImage](#ogimage) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.OgImage)](https://www.nuget.org/packages/Partas.Nacara.Plugins.OgImage) |
+| [Partas.Nacara.Plugins.AgentFriendly](#agentfriendly) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.AgentFriendly)](https://www.nuget.org/packages/Partas.Nacara.Plugins.AgentFriendly) |
+| [Partas.Nacara.Plugins.Solid](#solid) | Not yet: waits on Partas.Solid 3 |
+| [Partas.Nacara.Theme](#theme) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme)](https://www.nuget.org/packages/Partas.Nacara.Theme) |
+| [Partas.Nacara.Theme.Contracts](#theme-contracts) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme.Contracts)](https://www.nuget.org/packages/Partas.Nacara.Theme.Contracts) |
+
+See also [Licensing and attribution](#licensing-and-attribution).
 
 ## Tailwind
 
@@ -325,8 +336,14 @@ let site =
 
 It needs `dotnet` and Node 22.12 or later on the `PATH`, and keeps its generated
 project in `.nacara/partas-solid`. A build where no example changed skips the
-compilers. The [guide](docs/content/guide/solid.md) covers fences, `render=`,
-`setup`, `show=` and the options.
+compilers. `SolidExamples.nuget` and `SolidExamples.npm` add packages the
+examples can use, F# bindings and framework-free npm libraries alike. The
+[guide](docs/content/guide/solid.md) covers fences, `render=`, `setup`, `show=`
+and the options.
+
+> [!NOTE]
+> Not on NuGet until Partas.Solid 3 is. Until then, reference the project or pack
+> it into a local feed.
 
 ## Theme
 
@@ -343,6 +360,7 @@ open Partas.Nacara.Theme
 let theme =
     Theme.defaults
     |> Theme.navbar [ NavbarSection("Guide", "guide", "/guide/getting-started/") ]
+    |> Theme.brandIcon (BrandIcon.Image "logo.svg")
     |> Theme.footer (Html.p [ Html.text "Built with Nacara" ])
 
 let site =

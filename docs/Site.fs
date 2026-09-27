@@ -134,7 +134,10 @@ let site =
             |> OgImage.withSize 1200 600
         )
     )
-    |> AgentFriendly.register
+    |> AgentFriendly.registerWith (
+        AgentFriendly.summary "Plugins and a documentation theme for the Nacara static site generator, each an independent NuGet package"
+        >> AgentFriendly.details "Start with the getting-started guide. The Reference section is the generated API of every published package."
+    )
     // |> Rumdl.register
     // |> LightningCss.register
     |> Esbuild.register

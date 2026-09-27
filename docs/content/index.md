@@ -73,8 +73,36 @@ DaisyUI on top of it, so `class="btn"` works in your markdown:
 
 <button class="btn">Like this</button>
 
-Both are documented in the
-[repository README](https://github.com/shayanhabibi/Partas.Nacara.Plugins).
+→ [Tailwind](guide/tailwind.md) · [DaisyUI](guide/daisyui.md)
+
+## Live Partas.Solid examples
+
+**Partas.Nacara.Plugins.Solid** compiles an `fsharp solid` fence with Fable and
+mounts what it renders under the code, with the JSX Fable produced beside it.
+
+→ [Solid](guide/solid.md)
+
+## Link previews
+
+**Partas.Nacara.Plugins.OgImage** gives every page an `og:image`: named in its
+front matter, or falling back to one you configure for a section or the whole
+site.
+
+```yaml
+og_image: /images/release.png
+og_image_alt: The 2.0 banner
+```
+
+→ [Link preview images](guide/og-image.md)
+
+## Readable by agents
+
+**Partas.Nacara.Plugins.AgentFriendly** publishes an
+[`llms.txt`](https://llmstxt.org) index, an `llms-full.txt`, and a markdown copy
+of every page beside its html. This site has them:
+[llms.txt](https://shayanhabibi.github.io/Partas.Nacara.Plugins/llms.txt).
+
+→ [Agent-friendly sites](guide/agent-friendly.md)
 
 ## Licensing
 

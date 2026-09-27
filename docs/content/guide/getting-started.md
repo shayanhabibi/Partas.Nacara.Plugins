@@ -12,6 +12,7 @@ is no umbrella package to install first.
 | `Partas.Nacara.Plugins.DaisyUI` | DaisyUI, through the Tailwind plugin |
 | `Partas.Nacara.Plugins.OgImage` | Link preview images, from front matter with fallbacks |
 | `Partas.Nacara.Plugins.AgentFriendly` | `llms.txt` and markdown copies of every page, for agents |
+| `Partas.Nacara.Plugins.Solid` | Live Partas.Solid examples, compiled from `fsharp solid` fences (not on NuGet until Partas.Solid 3 is) |
 | `Partas.Nacara.Theme` | The documentation theme, in replaceable cascade layers |
 | `Partas.Nacara.Theme.Contracts` | What a theme and a styling plugin agree on |
 
@@ -58,3 +59,6 @@ The page reloads as you type.
   anything
 - [Tailwind](tailwind.md) and [DaisyUI](daisyui.md) — if you would rather bring
   your own CSS framework
+- [Solid](solid.md) — live Partas.Solid examples in the page
+- [Link preview images](og-image.md) and [agent-friendly sites](agent-friendly.md)
+  — how the site looks when it is shared, and when an agent reads it
