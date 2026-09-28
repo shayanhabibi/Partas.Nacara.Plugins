@@ -105,6 +105,18 @@ type SolidExamplesOptions =
         /// <para>Defaults to <c>[]</c>.</para>
         /// </remarks>
         NpmPackages: (string * string) list
+        /// <summary>F# projects the examples reference, by path. A relative path resolves against the site root.</summary>
+        /// <remarks>Their project files and sources are part of the build fingerprint. Defaults to <c>[]</c>.</remarks>
+        Projects: string list
+        /// <summary>MSBuild properties, as (name, value), for every project Fable loads.</summary>
+        /// <remarks>
+        /// Set in the environment of the Fable process, so they reach referenced projects too, including
+        /// conditions on their <c>Compile</c> items. Defaults to <c>[]</c>.
+        /// </remarks>
+        Properties: (string * string) list
+        /// <summary>The target framework of the generated project.</summary>
+        /// <remarks>Defaults to <c>"net9.0"</c>.</remarks>
+        TargetFramework: string
         /// <summary>The Fable the examples compile with.</summary>
         /// <remarks>Defaults to <c>"5.13.0"</c>.</remarks>
         FableVersion: string

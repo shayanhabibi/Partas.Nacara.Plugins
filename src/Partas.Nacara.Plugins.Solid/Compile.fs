@@ -95,6 +95,44 @@ module SolidCompile =
         else
             []
 
+    /// <summary>
+    /// The text of a project file, of each file it compiles, and of each project it references, recursively.
+    /// </summary>
+    /// <remarks>Reads the paths that name existing files and hold no MSBuild property.</remarks>
+    let projectInputs (fsproj: string) : string list =
+        let visited = Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
+
+        let rec inputs (path: string) =
+            let path = Path.GetFullPath path
+
+            if not (File.Exists path) || not (visited.Add path) then
+                []
+            else
+
+            let text = File.ReadAllText path
+            let directory = Path.GetDirectoryName path
+            let document = Xml.Linq.XDocument.Parse text
+
+            let includes (item: string) =
+                document.Descendants()
+                |> Seq.filter (fun element -> element.Name.LocalName = item)
+                |> Seq.choose (fun element -> Option.ofObj (element.Attribute(Xml.Linq.XName.Get "Include")))
+                |> Seq.map _.Value
+                |> Seq.filter (fun value -> not (value.Contains "$("))
+                |> Seq.map (fun value -> Path.GetFullPath(Path.Combine(directory, value.Replace('\\', '/'))))
+                |> List.ofSeq
+
+            [
+                text
+                for file in includes "Compile" do
+                    if File.Exists file then
+                        File.ReadAllText file
+                for project in includes "ProjectReference" do
+                    yield! inputs project
+            ]
+
+        inputs fsproj
+
     /// <summary>Everything that decides the output, so an unchanged site skips the tools.</summary>
     let fingerprint (options: SolidExamplesOptions) (units: SolidPageUnit list) =
         [
@@ -105,6 +143,13 @@ module SolidCompile =
                 $"nuget:%s{id}@%s{version}"
             for name, version in options.NpmPackages do
                 $"npm:%s{name}@%s{version}"
+            options.TargetFramework
+            for name, value in options.Properties do
+                $"property:%s{name}=%s{value}"
+            // A referenced project's sources are compiled into the bundle, so an edit to one rebuilds it.
+            for project in options.Projects do
+                $"project:%s{project}"
+                yield! projectInputs project
             options.FableVersion
             options.SolidVersion
             options.RolldownVersion
@@ -146,6 +191,8 @@ module SolidCompile =
     type private Watching =
         {
             Watcher: SolidFableWatcher
+            /// <summary>The environment the watcher was started with.</summary>
+            Properties: (string * string) list
             mutable Last: string
         }
 
@@ -159,17 +206,18 @@ module SolidCompile =
             watchers.Remove workspace |> ignore
         | _ -> ()
 
-    /// <summary>The running watcher for a workspace, started when there is none.</summary>
+    /// <summary>The running watcher for a workspace, started when there is none or its properties differ.</summary>
     /// <returns>The watcher, and whether it was started just now.</returns>
-    let private watcherFor (workspace: string) =
+    let private watcherFor (workspace: string) (properties: (string * string) list) =
         match watchers.TryGetValue workspace with
-        | true, watching when not watching.Watcher.HasExited -> watching, false
+        | true, watching when not watching.Watcher.HasExited && watching.Properties = properties -> watching, false
         | _ ->
             stopWatching workspace
 
             let watching =
                 {
-                    Watcher = new SolidFableWatcher(workspace, fableArguments)
+                    Watcher = new SolidFableWatcher(workspace, properties, fableArguments)
+                    Properties = properties
                     Last = ""
                 }
 
@@ -192,12 +240,15 @@ module SolidCompile =
         (log: string -> unit)
         (units: SolidPageUnit list)
         =
+        let options =
+            { options with Projects = options.Projects |> List.map (fun path -> Path.GetFullPath(Path.Combine(root, path))) }
+
         let workspace = Path.GetFullPath(Path.Combine(root, options.WorkspacePath))
         let outDir = Path.Combine(workspace, "out")
         let stampFile = Path.Combine(workspace, ".stamp")
         let key = fingerprint options units
         let at (path: string) = Path.Combine(workspace, path)
-        let run = SolidWorkspace.run options.Timeout workspace
+        let run = SolidWorkspace.run options.Timeout [] workspace
         let previous () = readOutput outDir
 
         let failed (messages: SolidMessage list) =
@@ -210,7 +261,7 @@ module SolidCompile =
         if File.Exists stampFile && File.ReadAllText stampFile = key && Directory.Exists outDir then
             // Started now, the watcher has its first compilation done before the first edit arrives.
             if watch then
-                watcherFor workspace |> ignore
+                watcherFor workspace options.Properties |> ignore
 
             {
                 Files = previous ()
@@ -290,7 +341,7 @@ module SolidCompile =
 
         let fable =
             if watch then
-                let watching, started = watcherFor workspace
+                let watching, started = watcherFor workspace options.Properties
 
                 if started then
                     log $"starting Fable's watch over %d{units.Length} page(s) of examples"
@@ -324,7 +375,7 @@ module SolidCompile =
                     finished watching.Last
             else
                 log $"compiling %d{units.Length} page(s) of examples with Fable"
-                run "dotnet" ("fable" :: fableArguments)
+                SolidWorkspace.run options.Timeout options.Properties workspace "dotnet" ("fable" :: fableArguments)
 
         let messages = fableMessages units fable.Output
 

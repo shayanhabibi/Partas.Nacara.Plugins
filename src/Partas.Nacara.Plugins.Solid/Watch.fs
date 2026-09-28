@@ -133,7 +133,7 @@ module internal KillOnClose =
         | None -> false
 
 /// <summary>A <c>dotnet fable watch</c> kept running over a workspace, for <c>nacara watch</c>.</summary>
-type SolidFableWatcher(directory: string, arguments: string list) =
+type SolidFableWatcher(directory: string, environment: (string * string) list, arguments: string list) =
     let lines = ResizeArray<string>()
     let gate = obj ()
     let changed = new AutoResetEvent(false)
@@ -148,6 +148,10 @@ type SolidFableWatcher(directory: string, arguments: string list) =
         info.StandardErrorEncoding <- Encoding.UTF8
         info.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] <- "1"
         info.Environment["NO_COLOR"] <- "1"
+
+        for name, value in environment do
+            info.Environment[name] <- value
+
         new Process(StartInfo = info)
 
     let collect (args: DataReceivedEventArgs) =

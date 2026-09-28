@@ -22,6 +22,29 @@ let private unitOf (cells: SolidCell list) =
         Spans = spans
     }
 
+/// <summary>A temporary directory, deleted on dispose.</summary>
+type private TempDir() =
+    let root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName())
+
+    /// <summary>Writes <c>text</c> at <c>relative</c> under the directory and returns the full path.</summary>
+    member _.Write (relative: string) (text: string) =
+        let path = System.IO.Path.Combine(root, relative)
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName path) |> ignore
+        System.IO.File.WriteAllText(path, text)
+        path
+
+    interface System.IDisposable with
+        member _.Dispose() =
+            if System.IO.Directory.Exists root then
+                System.IO.Directory.Delete(root, true)
+
+/// <summary>An F# project compiling <c>files</c> and referencing <c>projects</c>.</summary>
+let private projectText (files: string list) (projects: string list) =
+    let items tag values =
+        values |> List.map (fun value -> $"""<%s{tag} Include="%s{value}" />""") |> String.concat ""
+
+    $"""<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>%s{items "Compile" files}</ItemGroup><ItemGroup>%s{items "ProjectReference" projects}</ItemGroup></Project>"""
+
 /// <summary>The generated line that holds <c>text</c>, counting from one.</summary>
 let private lineOf (text: string) (code: string) =
     code.Split('\n') |> Array.findIndex (fun line -> line.Contains text) |> (+) 1
@@ -392,6 +415,60 @@ let tests =
 
                         Expect.equal (List.distinct prints) prints "all differ"
                         Expect.equal (print { withNpm with NpmPackages = [] }) (print defaults) "removed"
+                    }
+
+                    test "projects are project references, and the target framework is set" {
+                        let project =
+                            defaults
+                            |> SolidExamples.project "C:/site/maps/Maps.fsproj"
+                            |> SolidExamples.targetFramework "net10.0"
+                            |> fun options -> SolidWorkspace.projectFile options [ "Pkey.fs" ]
+
+                        let document = System.Xml.Linq.XDocument.Parse project
+                        let named (name: string) = document.Descendants(System.Xml.Linq.XName.Get name) |> List.ofSeq
+
+                        let references =
+                            named "ProjectReference" |> List.map (fun element -> element.Attribute(System.Xml.Linq.XName.Get "Include").Value)
+
+                        Expect.equal references [ "C:/site/maps/Maps.fsproj" ] "references"
+                        Expect.equal (named "TargetFramework" |> List.map _.Value) [ "net10.0" ] "target framework"
+                    }
+
+                    test "the target framework defaults to net9.0 and no project is referenced" {
+                        let project = SolidWorkspace.projectFile defaults []
+                        Expect.stringContains project "<TargetFramework>net9.0</TargetFramework>" "target framework"
+                        Expect.isFalse (project.Contains "ProjectReference") "no references"
+                    }
+
+                    test "project inputs cover a referenced project's sources" {
+                        use dir = new TempDir()
+                        let lib = dir.Write "lib/Lib.fsproj" (projectText [ "Lib.fs" ] [])
+                        dir.Write "lib/Lib.fs" "module Lib\nlet answer = 42" |> ignore
+                        let app = dir.Write "app/App.fsproj" (projectText [ "App.fs" ] [ "../lib/Lib.fsproj" ])
+                        dir.Write "app/App.fs" "module App\nlet run () = Lib.answer" |> ignore
+
+                        let inputs = SolidCompile.projectInputs app
+
+                        Expect.contains inputs "module Lib\nlet answer = 42" "referenced source"
+                        Expect.contains inputs "module App\nlet run () = Lib.answer" "own source"
+                        Expect.contains inputs (System.IO.File.ReadAllText lib) "referenced project"
+                    }
+
+                    test "a referenced source or a property changes the fingerprint" {
+                        use dir = new TempDir()
+                        dir.Write "lib/Lib.fsproj" (projectText [ "Lib.fs" ] []) |> ignore
+                        dir.Write "lib/Lib.fs" "module Lib\nlet answer = 42" |> ignore
+                        let app = dir.Write "app/App.fsproj" (projectText [ "App.fs" ] [ "../lib/Lib.fsproj" ])
+                        dir.Write "app/App.fs" "module App" |> ignore
+                        let units = [ unitOf (scan (fence "solid" "Counter ()")).Cells ]
+                        let options = defaults |> SolidExamples.project app
+                        let before = SolidCompile.fingerprint options units
+                        dir.Write "lib/Lib.fs" "module Lib\nlet answer = 43" |> ignore
+                        let edited = SolidCompile.fingerprint options units
+                        let traced = SolidCompile.fingerprint (options |> SolidExamples.property "RanvierTrace" "true") units
+
+                        Expect.notEqual edited before "source edit"
+                        Expect.notEqual traced edited "property"
                     }
                 ]
 

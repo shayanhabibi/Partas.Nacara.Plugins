@@ -25,6 +25,9 @@ module SolidExamples =
             Feeds = []
             NuGetPackages = []
             NpmPackages = []
+            Projects = []
+            Properties = []
+            TargetFramework = "net9.0"
             FableVersion = "5.13.0"
             SolidVersion = "2.0.0-rc.9"
             RolldownVersion = "1.2.11"
@@ -54,6 +57,14 @@ module SolidExamples =
     let nuget id version (options: SolidExamplesOptions) =
         { options with NuGetPackages = setPackage StringComparison.OrdinalIgnoreCase id version options.NuGetPackages }
 
+    /// <summary>Adds an F# project the examples reference. A relative path resolves against the site root.</summary>
+    let project path (options: SolidExamplesOptions) = { options with Projects = options.Projects @ [ path ] }
+
+    /// <summary>Sets an MSBuild property for every project Fable loads. A later call for the same name replaces it.</summary>
+    let property name value (options: SolidExamplesOptions) =
+        { options with Properties = setPackage StringComparison.OrdinalIgnoreCase name value options.Properties }
+
+    let targetFramework value (options: SolidExamplesOptions) = { options with TargetFramework = value }
     let fableVersion value (options: SolidExamplesOptions) = { options with FableVersion = value }
     let solidVersion value (options: SolidExamplesOptions) = { options with SolidVersion = value }
     let rolldownVersion value (options: SolidExamplesOptions) = { options with RolldownVersion = value }
