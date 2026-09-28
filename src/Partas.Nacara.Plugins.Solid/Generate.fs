@@ -96,6 +96,26 @@ module SolidGenerate =
                 pinned cell "[<Partas.Solid.SolidComponent>]"
                 pinned cell $"let %s{wrapper cell} () ="
                 addCode 4 cell
+            | SolidCellKind.Transformed transformed ->
+                let start = lines.Count
+
+                for span in transformed.Spans do
+                    spans.Add
+                        { span with
+                            Generated = start + span.Generated
+                            Body =
+                                if span.Indent = Int32.MaxValue then
+                                    cell.Line - 1
+                                else
+                                    cell.Line + span.Body - 1
+                        }
+
+                for line in transformed.Code.Split('\n') do
+                    add (line.TrimEnd('\r'))
+
+                add ""
+                pinned cell "[<Partas.Solid.SolidComponent>]"
+                pinned cell $"let %s{wrapper cell} () = %s{transformed.Render}"
             | SolidCellKind.Use column ->
                 // Blamed on the use itself: it has no fence line above it.
                 let mapped indent =
@@ -165,6 +185,7 @@ export function mount(cell, element) {{
     let jsxNames (cell: SolidCell) =
         match cell.Kind with
         | SolidCellKind.Expression
+        | SolidCellKind.Transformed _
         | SolidCellKind.Use _ -> [ wrapper cell ]
         | SolidCellKind.Setup -> []
         | SolidCellKind.Declarations render ->

@@ -45,6 +45,34 @@ let private projectText (files: string list) (projects: string list) =
 
     $"""<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>%s{items "Compile" files}</ItemGroup><ItemGroup>%s{items "ProjectReference" projects}</ItemGroup></Project>"""
 
+/// <summary>
+/// A transform's output: a module that indents the author's second line by four columns, with the author's
+/// lines mapped, and a pinned header.
+/// </summary>
+let private mapped =
+    {
+        Code = "module Map_c1 =\n    let x = 1\n    let y = oops"
+        Render = "Render.map ()"
+        Spans =
+            [
+                {
+                    Generated = 1
+                    Length = 1
+                    Body = 0
+                    Indent = System.Int32.MaxValue
+                }
+                {
+                    Generated = 2
+                    Length = 2
+                    Body = 1
+                    Indent = 4
+                }
+            ]
+    }
+
+let private scanMap transform (body: string) =
+    SolidScan.scanWith [ "map", transform ] "solid" false "pkey" body
+
 /// <summary>The generated line that holds <c>text</c>, counting from one.</summary>
 let private lineOf (text: string) (code: string) =
     code.Split('\n') |> Array.findIndex (fun line -> line.Contains text) |> (+) 1
@@ -634,6 +662,90 @@ let tests =
                         let lines = first @ [ started; "old error"; watching; started; "new error"; watching ]
                         let cycle = SolidFableCycle.finished lines first.Length
                         Expect.equal cycle (Some [ started; "new error"; watching ]) "cycle"
+                    }
+                ]
+
+            testList
+                "transforms"
+                [
+                    test "a transform fence becomes a transformed cell with its flags" {
+                        let mutable seen = None
+
+                        let transform (input: SolidTransformInput) =
+                            seen <- Some input
+                            SolidTransformOutput.Compiled mapped
+
+                        let found = scanMap transform (fence "map timeline" "let x = 1\ncontrols []")
+                        let cell = List.exactlyOne found.Cells
+
+                        Expect.equal cell.Kind (SolidCellKind.Transformed mapped) "kind"
+                        Expect.equal cell.Code "let x = 1\ncontrols []" "code is the author's"
+                        Expect.isTrue cell.Mounts "mounts"
+
+                        Expect.equal
+                            seen
+                            (Some
+                                {
+                                    Code = "let x = 1\ncontrols []"
+                                    Flags = [ "timeline" ]
+                                    PageKey = "pkey"
+                                    CellId = "c1"
+                                })
+                            "input"
+                    }
+
+                    test "the body wraps the plain fence and the placeholder in a card" {
+                        let found = scanMap (fun _ -> SolidTransformOutput.Compiled mapped) (fence "map timeline" "let x = 1")
+                        let cell = List.exactlyOne found.Cells
+
+                        let expected =
+                            [
+                                """<div class="partas-solid-card partas-solid-card--map">"""
+                                ""
+                                "```fsharp"
+                                "let x = 1"
+                                "```"
+                                ""
+                                SolidScan.placeholder "pkey" cell
+                                ""
+                                "</div>"
+                            ]
+                            |> String.concat "\n"
+
+                        Expect.equal found.Body expected "body"
+                    }
+
+                    test "show=code mounts nothing" {
+                        let found = scanMap (fun _ -> SolidTransformOutput.Compiled mapped) (fence "map show=code" "let x = 1")
+                        let cell = List.exactlyOne found.Cells
+                        Expect.isFalse cell.Mounts "mounts"
+                        Expect.isFalse (found.Body.Contains "data-partas-cell") "no placeholder"
+                        Expect.stringContains found.Body "let x = 1" "code shown"
+                    }
+
+                    test "a rejected fence reports its problems at body lines and stays plain code" {
+                        let body = "intro\n\n" + fence "map" "let x = 1\nlet y = 2"
+                        let found = scanMap (fun _ -> SolidTransformOutput.Rejected [ 2, "no controls" ]) body
+                        Expect.isEmpty found.Cells "no cell"
+                        Expect.equal found.Problems [ 5, "no controls" ] "problem at the fence's second line"
+                        Expect.stringContains found.Body "let y = 2" "code shown"
+                    }
+
+                    test "a plain fsharp fence is left to other plugins" {
+                        let body = fence "" "let x = 1"
+                        let found = scanMap (fun _ -> failwith "not a map") body
+                        Expect.isEmpty found.Cells "no cell"
+                    }
+
+                    test "generated lines of transformed code map to the fence, and the wrapper is pinned" {
+                        let body = "intro\n\n" + fence "map" "let x = 1\nlet y = oops"
+                        let found = scanMap (fun _ -> SolidTransformOutput.Compiled mapped) body
+                        let unit = unitOf found.Cells
+                        let generated = lineOf "let y = oops" unit.Code
+                        Expect.equal (SolidGenerate.locate unit.Spans generated 13) (Some(5, 9)) "author's line"
+                        let wrapperLine = lineOf "let Cell_c1 () = Render.map ()" unit.Code
+                        Expect.equal (SolidGenerate.locate unit.Spans wrapperLine 5) (Some(3, 1)) "fence line"
+                        Expect.equal (SolidGenerate.jsxNames (List.exactlyOne found.Cells)) [ "Cell_c1" ] "jsx names"
                     }
                 ]
         ]

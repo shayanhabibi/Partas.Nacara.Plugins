@@ -28,6 +28,7 @@ module SolidExamples =
             Projects = []
             Properties = []
             TargetFramework = "net9.0"
+            Transforms = []
             FableVersion = "5.13.0"
             SolidVersion = "2.0.0-rc.9"
             RolldownVersion = "1.2.11"
@@ -65,6 +66,15 @@ module SolidExamples =
         { options with Properties = setPackage StringComparison.OrdinalIgnoreCase name value options.Properties }
 
     let targetFramework value (options: SolidExamplesOptions) = { options with TargetFramework = value }
+    /// <summary>
+    /// Adds a fence transform: an <c>fsharp</c> fence whose info string holds <c>token</c> compiles as what
+    /// <c>transform</c> makes of its code. A later call for the same token replaces it.
+    /// </summary>
+    let transform token (transform: SolidTransformInput -> SolidTransformOutput) (options: SolidExamplesOptions) =
+        { options with
+            Transforms = (options.Transforms |> List.filter (fun (existing, _) -> existing <> token)) @ [ token, transform ]
+        }
+
     let fableVersion value (options: SolidExamplesOptions) = { options with FableVersion = value }
     let solidVersion value (options: SolidExamplesOptions) = { options with SolidVersion = value }
     let rolldownVersion value (options: SolidExamplesOptions) = { options with RolldownVersion = value }
@@ -78,12 +88,13 @@ module SolidExamples =
 
     /// <summary>Rewrite a page's solid fences, and keep what they compile to on the page.</summary>
     let transformPage (options: SolidExamplesOptions) (context: TransformContext) (page: Page) =
-        if not (page.Body.Contains options.FenceToken) then
+        if not (page.Body.Contains options.FenceToken)
+           && not (options.Transforms |> List.exists (fun (token, _) -> page.Body.Contains token)) then
             page
         else
 
         let key = SolidGenerate.pageKey page.Id
-        let scan = SolidScan.scan options.FenceToken options.ShowJsx key page.Body
+        let scan = SolidScan.scanWith options.Transforms options.FenceToken options.ShowJsx key page.Body
 
         if scan.Cells.IsEmpty then
             page

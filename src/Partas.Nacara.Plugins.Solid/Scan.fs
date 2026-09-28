@@ -193,11 +193,18 @@ module SolidScan =
         )
 
     /// <summary>Scan a page's body.</summary>
+    /// <param name="transforms">Fence transforms, by the token that marks a fence for one.</param>
     /// <param name="fenceToken">The word that marks a fence as a solid example.</param>
     /// <param name="showJsx">Show the JSX of every cell, not only of fences marked <c>jsx</c>.</param>
     /// <param name="pageKey">Written into each placeholder, so the loader knows which bundle to load.</param>
     /// <param name="body">The page's markdown.</param>
-    let scan (fenceToken: string) (showJsx: bool) (pageKey: string) (body: string) =
+    let scanWith
+        (transforms: (string * (SolidTransformInput -> SolidTransformOutput)) list)
+        (fenceToken: string)
+        (showJsx: bool)
+        (pageKey: string)
+        (body: string)
+        =
         let lines = body.Split('\n') |> Array.map _.TrimEnd('\r')
         let output = StringBuilder()
         let cells = ResizeArray<SolidCell>()
@@ -263,6 +270,86 @@ module SolidScan =
                         languages.Contains(language.ToLowerInvariant()) && List.contains fenceToken rest
                     | [] -> false
 
+                let transform =
+                    match words with
+                    | language :: rest when not isSolid && languages.Contains(language.ToLowerInvariant()) ->
+                        transforms |> List.tryFind (fun (token, _) -> List.contains token rest)
+                    | _ -> None
+
+                let nextId () =
+                    $"c%d{(cells |> Seq.filter (isUse >> not) |> Seq.length) + 1}"
+
+                match transform with
+                | Some(token, apply) ->
+                    let language = List.head words
+                    let tokens = readTokens token (List.tail words)
+                    let code = lines[index + 1 .. closing - 1] |> String.concat "\n"
+                    let bodyLine = index + 2
+
+                    for problem in tokens.Problems do
+                        problems.Add(index + 1, problem)
+
+                    let id = tokens.Id |> Option.defaultWith nextId
+
+                    if cells |> Seq.exists (fun cell -> cell.Id = id) then
+                        problems.Add(index + 1, $"id=%s{id} is already used on this page")
+
+                    let show = tokens.Show |> Option.defaultValue SolidShow.Both
+
+                    // The page shows the fence as plain code, without the words the transform read.
+                    let emitCode () =
+                        emit (matched.Groups["indent"].Value + fence + language)
+
+                        for at in index + 1 .. closing - 1 do
+                            emit lines[at]
+
+                        emit (matched.Groups["indent"].Value + fence)
+
+                    let input =
+                        {
+                            Code = code
+                            Flags = tokens.Rest
+                            PageKey = pageKey
+                            CellId = id
+                        }
+
+                    match apply input with
+                    | SolidTransformOutput.Rejected found ->
+                        for line, problem in found do
+                            problems.Add(bodyLine + line - 1, problem)
+
+                        emitCode ()
+                    | SolidTransformOutput.Compiled transformed ->
+                        let cell =
+                            {
+                                Id = id
+                                Kind = SolidCellKind.Transformed transformed
+                                Show = show
+                                Code = code
+                                Line = bodyLine
+                                Jsx = false
+                            }
+
+                        cells.Add cell
+                        let shown = show = SolidShow.Both || show = SolidShow.Code
+
+                        if cell.Mounts then
+                            emit $"""<div class="partas-solid-card partas-solid-card--%s{token}">"""
+                            emit ""
+
+                            if shown then
+                                emitCode ()
+                                emit ""
+
+                            emit (placeholder pageKey cell)
+                            emit ""
+                            emit "</div>"
+                        elif shown then
+                            emitCode ()
+
+                    index <- closing + 1
+                | None ->
+
                 if not isSolid then
                     for at in index .. min closing (lines.Length - 1) do
                         emit lines[at]
@@ -284,9 +371,7 @@ module SolidScan =
                         | false, None when declares code -> SolidCellKind.Declarations None
                         | false, None -> SolidCellKind.Expression
 
-                    let id =
-                        tokens.Id
-                        |> Option.defaultValue $"c%d{(cells |> Seq.filter (isUse >> not) |> Seq.length) + 1}"
+                    let id = tokens.Id |> Option.defaultWith nextId
 
                     if cells |> Seq.exists (fun cell -> cell.Id = id) then
                         problems.Add(index + 1, $"id=%s{id} is already used on this page")
@@ -358,3 +443,7 @@ module SolidScan =
             Cells = List.ofSeq cells
             Problems = List.ofSeq problems
         }
+
+    /// <summary>Scan a page's body, with no fence transforms.</summary>
+    let scan (fenceToken: string) (showJsx: bool) (pageKey: string) (body: string) =
+        scanWith [] fenceToken showJsx pageKey body

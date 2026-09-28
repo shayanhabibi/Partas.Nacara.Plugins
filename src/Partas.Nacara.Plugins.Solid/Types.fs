@@ -14,6 +14,53 @@ type SolidShow =
     /// <summary>What it renders, without the code or the box around it, as though it were part of the page.</summary>
     | Inline
 
+/// <summary>A run of generated lines that came from a page's body.</summary>
+type SolidLineSpan =
+    {
+        /// <summary>First generated line, counting from one.</summary>
+        Generated: int
+        Length: int
+        /// <summary>The body line the first generated line came from.</summary>
+        Body: int
+        /// <summary>Columns the generator moved the code right by: negative when it moved left.</summary>
+        Indent: int
+    }
+
+/// <summary>What a fence transform is given.</summary>
+type SolidTransformInput =
+    {
+        /// <summary>The fence's code, as the page shows it.</summary>
+        Code: string
+        /// <summary>
+        /// The words of the info string after the language, less the transform's token and the ones every solid fence
+        /// reads (<c>id=</c>, <c>show=</c>): bare words and <c>key=value</c> pairs.
+        /// </summary>
+        Flags: string list
+        PageKey: string
+        CellId: string
+    }
+
+/// <summary>The F# a fence transform compiles in place of the fence's code.</summary>
+type SolidTransformed =
+    {
+        /// <summary>Module-level declarations, from column zero.</summary>
+        Code: string
+        /// <summary>The expression the cell renders.</summary>
+        Render: string
+        /// <summary>
+        /// Where the lines of <c>Code</c> came from. <c>Generated</c> counts from one within <c>Code</c>, <c>Body</c>
+        /// from one within the fence's code; <c>Indent = Int32.MaxValue</c> blames the fence's opening line.
+        /// </summary>
+        Spans: SolidLineSpan list
+    }
+
+/// <summary>What a fence transform made of a fence.</summary>
+[<RequireQualifiedAccess>]
+type SolidTransformOutput =
+    | Compiled of SolidTransformed
+    /// <summary>The fence stays plain code, and each problem is reported at a line of the fence's code, counting from one.</summary>
+    | Rejected of problems: (int * string) list
+
 /// <summary>How the code of a solid fence is read.</summary>
 [<RequireQualifiedAccess>]
 type SolidCellKind =
@@ -28,6 +75,8 @@ type SolidCellKind =
     | Setup
     /// <summary>An expression written in the prose as a code span, rendered where it stands.</summary>
     | Use of column: int
+    /// <summary>A fence a transform rewrote: the page shows the fence's code, and <c>Code</c> is what compiles.</summary>
+    | Transformed of SolidTransformed
 
 /// <summary>One solid fence, as the scanner found it.</summary>
 type SolidCell =
@@ -48,21 +97,10 @@ type SolidCell =
         match this.Kind with
         | SolidCellKind.Expression
         | SolidCellKind.Declarations(Some _) -> this.Show <> SolidShow.Code
+        | SolidCellKind.Transformed _ -> this.Show <> SolidShow.Code
         | SolidCellKind.Use _ -> true
         | SolidCellKind.Declarations None
         | SolidCellKind.Setup -> false
-
-/// <summary>A run of generated lines that came from a page's body.</summary>
-type SolidLineSpan =
-    {
-        /// <summary>First generated line, counting from one.</summary>
-        Generated: int
-        Length: int
-        /// <summary>The body line the first generated line came from.</summary>
-        Body: int
-        /// <summary>Columns the generator moved the code right by: negative when it moved left.</summary>
-        Indent: int
-    }
 
 /// <summary>Everything the compile step needs of one page.</summary>
 type SolidPageUnit =
@@ -148,6 +186,12 @@ type SolidExamplesOptions =
         /// </summary>
         /// <remarks>Defaults to <c>false</c>.</remarks>
         ShowJsx: bool
+        /// <summary>
+        /// Fence transforms, by token: an <c>fsharp</c> fence whose info string holds the token compiles as the
+        /// transform's output.
+        /// </summary>
+        /// <remarks>Defaults to <c>[]</c>.</remarks>
+        Transforms: (string * (SolidTransformInput -> SolidTransformOutput)) list
         /// <summary>How long one tool run may take before it is abandoned.</summary>
         /// <remarks>Defaults to five minutes.</remarks>
         Timeout: TimeSpan
