@@ -3,6 +3,7 @@
 // Fable has already turned each page's module into JSX. This hands the JSX to the Solid compiler
 // and bundles one entry per page, with what the pages share split into chunks of its own.
 import fs from "node:fs";
+import path from "node:path";
 import { rolldown } from "rolldown";
 import { transform } from "@solidjs/compiler";
 
@@ -27,7 +28,11 @@ const bundle = await rolldown({
     input: manifest.entries,
     plugins: [solid],
     platform: "browser",
-    resolve: { conditionNames: ["browser", "import", "default"] },
+    resolve: {
+        conditionNames: ["browser", "import", "default"],
+        // Packages resolve from the workspace's node_modules, for a referenced project's sources outside it too.
+        modules: [path.resolve("node_modules"), "node_modules"],
+    },
     logLevel: "warn",
 });
 
