@@ -11,7 +11,6 @@ Each package is independent. The full documentation is at
 | [Partas.Nacara.Plugins.Directives](#directives) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.Directives)](https://www.nuget.org/packages/Partas.Nacara.Plugins.Directives) |
 | [Partas.Nacara.Plugins.OgImage](#ogimage) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.OgImage)](https://www.nuget.org/packages/Partas.Nacara.Plugins.OgImage) |
 | [Partas.Nacara.Plugins.AgentFriendly](#agentfriendly) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.AgentFriendly)](https://www.nuget.org/packages/Partas.Nacara.Plugins.AgentFriendly) |
-| [Partas.Nacara.Plugins.Solid](#solid) | Not yet: waits on Partas.Solid 3 |
 | [Partas.Nacara.Theme](#theme) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme)](https://www.nuget.org/packages/Partas.Nacara.Theme) |
 | [Partas.Nacara.Theme.Contracts](#theme-contracts) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme.Contracts)](https://www.nuget.org/packages/Partas.Nacara.Theme.Contracts) |
 
@@ -317,33 +316,9 @@ sections, the summary and the excluded collections are yours to set.
 
 ## Solid
 
-Live [Partas.Solid](https://github.com/shayanhabibi/Partas.Solid) examples. An
-`fsharp solid` fence is compiled with Fable and the Partas.Solid plugin when the
-site builds, and what it renders is mounted under the code.
-
-```bash
-dotnet add package Partas.Nacara.Plugins.Solid
-```
-
-```fsharp
-open Nacara.Plugins
-
-let site =
-    Site.create "My site"
-    |> Markdown.register
-    |> SolidExamples.registerWith (SolidExamples.partasVersion "3.0.0")
-```
-
-It needs `dotnet` and Node 22.12 or later on the `PATH`, and keeps its generated
-project in `.nacara/partas-solid`. A build where no example changed skips the
-compilers. `SolidExamples.nuget` and `SolidExamples.npm` add packages the
-examples can use, F# bindings and framework-free npm libraries alike. The
-[guide](docs/content/guide/solid.md) covers fences, `render=`, `setup`, `show=`
-and the options.
-
-> [!NOTE]
-> Not on NuGet until Partas.Solid 3 is. Until then, reference the project or pack
-> it into a local feed.
+The live Partas.Solid examples plugin moved to the
+[Partas.Solid repository](https://github.com/shayanhabibi/Partas.Solid/tree/master/tools/Partas.Nacara.Plugins.Solid),
+so it stays in sync with the library it compiles.
 
 ## Theme
 
@@ -464,6 +439,6 @@ top, and the full terms are in [LICENSE](LICENSE) with the attribution in
 Apache-2.0 code cannot be redistributed under a more permissive label, so the theme
 package keeps its own licence rather than the repository-wide MIT. The remaining
 projects - `Partas.Nacara.Theme.Contracts`, `Partas.Nacara.Plugins.Directives`,
-`Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI`, `Partas.Nacara.Plugins.Solid`,
+`Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI`,
 `Partas.Nacara.Plugins.OgImage` and `Partas.Nacara.Plugins.AgentFriendly` - are original
 work and stay MIT.

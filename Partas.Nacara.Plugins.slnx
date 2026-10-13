@@ -9,7 +9,6 @@
     <Project Path="src/Partas.Nacara.Plugins.DaisyUI/Partas.Nacara.Plugins.DaisyUI.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.Directives/Partas.Nacara.Plugins.Directives.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.OgImage/Partas.Nacara.Plugins.OgImage.fsproj" />
-    <Project Path="src/Partas.Nacara.Plugins.Solid/Partas.Nacara.Plugins.Solid.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.Tailwind/Partas.Nacara.Plugins.Tailwind.fsproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -54,7 +54,8 @@ guarantees, in present tense.
 - `Partas.Nacara.Plugins.Tailwind` and `.DaisyUI` belong to an older NuGet account, whose key
   is rejected. The current key can publish every other package. `build.fsx -- publish` pushes
   everything in `bin/`, so the old two fail until they move accounts.
-- `Partas.Nacara.Plugins.Solid` is `IsPackable=false` until Partas.Solid 3 is on NuGet.
+- `Partas.Nacara.Plugins.Solid` moved to the Partas.Solid repository (`tools/Partas.Nacara.Plugins.Solid`);
+  `src/Partas.Nacara.Plugins.Solid` holds only a README pointing there.
 - The docs site deploys to GitHub Pages on every push to `master` (`.github/workflows/docs.yml`).
   `ci.yml` packs but does not publish.
 - `src/Partas.Nacara.Theme` is Apache-2.0, derived from `Nacara.Theme.Default`; keep the licence

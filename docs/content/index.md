@@ -75,13 +75,6 @@ DaisyUI on top of it, so `class="btn"` works in your markdown:
 
 → [Tailwind](guide/tailwind.md) · [DaisyUI](guide/daisyui.md)
 
-## Live Partas.Solid examples
-
-**Partas.Nacara.Plugins.Solid** compiles an `fsharp solid` fence with Fable and
-mounts what it renders under the code, with the JSX Fable produced beside it.
-
-→ [Solid](guide/solid.md)
-
 ## Link previews
 
 **Partas.Nacara.Plugins.OgImage** gives every page an `og:image`: named in its

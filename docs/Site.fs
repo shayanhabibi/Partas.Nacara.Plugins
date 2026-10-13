@@ -8,7 +8,7 @@ open Partas.Nacara.Theme
 let versions = [SiteVersion.root "1.0"]
 
 /// The API of every package this repository publishes, read from the assemblies this site is
-/// built with. Solid is left out until it ships.
+/// built with.
 let apiOptions =
     { FSharpApi.defaults with
         Root = "reference"
@@ -64,8 +64,6 @@ let theme =
            [ Menu.page "guide/getting-started.md"
              Menu.section "Directives" [ Menu.page "guide/directives.md" ]
              |> Menu.badge "New"
-             Menu.section "Solid" [ Menu.page "guide/solid.md" ]
-             |> Menu.badge "New"
              Menu.section "OgImage" [ Menu.page "guide/og-image.md" ]
              |> Menu.badge "New"
              Menu.section "AgentFriendly" [ Menu.page "guide/agent-friendly.md" ]
@@ -89,23 +87,6 @@ PluginLayers.offer
     { Name = "directives"
       Css = ".nacara-steps { list-style: none; } .nacara-step { margin-block: 1rem; }" }
 
-/// Which Partas.Solid the live examples compile against. Until the Solid 2 packages are on
-/// NuGet, a prebuilt pair is committed under docs/feed. PARTAS_SOLID_FEED and
-/// PARTAS_SOLID_VERSION override them, for trying the docs against another local build.
-let private solidExamples (options: SolidExamplesOptions) =
-    let fromEnvironment name =
-        match System.Environment.GetEnvironmentVariable name with
-        | null
-        | "" -> None
-        | value -> Some value
-
-    options
-    |> SolidExamples.partasVersion (fromEnvironment "PARTAS_SOLID_VERSION" |> Option.defaultValue "3.0.0-local.cd6d4e2")
-    |> SolidExamples.feed (
-        fromEnvironment "PARTAS_SOLID_FEED"
-        |> Option.defaultValue (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "feed"))
-    )
-
 let reference =
     FSharpApi.collection "reference" DocFrontMatter.decoder apiOptions
     |> Collection.title _.Title
@@ -126,7 +107,6 @@ let site =
     |> LinkValidator.register
     |> DaisyUI.register
     |> Directives.register [ steps; step ]
-    |> SolidExamples.registerWith solidExamples
     |> OgImage.registerWith (
         OgImage.defaultImage (
             OgImage.image "https://opengraph.githubassets.com/1/shayanhabibi/Partas.Nacara.Plugins"
