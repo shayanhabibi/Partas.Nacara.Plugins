@@ -34,20 +34,27 @@ module Motion =
 
     /// <summary>Sets the engine that plays the hovers.</summary>
     /// <remarks>Defaults to <c>Css</c>.</remarks>
+    /// <param name="engine">The engine.</param>
+    /// <param name="options">The options to change.</param>
     let engine (engine: MotionEngine) (options: MotionOptions) : MotionOptions = { options with Engine = engine }
 
     /// <summary>Sets what the stylesheet does for visitors who ask for reduced motion.</summary>
     /// <remarks>Defaults to <c>Instant</c>.</remarks>
+    /// <param name="policy">The reduced-motion policy.</param>
+    /// <param name="options">The options to change.</param>
     let reducedMotion (policy: ReducedMotion) (options: MotionOptions) : MotionOptions =
         { options with ReducedMotion = policy }
 
     /// <summary>Sets where anime.js comes from.</summary>
     /// <remarks>Defaults to <c>Bundled</c>.</remarks>
+    /// <param name="source">Where anime.js comes from.</param>
+    /// <param name="options">The options to change.</param>
     let animeSource (source: AnimeSource) (options: MotionOptions) : MotionOptions =
         { options with AnimeSource = source }
 
     /// <summary>Loads anime.js from the jsDelivr CDN instead of the bundled copy.</summary>
     /// <remarks>Defaults to the bundled copy.</remarks>
+    /// <param name="options">The options to change.</param>
     let animeFromCdn (options: MotionOptions) : MotionOptions = { options with AnimeSource = Cdn CdnUrl }
 
     let private settings name (options: MotionOptions) =
@@ -68,6 +75,7 @@ module Motion =
     /// <summary>Sets the engine of one hover.</summary>
     /// <remarks>Defaults to the plugin's engine.</remarks>
     /// <param name="name">The hover's name in the document.</param>
+    /// <param name="engine">The engine that plays this hover.</param>
     /// <param name="options">The options to change.</param>
     let hoverEngine (name: string) (engine: MotionEngine) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Engine = Some engine }) options
@@ -83,6 +91,7 @@ module Motion =
     /// <summary>Sets the easing of one hover.</summary>
     /// <remarks>Defaults to the document's easing.</remarks>
     /// <param name="name">The hover's name in the document.</param>
+    /// <param name="easing">The easing.</param>
     /// <param name="options">The options to change.</param>
     let easing (name: string) (easing: Easing) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Easing = Some easing }) options
