@@ -73,6 +73,52 @@ Theme.defaults
 The Figma plugin draws a template of each layout, and exports one you draw as
 the `Theme.addLayout` that adds it. See `design/README.md` in the repository.
 
+## Components
+
+Each part of the page is a function a site can replace, and the rest of the
+page stays the theme's:
+
+| Setter | Replaces |
+| --- | --- |
+| `Theme.replaceNavbar` | The bar across the top, and the drawer it folds into |
+| `Theme.replaceSidebar` | The section's menu |
+| `Theme.replaceToc` | The page's headings, beside the content |
+| `Theme.replacePageNav` | The previous and next links |
+| `Theme.replaceEditLink` | The link that edits the page at its source |
+| `Theme.replaceFooter` | The whole `<footer>` element |
+
+A replacement is given the theme's options, the page's `DocPage` and its
+context, and returns Feliz markup:
+
+```fsharp
+Theme.defaults
+|> Theme.replaceFooter (fun options page context ->
+    Html.footer [
+        prop.className "nacara-footer"
+        prop.text $"%s{page.Title} · %s{context.Site.Title}"
+    ])
+```
+
+The theme's own parts are public, as `Components.navbar`, `Components.sidebar`,
+`Components.toc`, `Components.pageNav` and `Components.editLink`, so a
+replacement can wrap one instead of starting over:
+
+```fsharp
+Theme.defaults
+|> Theme.replaceNavbar (fun options page context ->
+    Html.div [
+        Html.p [ prop.className "banner"; prop.text "2.0 is out" ]
+        Components.navbar options context
+    ])
+```
+
+The page still decides what is drawn: a splash page has no table of contents or
+page links, whoever renders them. The sidebar is drawn on every page, since on a
+narrow screen the navbar's sections fold into it; `page.ShowMenu` says whether
+the page wants a menu. The context's front matter is boxed, because one theme
+serves collections of more than one front-matter type: `unbox` it to the type
+of your collection.
+
 ## Design tokens
 
 The `tokens` layer is the one layer you do not write CSS for. It is a record, and

@@ -296,6 +296,43 @@ type ThemeOptions =
         /// here fails the build.
         /// </remarks>
         Layouts: Map<string, DocPage -> DocPage>
+        /// <summary>The site's own versions of the parts of the page, each replacing the theme's.</summary>
+        /// <remarks>
+        /// Each is empty to begin with, and the theme renders its own. Set one with
+        /// <see cref="M:Partas.Nacara.Theme.Theme.replaceNavbar" /> and the like.
+        /// </remarks>
+        Components: ThemeComponents
+    }
+
+/// <summary>A part of the page as a site renders it in place of the theme's.</summary>
+/// <remarks>
+/// Given the theme's options, the page being rendered and its context. The front matter is boxed,
+/// since one site can use the theme with more than one front-matter type. The theme's own part is
+/// still there to wrap: <c>Components.navbar options context</c> and the like.
+/// </remarks>
+and ThemeComponent = ThemeOptions -> DocPage -> PageContext<obj> -> ReactElement
+
+/// <summary>The parts of the page a site renders itself, each in place of the theme's.</summary>
+/// <remarks>
+/// <c>None</c> keeps the theme's part. The page still decides whether a part is drawn: a page with
+/// no menu has no table of contents, whoever renders it.
+/// </remarks>
+and ThemeComponents =
+    {
+        /// <summary>The bar across the top, and the drawer it folds into on a narrow screen.</summary>
+        Navbar: ThemeComponent option
+        /// <summary>The section's menu.</summary>
+        /// <remarks>Drawn on every page, even one with no menu to show: on a narrow screen the
+        /// navbar's sections fold into it.</remarks>
+        Sidebar: ThemeComponent option
+        /// <summary>The page's headings, beside the content.</summary>
+        Toc: ThemeComponent option
+        /// <summary>The previous and next pages of the section, below the content.</summary>
+        PageNav: ThemeComponent option
+        /// <summary>The link that edits the page at its source.</summary>
+        EditLink: ThemeComponent option
+        /// <summary>What every page ends with, including its <c>&lt;footer&gt;</c> element.</summary>
+        Footer: ThemeComponent option
     }
 
 [<RequireQualifiedAccess>]

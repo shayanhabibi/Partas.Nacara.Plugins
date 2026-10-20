@@ -62,6 +62,15 @@ module Theme =
             BrandIcon = None
             MenuGroupLimit = 150
             Layouts = DocFrontMatter.builtInLayouts
+            Components =
+                {
+                    Navbar = None
+                    Sidebar = None
+                    Toc = None
+                    PageNav = None
+                    EditLink = None
+                    Footer = None
+                }
         }
 
     /// <summary>A layout pages can name in their front matter, as <c>layout: &lt;name&gt;</c>.</summary>
@@ -361,6 +370,70 @@ module Theme =
             Footer = Some value
         }
 
+    let private replacing change (options: ThemeOptions) =
+        { options with
+            Components = change options.Components
+        }
+
+    /// <summary>The site's own navbar, in place of the theme's.</summary>
+    /// <remarks>
+    /// The rest of the page is the theme's still. <c>Components.navbar options context</c> is the
+    /// theme's navbar, for an override that wraps it rather than starting over.
+    /// </remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults
+    /// |> Theme.replaceNavbar (fun options page context ->
+    ///     Html.div [ Html.p "Read the 2.0 notes"; Components.navbar options context ])
+    /// </code>
+    /// </example>
+    /// <param name="render">The navbar, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replaceNavbar (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with Navbar = Some render })
+
+    /// <summary>The site's own section menu, in place of the theme's.</summary>
+    /// <remarks>Rendered on every page, menu or not: on a narrow screen the navbar's sections fold
+    /// into it. <c>page.ShowMenu</c> says whether the page wants a menu.</remarks>
+    /// <param name="render">The sidebar, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replaceSidebar (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with Sidebar = Some render })
+
+    /// <summary>The site's own table of contents, in place of the theme's.</summary>
+    /// <remarks>Rendered only where the theme's would be: a page with a menu, a table of contents
+    /// and headings.</remarks>
+    /// <param name="render">The table of contents, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replaceToc (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with Toc = Some render })
+
+    /// <summary>The site's own previous and next links, in place of the theme's.</summary>
+    /// <remarks>Rendered only on a page that shows them.</remarks>
+    /// <param name="render">The links, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replacePageNav (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with PageNav = Some render })
+
+    /// <summary>The site's own edit link, in place of the theme's.</summary>
+    /// <remarks>Rendered only on a page that shows one, and whether or not
+    /// <see cref="M:Partas.Nacara.Theme.Theme.editUrl" /> is set.</remarks>
+    /// <param name="render">The link, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replaceEditLink (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with EditLink = Some render })
+
+    /// <summary>The site's own footer, in place of the theme's.</summary>
+    /// <remarks>
+    /// Replaces the whole <c>&lt;footer&gt;</c> element, on every page, where
+    /// <see cref="M:Partas.Nacara.Theme.Theme.footer" /> only fills the theme's. Wins over it when
+    /// both are set.
+    /// </remarks>
+    /// <param name="render">The footer, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let replaceFooter (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (fun parts -> { parts with Footer = Some render })
+
     /// <summary>The site's favicon.</summary>
     /// <param name="value">Its path, relative to the site root.</param>
     /// <param name="options">The options so far.</param>
@@ -484,6 +557,23 @@ module Theme =
     let shell (options: ThemeOptions) (doc: DocPage) (context: PageContext<'FrontMatter>) =
         let _, cssPath = stylesheetOf (effectiveLayers options)
         let scriptPath, _ = script.Value
+
+        let erased: PageContext<obj> =
+            {
+                Page = context.Page
+                FrontMatter = box context.FrontMatter
+                Site = context.Site
+                Pages = context.Pages
+                Content = context.Content
+            }
+
+        // The site's part where it gave one, and the theme's otherwise.
+        let part (replacement: ThemeComponent option) (theirs: unit -> ReactElement) =
+            match replacement with
+            | Some render -> render options doc erased
+            | None -> theirs ()
+
+        let parts = options.Components
 
         let layoutClass =
             if not doc.Styled then
@@ -615,7 +705,7 @@ module Theme =
                                                 prop.href "#nacara-content"
                                                 prop.text "Skip to content"
                                             ]
-                                        Components.navbar options context
+                                        part parts.Navbar (fun () -> Components.navbar options context)
                                         Html.div
                                             [
                                                 prop.className layoutClass
@@ -628,7 +718,9 @@ module Theme =
                                                         // Rendered even with no menu to show: on a
                                                         // narrow screen it is what the navbar's
                                                         // sections fold into.
-                                                        Components.sidebar options doc context
+                                                        part parts.Sidebar (fun () ->
+                                                            Components.sidebar options doc context
+                                                        )
                                                         Html.main
                                                             [
                                                                 for name, value in
@@ -684,13 +776,17 @@ module Theme =
                                                                                     context.Content
                                                                             ]
                                                                         if doc.ShowEditLink then
-                                                                            Components.editLink
-                                                                                options
-                                                                                context
+                                                                            part parts.EditLink (fun () ->
+                                                                                Components.editLink
+                                                                                    options
+                                                                                    context
+                                                                            )
                                                                         if doc.ShowPageNav then
-                                                                            Components.pageNav
-                                                                                options
-                                                                                context
+                                                                            part parts.PageNav (fun () ->
+                                                                                Components.pageNav
+                                                                                    options
+                                                                                    context
+                                                                            )
                                                                     ]
                                                             ]
                                                         if
@@ -700,17 +796,19 @@ module Theme =
                                                                 List.isEmpty context.Page.Headings
                                                             )
                                                         then
-                                                            Components.toc context
+                                                            part parts.Toc (fun () -> Components.toc context)
                                                     ]
                                             ]
-                                        match options.Footer with
-                                        | Some footer ->
-                                            Html.footer
-                                                [
-                                                    prop.className "nacara-footer"
-                                                    prop.children [ footer ]
-                                                ]
-                                        | None -> Html.none
+                                        part parts.Footer (fun () ->
+                                            match options.Footer with
+                                            | Some footer ->
+                                                Html.footer
+                                                    [
+                                                        prop.className "nacara-footer"
+                                                        prop.children [ footer ]
+                                                    ]
+                                            | None -> Html.none
+                                        )
                                         Html.script
                                             [
                                                 prop.src (context.Site.UrlOfAsset scriptPath)

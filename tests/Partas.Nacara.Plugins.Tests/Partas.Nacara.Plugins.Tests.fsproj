@@ -14,6 +14,7 @@
         <Compile Include="TokensTests.fs"/>
         <Compile Include="DesignTokensTests.fs"/>
         <Compile Include="LayoutsTests.fs"/>
+        <Compile Include="ComponentsTests.fs"/>
         <Compile Include="OgImageTests.fs"/>
         <Compile Include="AgentFriendlyTests.fs"/>
         <Compile Include="Main.fs"/>
