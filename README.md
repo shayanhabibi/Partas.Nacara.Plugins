@@ -350,8 +350,12 @@ position come across, bound to the site's tokens where Figma binds them to
 variables. Everything else is reported as a build warning, never dropped. Custom
 springs play as they settle, the same as anime.js 4.5.0. Figma's four spring
 presets are approximated over 1200ms. There is no scale: Figma resizes a layer,
-so a bigger hover variant comes across as width and height. A setter that names a
-hover the document does not have fails the build with the names it does have.
+so a bigger hover variant comes across as width and height.
+
+The hover names above are examples: yours come from your own `motion.json`, as
+**Find hovers** shows them. A setter that names a hover the document does not have
+fails the build with the names it does have, and so does `Motion.duration` on a
+spring hover, which plays over its settling time (1200ms for a Figma preset).
 
 The anime.js 4.5.0 it bundles is MIT, and its licence ships in the package as
 `LICENSE.anime.md`. `Motion.animeFromCdn` loads it from jsDelivr instead.

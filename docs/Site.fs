@@ -141,6 +141,9 @@ let site =
     |> Motion.registerWith (
         Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
         >> Motion.hoverEngine "card[size=small]" Anime
+        // The cards' hover ends on a literal #f7f7ff in Figma, which stays light in the dark scheme.
+        >> Motion.value "card[size=small]" "background-color" "var(--nacara-primary-subtle)"
+        >> Motion.value "card[size=large]" "background-color" "var(--nacara-primary-subtle)"
     )
     |> Theme.register theme
     |> Site.collection (Theme.docs theme "content")

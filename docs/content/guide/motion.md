@@ -121,15 +121,19 @@ PluginLayers.offer
     { Name = "motion-demo"
       Css =
           """
-[data-motion="card"] { background-color: var(--nacara-bg-raised); border-radius: var(--nacara-radius); box-shadow: none; }
-[data-motion="card"] [data-motion-part="accent"] { display: block; width: 40px; height: 4px; opacity: 1; }
+.motion-demo { display: flex; flex-wrap: wrap; gap: var(--nacara-space-4); margin-block: var(--nacara-space-6); }
+[data-motion="card"] { display: flex; flex-direction: column; gap: var(--nacara-space-3); padding: var(--nacara-space-4); background-color: var(--nacara-bg-raised); border: 1px solid var(--nacara-border); border-radius: var(--nacara-radius); box-shadow: none; color: var(--nacara-text); }
+[data-motion="card"][data-size="small"] { width: 12rem; }
+[data-motion="card"][data-size="large"] { width: 18rem; }
+[data-motion="card"] [data-motion-part="accent"] { display: block; width: 40px; height: 4px; border-radius: 2px; background-color: var(--nacara-primary); opacity: 1; }
 """ }
 ```
 
 A hover's name, which the F# setters below take, is the motion name and the
-other variant properties in brackets: `card[size=small]`. A set with no other
-property has the motion name alone, such as `navbar-link`. **Find hovers**
-shows each name in bold at the top of its card.
+other variant properties in brackets: `card[size=small]`. With two other
+properties, both are listed, joined by a comma, as `card[size=small,tone=muted]`.
+A set with no other property has the motion name alone, such as `navbar-link`.
+**Find hovers** shows each name in bold at the top of its card.
 
 ## What comes across
 
@@ -230,7 +234,9 @@ in your own CSS.
 ## Configuring from F#
 
 `Motion.register` uses the defaults. `Motion.registerWith` takes the setters,
-joined with `>>`:
+joined with `>>`. The hover names in these examples are this site's. Yours come
+from your own `motion.json`, and a name it does not have fails the build with the
+names it does have.
 
 ```fsharp
 site
@@ -252,7 +258,8 @@ site
 
 A setter that names a hover the document does not have fails the build, and the
 message lists the hovers the document has. So does a `Motion.value` key the hover
-does not change. A misspelt name is an error, never a setting that does nothing.
+does not change, and a `Motion.duration` on a hover that plays a spring. A
+misspelt name or key is an error, not a setting that does nothing.
 
 ### `Motion.document`
 
@@ -296,9 +303,12 @@ Motion.hoverEngine "card[size=small]" Anime
 
 ### `Motion.duration`
 
-The duration of one hover in milliseconds, instead of Figma's. It applies to
-linear and bezier easings. A spring plays until it settles, so a duration does
-not change it.
+The duration of one hover in milliseconds, instead of Figma's. It applies only
+to linear and cubic-bezier easings. A custom spring plays over its settling time
+and a spring preset over 1200ms, so neither has a duration to set. Giving one a
+duration fails the build, naming the hover. To set the length of a spring hover,
+change its easing with `Motion.easing`: to a cubic-bezier, which then takes the
+duration, or to a custom spring that settles faster or slower.
 
 ```fsharp
 Motion.duration "navbar-link" 150
@@ -306,12 +316,16 @@ Motion.duration "navbar-link" 150
 
 ### `Motion.easing`
 
-The easing of one hover, instead of Figma's: `Linear`, `CubicBezier` or
-`Easing.Spring`.
+The easing of one hover, instead of Figma's: `Linear`, `CubicBezier`,
+`Easing.Spring` or `SpringPreset`. The spring case is written `Easing.Spring`
+because the `Spring` module, which solves springs, has the same name in the same
+namespace and would be found first. `SpringPreset "GENTLE"`, `"QUICK"`,
+`"BOUNCY"` and `"SLOW"` use the stand-ins above, over 1200ms.
 
 ```fsharp
 Motion.easing "navbar-link" (CubicBezier(0.2, 0.0, 0.0, 1.0))
 Motion.easing "sidebar-link" (Easing.Spring { Mass = 1.0; Stiffness = 100.0; Damping = 15.0 })
+Motion.easing "card[size=large]" (SpringPreset "QUICK")
 ```
 
 A custom spring here replaces a preset's stand-in, and the preset's warning goes.
@@ -319,14 +333,17 @@ A custom spring here replaces a preset's stand-in, and the preset's warning goes
 ### `Motion.value`
 
 Replaces the hovered value of one change with a CSS value. The key is the CSS
-property for the element itself, or `Layer/property` for a part. Both card hovers
-end on the literal `#f7f7ff`, which stays light in the dark scheme. Binding it to
-a token fixes that:
+property for the element itself, or `Layer/property` for a part. A `var(--…)`
+value works under both engines: anime.js resolves it under the hovered element
+each time the hover starts. Prefer lengths in `px` for a part under anime.js, which
+resolves a value as a computed style, where a percentage may not resolve.
 
 ```fsharp
-Motion.value "card[size=small]" "background-color" "var(--nacara-bg-subtle)"
-Motion.value "card[size=small]" "Accent/width" "100%"
+Motion.value "card[size=small]" "background-color" "var(--nacara-primary-subtle)"
+Motion.value "card[size=small]" "Accent/width" "96px"
 ```
+
+[This site](#this-site) uses the first line on both cards.
 
 ### `Motion.disable`
 
@@ -358,7 +375,8 @@ site's bundler resolves that import into one file, so the site needs
 `Esbuild.register`. Without it, the build fails with `motion-needs-esbuild`.
 
 `Motion.animeFromCdn` loads anime.js 4.5.0 from jsDelivr as the page loads
-instead, and needs no bundler. `Motion.animeSource (Cdn url)` loads it from a url
+instead, and needs no bundler. The url is `Motion.CdnUrl`,
+`https://cdn.jsdelivr.net/npm/animejs@4.5.0/dist/bundles/anime.esm.min.js`. `Motion.animeSource (Cdn url)` loads it from a url
 of your own:
 
 ```fsharp
@@ -367,7 +385,10 @@ Motion.animeSource (Cdn "https://example.com/anime.esm.min.js")
 ```
 
 The script is written to `assets/motion.<hash>.js` only when a hover plays with
-anime.js. A site with only CSS hovers gets no script.
+anime.js. A site with only CSS hovers gets no script. When there is one, every
+page loads it, since the plugin cannot know which pages have the elements. It
+binds the elements that are on the page when it loads, so an element added later
+by another script does not play its hover.
 
 ## This site
 
@@ -380,6 +401,8 @@ the small card on anime.js:
 |> Motion.registerWith (
     Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
     >> Motion.hoverEngine "card[size=small]" Anime
+    >> Motion.value "card[size=small]" "background-color" "var(--nacara-primary-subtle)"
+    >> Motion.value "card[size=large]" "background-color" "var(--nacara-primary-subtle)"
 )
 |> Theme.register theme
 ```
@@ -388,3 +411,11 @@ Its `motion.json` has four hovers: `navbar-link` and `sidebar-link` from the
 theme's sets, and `card[size=small]` and `card[size=large]` from a Card set with
 a `Size` property. The sidebar link uses the Gentle preset, so the build warns
 that it is approximated.
+
+The two `Motion.value` lines are the worked example of overriding a value. In
+Figma, both card hovers end on the literal colour `#f7f7ff`, a light lavender.
+That reads well in the light scheme, but stays light in the dark one, under the
+dark scheme's light text. `--nacara-primary-subtle` is the same light lavender in
+the light scheme and a dark one in the dark scheme, so the hover reads in both.
+The better fix is in Figma: bind the hover variant's fill to the
+`nacara/color/primary-subtle` variable, and the export carries the token.
