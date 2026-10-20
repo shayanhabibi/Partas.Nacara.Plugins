@@ -95,7 +95,10 @@ module Motion =
         update name (fun s -> { s with Duration = Some ms }) options
 
     /// <summary>Sets the easing of one hover.</summary>
-    /// <remarks>Defaults to the document's easing.</remarks>
+    /// <remarks>
+    /// A <c>SpringPreset</c> is one of <c>"GENTLE"</c>, <c>"QUICK"</c>, <c>"BOUNCY"</c> and <c>"SLOW"</c>;
+    /// <c>compile</c> fails on any other name. Defaults to the document's easing.
+    /// </remarks>
     /// <param name="name">The hover's name in the document.</param>
     /// <param name="easing">The easing.</param>
     /// <param name="options">The options to change.</param>
@@ -155,6 +158,24 @@ module Motion =
                         Some
                             $"The hover \"%s{hover.Name}\" has no change \"%s{key}\" to override. Known keys: %s{quoted keys}."))
 
+    // A hover's name is how a setter picks it out, so two with one name could not be told apart.
+    let private checkDuplicates (document: MotionDocument) =
+        document.Hovers
+        |> List.countBy (fun hover -> hover.Name)
+        |> List.tryFind (fun (_, count) -> count > 1)
+        |> Option.map (fun (name, count) ->
+            $"The motion document has %d{count} hovers named \"%s{name}\". Each hover needs a name of its own: give one of the sets another motion name in the Figma plugin and export again.")
+
+    let private checkPresets (options: MotionOptions) =
+        options.Hovers
+        |> Map.toList
+        |> List.tryPick (fun (name, settings) ->
+            match settings.Easing with
+            | Some(SpringPreset preset) when (Spring.preset preset).IsNone ->
+                Some
+                    $"The hover \"%s{name}\" is eased by SpringPreset \"%s{preset}\", which is not a preset. The presets are \"GENTLE\", \"QUICK\", \"BOUNCY\" and \"SLOW\"."
+            | _ -> None)
+
     let private checkDurations (options: MotionOptions) (document: MotionDocument) =
         document.Hovers
         |> List.tryPick (fun hover ->
@@ -208,13 +229,16 @@ module Motion =
     /// <summary>Applies the options to a document and splits its hovers by engine.</summary>
     /// <remarks>
     /// Fails, naming the known ones, when the options name a hover or a change the document does not have.
-    /// Fails, too, when a hover with a spring or spring preset easing is given a duration.
+    /// Fails, too, when a hover with a spring or spring preset easing is given a duration, when an easing
+    /// override names a spring preset that is not one, and when two hovers of the document share a name.
     /// </remarks>
     /// <param name="options">The options.</param>
     /// <param name="document">The parsed document.</param>
     let compile (options: MotionOptions) (document: MotionDocument) : Result<CompiledMotion, string> =
         match
-            checkNames options document
+            checkDuplicates document
+            |> Option.orElseWith (fun () -> checkNames options document)
+            |> Option.orElseWith (fun () -> checkPresets options)
             |> Option.orElseWith (fun () -> checkKeys options document)
             |> Option.orElseWith (fun () -> checkDurations options document)
         with

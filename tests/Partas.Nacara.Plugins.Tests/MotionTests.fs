@@ -108,6 +108,25 @@ let tests =
                 Expect.stringContains warnings "GENTLE spring preset is approximated" "preset"
             }
 
+            test "a misspelt spring preset fails naming the four" {
+                match compile (Motion.easing small (SpringPreset "GENTEL")) with
+                | Error message ->
+                    Expect.stringContains message $"\"%s{small}\"" "name"
+                    Expect.stringContains message "\"GENTEL\"" "the misspelling"
+
+                    for preset in [ "GENTLE"; "QUICK"; "BOUNCY"; "SLOW" ] do
+                        Expect.stringContains message $"\"%s{preset}\"" preset
+                | Ok _ -> failtest "expected an error"
+            }
+
+            test "a document with two hovers of one name fails naming it" {
+                let twice = { document with Hovers = document.Hovers @ [ document.Hovers.Head ] }
+
+                match Motion.compile Motion.defaults twice with
+                | Error message -> Expect.stringContains message $"2 hovers named \"%s{document.Hovers.Head.Name}\"" "name"
+                | Ok _ -> failtest "expected an error"
+            }
+
             test "missing document fails with the resolved path" {
                 match Motion.load (Motion.document "nowhere/motion.json" Motion.defaults) with
                 | Error message ->
@@ -167,10 +186,55 @@ let scriptTests =
                     MotionScript.entry
                         Bundled
                         Instant
-                        [ hover Linear [ widen (Token "nacara.color.bg-subtle") ] ]
+                        [ hover Linear [ widen (Token("nacara.color.bg-subtle", None)) ] ]
 
                 Expect.stringContains script "getPropertyValue(\"--nacara-bg-subtle\")" "resolved"
                 Expect.isFalse (script.Contains "var(--nacara-bg-subtle)") "not var()"
+            }
+
+            test "anime script falls back to Figma's value when the site has no such token" {
+                let script =
+                    MotionScript.entry Bundled Instant [ hover Linear [ widen (Token("nacara.color.bg-subtle", Some "#f6f7f9")) ] ]
+
+                Expect.stringContains
+                    script
+                    "(host) => getComputedStyle(host).getPropertyValue(\"--nacara-bg-subtle\").trim() || \"#f6f7f9\""
+                    "fallback"
+            }
+
+            test "a bundled script carries anime.js's licence notice" {
+                let script = MotionScript.entry Bundled Instant [ hover Linear [ widen (Literal "80px") ] ]
+
+                let copyright =
+                    File.ReadAllLines(Path.Combine(__SOURCE_DIRECTORY__, "../../src/Partas.Nacara.Plugins.Motion/vendor/LICENSE.anime.md"))
+                    |> Array.find (fun line -> line.StartsWith "Copyright")
+
+                Expect.equal
+                    (script.Substring(0, script.IndexOf '\n'))
+                    $"/*! anime.js v4.5.0 | MIT License | %s{copyright.Trim()} */"
+                    "the first line"
+
+                let cdn = MotionScript.entry (Cdn Motion.CdnUrl) Instant [ hover Linear [ widen (Literal "80px") ] ]
+                Expect.isFalse (cdn.Contains "/*!") "a CDN copy carries its own"
+            }
+
+            test "a preset plays CSS's samples over 1200ms, not anime.js's spring" {
+                let script = MotionScript.entry Bundled Instant [ hover (SpringPreset "GENTLE") [ widen (Literal "80px") ] ]
+                let parameters = (Spring.preset "GENTLE").Value
+                let samples = (Spring.linear parameters).Substring("linear(".Length).TrimEnd(')')
+                Expect.stringContains script $"ease: sampled([%s{samples}])" "samples"
+                Expect.stringContains script "duration: 1200," "1200ms"
+                Expect.isFalse (script.Contains "spring") "no spring"
+            }
+
+            test "rotate is tweened as the CSS property, not as a transform" {
+                let turn =
+                    { Layer = None; Part = None; Property = "rotate"; From = Literal "0deg"; To = Literal "10deg" }
+
+                let script = MotionScript.entry Bundled Keep [ hover Linear [ turn ] ]
+                Expect.stringContains script "rotate: \"--nacara-motion-rotate\"" "through a custom property"
+                Expect.stringContains script "params[key(property)]" "keyed"
+                Expect.stringContains script "\"0$1\"" "every unit is zeroed"
             }
 
             test "a light spring reaches anime.js rescaled" {

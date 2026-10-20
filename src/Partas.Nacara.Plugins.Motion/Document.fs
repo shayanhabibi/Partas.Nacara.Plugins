@@ -4,8 +4,9 @@ open System.Text.Json
 
 /// <summary>A value a hover animates between: a design token or a literal CSS value.</summary>
 type MotionValue =
-    /// <summary>A design token, by its dotted path.</summary>
-    | Token of path: string
+    /// <summary>A design token, by its dotted path, and the CSS value it falls back to where the site does not define it.</summary>
+    /// <remarks>The fallback is the value Figma resolves the token to; a document written before it carries none.</remarks>
+    | Token of path: string * fallback: string option
     /// <summary>A literal CSS value.</summary>
     | Literal of css: string
 
@@ -157,7 +158,7 @@ module MotionDocument =
 
     let private value (element: JsonElement) =
         match str "token" element, str "value" element with
-        | Some path, _ -> Token path
+        | Some path, fallback -> Token(path, fallback)
         | None, Some css -> Literal css
         | None, None -> failwith "A motion value needs \"token\" or \"value\"."
 

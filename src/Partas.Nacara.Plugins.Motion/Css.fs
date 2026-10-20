@@ -18,13 +18,18 @@ module MotionCss =
     let private number (x: float) =
         (Math.Round(x, 3, MidpointRounding.AwayFromZero) + 0.0).ToString("0.###", CultureInfo.InvariantCulture)
 
-    /// <summary>The CSS value: a token as <c>var(--first-last)</c>, a literal as written.</summary>
+    // The custom property of a token: its first and last segments, nacara.color.bg-subtle is --nacara-bg-subtle.
+    let internal customProperty (path: string) =
+        let segments = path.Split '.'
+        if segments.Length = 1 then $"--%s{path}" else $"--%s{segments[0]}-%s{segments[segments.Length - 1]}"
+
+    /// <summary>The CSS value: a token as <c>var(--first-last, fallback)</c>, a literal as written.</summary>
+    /// <remarks>A token without a fallback is <c>var(--first-last)</c>.</remarks>
     let value (value: MotionValue) : string =
         match value with
         | Literal css -> css
-        | Token path ->
-            let segments = path.Split '.'
-            if segments.Length = 1 then $"var(--%s{path})" else $"var(--%s{segments[0]}-%s{segments[segments.Length - 1]})"
+        | Token(path, None) -> $"var(%s{customProperty path})"
+        | Token(path, Some fallback) -> $"var(%s{customProperty path}, %s{fallback})"
 
     /// <summary>The CSS easing: <c>linear</c>, <c>cubic-bezier()</c> or a spring's <c>linear()</c>.</summary>
     let easing (easing: Easing) : string =

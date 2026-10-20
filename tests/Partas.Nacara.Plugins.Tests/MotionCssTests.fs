@@ -27,9 +27,21 @@ let tests =
         "motion css"
         [
             test "a token becomes its custom property" {
-                Expect.equal (MotionCss.value (Token "nacara.color.bg-subtle")) "var(--nacara-bg-subtle)" "color"
-                Expect.equal (MotionCss.value (Token "nacara.shadow.shadow")) "var(--nacara-shadow)" "shadow"
+                Expect.equal (MotionCss.value (Token("nacara.color.bg-subtle", None))) "var(--nacara-bg-subtle)" "color"
+                Expect.equal (MotionCss.value (Token("nacara.shadow.shadow", None))) "var(--nacara-shadow)" "shadow"
                 Expect.equal (MotionCss.value (Literal "#f7f7ff")) "#f7f7ff" "literal"
+            }
+
+            test "a token with a fallback falls back to Figma's value" {
+                Expect.equal
+                    (MotionCss.value (Token("nacara.color.bg-subtle", Some "#f6f7f9")))
+                    "var(--nacara-bg-subtle, #f6f7f9)"
+                    "colour"
+
+                Expect.equal
+                    (MotionCss.value (Token("nacara.shadow.shadow", Some "0px 1px 2px 0px #1018280f, 0px 4px 12px 0px #1018280f")))
+                    "var(--nacara-shadow, 0px 1px 2px 0px #1018280f, 0px 4px 12px 0px #1018280f)"
+                    "shadow"
             }
 
             test "named curves become cubic-bezier" {

@@ -43,8 +43,20 @@ let tests =
 
             test "a token and a literal are told apart" {
                 let change = (hover "card[size=small]").Changes |> List.head
-                Expect.equal change.From (Token "nacara.color.bg-raised") "token"
+                Expect.equal change.From (Token("nacara.color.bg-raised", None)) "token"
                 Expect.equal change.To (Literal "#f7f7ff") "literal"
+            }
+
+            test "a token reads the value beside it as its fallback" {
+                let json =
+                    """{"version":1,"hovers":[{"name":"x","selector":".x","duration":100,"easing":{"type":"LINEAR"},"changes":[{"property":"color","from":{"token":"nacara.color.text-muted","value":"#5a6470"},"to":{"token":"nacara.color.text"}}]}]}"""
+
+                match MotionDocument.parse json with
+                | Ok document ->
+                    let change = document.Hovers.Head.Changes.Head
+                    Expect.equal change.From (Token("nacara.color.text-muted", Some "#5a6470")) "with a value"
+                    Expect.equal change.To (Token("nacara.color.text", None)) "an older document, without one"
+                | Error message -> failtest message
             }
 
             test "a part keeps its selector and layer" {
