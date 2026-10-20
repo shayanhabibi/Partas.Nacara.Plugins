@@ -16,6 +16,7 @@
     <ItemGroup>
         <Compile Include="Document.fs" />
         <Compile Include="Spring.fs" />
+        <Compile Include="Css.fs" />
         <EmbeddedResource Include="vendor/anime.esm.js" LogicalName="anime.esm.js" />
         <EmbeddedResource Include="vendor/LICENSE.anime.md" LogicalName="LICENSE.anime.md" />
         <None Include="vendor/LICENSE.anime.md" Pack="true" PackagePath="\" />

@@ -19,6 +19,7 @@
         <Compile Include="AgentFriendlyTests.fs"/>
         <Compile Include="MotionDocumentTests.fs"/>
         <Compile Include="SpringTests.fs"/>
+        <Compile Include="MotionCssTests.fs"/>
         <Compile Include="Main.fs"/>
     </ItemGroup>
 
