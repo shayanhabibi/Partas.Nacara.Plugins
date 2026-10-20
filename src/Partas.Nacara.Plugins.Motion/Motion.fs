@@ -29,6 +29,7 @@ module Motion =
     /// <summary>Reads the motion document from a path.</summary>
     /// <remarks>Resolved against the working directory. Defaults to <c>"design/tokens/motion.json"</c>.</remarks>
     /// <param name="path">The path of the exported document.</param>
+    /// <param name="options">The options to change.</param>
     let document (path: string) (options: MotionOptions) : MotionOptions = { options with Document = path }
 
     /// <summary>Sets the engine that plays the hovers.</summary>
@@ -67,6 +68,7 @@ module Motion =
     /// <summary>Sets the engine of one hover.</summary>
     /// <remarks>Defaults to the plugin's engine.</remarks>
     /// <param name="name">The hover's name in the document.</param>
+    /// <param name="options">The options to change.</param>
     let hoverEngine (name: string) (engine: MotionEngine) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Engine = Some engine }) options
 
@@ -74,12 +76,14 @@ module Motion =
     /// <remarks>Defaults to the document's duration.</remarks>
     /// <param name="name">The hover's name in the document.</param>
     /// <param name="ms">The duration in milliseconds.</param>
+    /// <param name="options">The options to change.</param>
     let duration (name: string) (ms: int) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Duration = Some ms }) options
 
     /// <summary>Sets the easing of one hover.</summary>
     /// <remarks>Defaults to the document's easing.</remarks>
     /// <param name="name">The hover's name in the document.</param>
+    /// <param name="options">The options to change.</param>
     let easing (name: string) (easing: Easing) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Easing = Some easing }) options
 
@@ -88,12 +92,14 @@ module Motion =
     /// <param name="name">The hover's name in the document.</param>
     /// <param name="key">The property for the root element, or <c>Layer/property</c> for a part.</param>
     /// <param name="css">The CSS value.</param>
+    /// <param name="options">The options to change.</param>
     let value (name: string) (key: string) (css: string) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Values = s.Values |> Map.add key css }) options
 
     /// <summary>Leaves one hover out of the output.</summary>
     /// <remarks>Defaults to every hover being written.</remarks>
     /// <param name="name">The hover's name in the document.</param>
+    /// <param name="options">The options to change.</param>
     let disable (name: string) (options: MotionOptions) : MotionOptions =
         update name (fun s -> { s with Enabled = false }) options
 

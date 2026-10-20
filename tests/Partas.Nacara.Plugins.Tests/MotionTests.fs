@@ -34,8 +34,8 @@ let tests =
             }
 
             test "a duration override wins" {
-                let compiled = compile (Motion.duration "card[size=large]" 400) |> ok
-                Expect.stringContains compiled.Css "400ms" "duration"
+                let compiled = compile (Motion.duration "card[size=large]" 437) |> ok
+                Expect.stringContains compiled.Css "437ms" "duration"
             }
 
             test "a value override replaces the after value" {
