@@ -49,17 +49,17 @@ let private first = page [ "guide"; "first" ] "First"
 let private second = page [ "guide"; "second" ] "Second"
 
 /// The second of two pages, so it has a previous page and the theme draws its page nav.
-let private render (options: ThemeOptions) (doc: DocPage) =
-    let context: PageContext<string> =
-        {
-            Page = second
-            FrontMatter = "theirs"
-            Site = site
-            Pages = [ first; second ]
-            Content = "<p>Body</p>"
-        }
+let private contextOf (frontMatter: 'FrontMatter) : PageContext<'FrontMatter> =
+    {
+        Page = second
+        FrontMatter = frontMatter
+        Site = site
+        Pages = [ first; second ]
+        Content = "<p>Body</p>"
+    }
 
-    Theme.shell options doc context |> Render.htmlView
+let private render (options: ThemeOptions) (doc: DocPage) =
+    Theme.shell options doc (contextOf "theirs") |> Render.htmlView
 
 let private everything =
     Theme.defaults
@@ -121,6 +121,10 @@ let tests =
 
                 for name in [ "toc"; "page-nav"; "edit-link" ] do
                     Expect.isFalse (html.Contains $"data-site=\"%s{name}\"") $"a splash page has no %s{name}"
+
+                let withMenu = render options (DocPage.create "Second" |> DocPage.withoutToc)
+                Expect.stringContains withMenu "class=\"nacara-sidebar\"" "the page keeps its menu"
+                Expect.isFalse (withMenu.Contains "data-site=\"toc\"") "and has no table of contents"
             }
 
             test "a replacement is given the page and the front matter" {
@@ -223,6 +227,82 @@ let tests =
                 let html = render options (DocPage.create "Second" |> DocPage.splash |> DocPage.layout "splash")
                 Expect.stringContains html "data-site=\"one\"" "the first call's navbar"
                 Expect.stringContains html "data-site=\"two\"" "and the second's footer"
+            }
+
+            test "laid over another, each part is the upper one's, or the lower one's where it has none" {
+                let parts: (string * (ThemeComponent -> ThemeComponents -> ThemeComponents) * (ThemeComponents -> ThemeComponent option)) list =
+                    [
+                        "navbar", ThemeComponents.navbar, _.Navbar
+                        "sidebar", ThemeComponents.sidebar, _.Sidebar
+                        "toc", ThemeComponents.toc, _.Toc
+                        "page-nav", ThemeComponents.pageNav, _.PageNav
+                        "edit-link", ThemeComponents.editLink, _.EditLink
+                        "footer", ThemeComponents.footer, _.Footer
+                        "before", ThemeComponents.beforeContent, _.BeforeContent
+                        "after", ThemeComponents.afterContent, _.AfterContent
+                    ]
+
+                let drawn (part: ThemeComponent option) =
+                    match part with
+                    | Some render -> render everything (DocPage.create "Second") (contextOf (box ())) |> Render.htmlView
+                    | None -> "none"
+
+                for name, set, get in parts do
+                    let under = ThemeComponents.none |> set (marker "under")
+                    let over = ThemeComponents.none |> set (marker "over")
+
+                    Expect.stringContains
+                        (drawn (get (ThemeComponents.layer under over)))
+                        "\"over\""
+                        $"%s{name}: the upper one wins"
+
+                    Expect.stringContains
+                        (drawn (get (ThemeComponents.layer under ThemeComponents.none)))
+                        "\"under\""
+                        $"%s{name}: the lower one fills in"
+
+                    Expect.equal
+                        (drawn (get (ThemeComponents.layer ThemeComponents.none ThemeComponents.none)))
+                        "none"
+                        $"%s{name}: with neither, the theme's"
+            }
+
+            test "markup before the content is drawn on bare pages too" {
+                let options = everything |> Theme.beforeContent (marker "banner")
+                let bare = render options (DocPage.create "Second" |> DocPage.bare)
+                Expect.stringContains bare "data-site=\"banner\"" "a canvas still has it"
+            }
+
+            test "a page in a layout says the layout's name, for stylesheets" {
+                let named = render everything (DocPage.create "Second" |> DocPage.layout "landing")
+                Expect.stringContains named "data-layout=\"landing\"" "on the layout's element"
+
+                let plain = render everything (DocPage.create "Second")
+                Expect.isFalse (plain.Contains "data-layout") "and nothing on a page with no layout"
+            }
+
+            test "the theme's layout renders a page in a layout the site added" {
+                let options =
+                    everything
+                    |> Theme.addLayout "landing" DocPage.splash
+                    |> Theme.layoutComponents "landing" (ThemeComponents.navbar (marker "landing-navbar"))
+
+                let frontMatter: DocFrontMatter =
+                    {
+                        Title = "Second"
+                        Description = None
+                        Order = None
+                        Layout = Some "landing"
+                        PageNav = None
+                        MenuFilter = None
+                        MenuMemory = None
+                        Toc = None
+                        Main = []
+                    }
+
+                let html = Theme.layout options (contextOf frontMatter) |> Render.htmlView
+                Expect.stringContains html "data-site=\"landing-navbar\"" "the layout's own navbar"
+                Expect.stringContains html "data-layout=\"landing\"" "named as the site called it"
             }
 
             test "parts for a layout nobody added fail, naming the ones there are" {
