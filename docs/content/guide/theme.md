@@ -248,9 +248,14 @@ Exporting again and saving over the two files is all a later change takes. A
 layout drawn on the Layouts page comes back the same way, as the
 `Theme.addLayout` lines **Export layouts** writes.
 
-The plugin is `design/figma-plugin` in the repository. Until it is on Figma
-Community, run it in the Figma desktop app through **Plugins → Development →
-Import plugin from manifest…**, choosing its `manifest.json`.
+The plugin is
+[`design/figma-plugin`](https://github.com/shayanhabibi/Partas.Nacara.Plugins/tree/master/design/figma-plugin)
+in the repository. Until it is on Figma Community, clone the repository or
+download it as a ZIP from GitHub (**Code → Download ZIP**), then in the Figma
+desktop app choose **Plugins → Development → Import plugin from manifest…** and
+pick `design/figma-plugin/manifest.json`. The plugin is then under **Plugins →
+Development** in every file. The browser version of Figma cannot load a plugin
+this way.
 
 #### What the plugin carries
 
