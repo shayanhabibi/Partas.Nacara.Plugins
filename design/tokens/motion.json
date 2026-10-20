@@ -16,16 +16,19 @@
             "value": "transparent"
           },
           "to": {
-            "token": "nacara.color.bg-subtle"
+            "token": "nacara.color.bg-subtle",
+            "value": "#f6f7f9"
           }
         },
         {
           "property": "color",
           "from": {
-            "token": "nacara.color.text-muted"
+            "token": "nacara.color.text-muted",
+            "value": "#5a6470"
           },
           "to": {
-            "token": "nacara.color.text"
+            "token": "nacara.color.text",
+            "value": "#1b1f24"
           }
         }
       ],
@@ -46,16 +49,19 @@
             "value": "transparent"
           },
           "to": {
-            "token": "nacara.color.bg-subtle"
+            "token": "nacara.color.bg-subtle",
+            "value": "#f6f7f9"
           }
         },
         {
           "property": "color",
           "from": {
-            "token": "nacara.color.text-muted"
+            "token": "nacara.color.text-muted",
+            "value": "#5a6470"
           },
           "to": {
-            "token": "nacara.color.text"
+            "token": "nacara.color.text",
+            "value": "#1b1f24"
           }
         }
       ],
@@ -76,7 +82,8 @@
         {
           "property": "background-color",
           "from": {
-            "token": "nacara.color.bg-raised"
+            "token": "nacara.color.bg-raised",
+            "value": "#ffffff"
           },
           "to": {
             "value": "#f7f7ff"
@@ -85,7 +92,8 @@
         {
           "property": "border-radius",
           "from": {
-            "token": "nacara.size.radius"
+            "token": "nacara.size.radius",
+            "value": "8px"
           },
           "to": {
             "value": "12px"
@@ -97,7 +105,8 @@
             "value": "none"
           },
           "to": {
-            "token": "nacara.shadow.shadow"
+            "token": "nacara.shadow.shadow",
+            "value": "0px 1px 2px 0px #1018280f, 0px 4px 12px 0px #1018280f"
           }
         },
         {
@@ -141,7 +150,8 @@
         {
           "property": "background-color",
           "from": {
-            "token": "nacara.color.bg-raised"
+            "token": "nacara.color.bg-raised",
+            "value": "#ffffff"
           },
           "to": {
             "value": "#f7f7ff"
@@ -153,7 +163,8 @@
             "value": "none"
           },
           "to": {
-            "token": "nacara.shadow.shadow"
+            "token": "nacara.shadow.shadow",
+            "value": "0px 1px 2px 0px #1018280f, 0px 4px 12px 0px #1018280f"
           }
         },
         {

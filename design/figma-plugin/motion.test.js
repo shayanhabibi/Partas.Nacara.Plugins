@@ -24,8 +24,8 @@ test("navbar link hover", () => {
   assert.equal(h.duration, 200);
   assert.deepEqual(h.easing, { type: "EASE_OUT" });
   assert.deepEqual(h.changes, [
-    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle" } },
-    { property: "color", from: { token: "nacara.color.text-muted" }, to: { token: "nacara.color.text" } },
+    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle", value: "#f6f7f9" } },
+    { property: "color", from: { token: "nacara.color.text-muted", value: "#5a6470" }, to: { token: "nacara.color.text", value: "#1b1f24" } },
   ]);
   assert.deepEqual(h.notTranslated, []);
 });
@@ -42,7 +42,7 @@ test("sidebar link plays its preset over 1200ms", () => {
 test("an untagged theme layer is reported", () => {
   const h = hover(set("Navbar link"), "navbar-link");
   assert.deepEqual(h.changes, [
-    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle" } },
+    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle", value: "#f6f7f9" } },
   ]);
   assert.deepEqual(h.notTranslated, [
     { layer: "Label", property: "color", reason: "no selector: tag the layer or leave it unchanged" },
@@ -56,9 +56,9 @@ test("small card", () => {
   assert.equal(h.duration, 500);
   const part = '[data-motion-part="accent"]';
   assert.deepEqual(h.changes, [
-    { property: "background-color", from: { token: "nacara.color.bg-raised" }, to: { value: "#f7f7ff" } },
-    { property: "border-radius", from: { token: "nacara.size.radius" }, to: { value: "12px" } },
-    { property: "box-shadow", from: { value: "none" }, to: { token: "nacara.shadow.shadow" } },
+    { property: "background-color", from: { token: "nacara.color.bg-raised", value: "#ffffff" }, to: { value: "#f7f7ff" } },
+    { property: "border-radius", from: { token: "nacara.size.radius", value: "8px" }, to: { value: "12px" } },
+    { property: "box-shadow", from: { value: "none" }, to: { token: "nacara.shadow.shadow", value: "0px 1px 2px 0px #1018280f, 0px 4px 12px 0px #1018280f" } },
     { layer: "Accent", part, property: "width", from: { value: "40px" }, to: { value: "80px" } },
     { layer: "Accent", part, property: "opacity", from: { value: "1" }, to: { value: "0.8" } },
   ]);
@@ -341,8 +341,8 @@ test("an icon's colour comes across through its vectors", () => {
   const h = hover(applyTags(iconButton, THEME_SELECTORS), "icon-button");
   assert.equal(h.selector, ".nacara-icon-button");
   assert.deepEqual(h.changes, [
-    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle" } },
-    { property: "color", from: { token: "nacara.color.text-muted" }, to: { token: "nacara.color.text" } },
+    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle", value: "#ffffff" } },
+    { property: "color", from: { token: "nacara.color.text-muted", value: "#000000" }, to: { token: "nacara.color.text", value: "#000000" } },
   ]);
   assert.deepEqual(h.notTranslated, []);
 });
@@ -483,4 +483,121 @@ test("mixed text fills that differ are reported", () => {
   child(variant(navbar, "State=Hover"), "Label").fills = [{ type: "MIXED" }];
   const h = hover(navbar, "navbar-link");
   assert.deepEqual(h.notTranslated.map(n => [n.layer, n.property]), [["Label", "fill"]]);
+});
+
+// ---- final review: auto layout, rotation, token values, duplicate names ----
+
+// A set "Chip" whose State=Default hovers to State=Hover; rest and hovered are merged into each root.
+const chipSet = (rest, hovered, name = "Chip", id = "5") => {
+  const transition = { type: "SMART_ANIMATE", duration: 0.2, easing: { type: "EASE_OUT" } };
+  const variantOf = (n, state, layer, reactions) => ({
+    id: `${id}:${n}`, name: `State=${state}`, variantProperties: { State: state }, reactions,
+    layer: Object.assign({ name: `State=${state}`, type: "COMPONENT", x: 0, y: 0, width: 100, height: 40, rotation: 0, opacity: 1, fills: [], strokes: [] }, layer),
+  });
+  const hoverTo = [{ trigger: { type: "ON_HOVER" }, actions: [{ type: "NODE", destinationId: `${id}:3`, navigation: "CHANGE_TO", transition }] }];
+  return { id: `${id}:1`, name, variants: [variantOf(2, "Default", rest, hoverTo), variantOf(3, "Hover", hovered, [])] };
+};
+const dot = extra => Object.assign({ name: "Dot", type: "RECTANGLE", x: 10, y: 10, width: 40, height: 20, rotation: 0, opacity: 1, fills: [], strokes: [] }, extra);
+const chip = (rest, hovered) => hoversOf(chipSet(rest, hovered)).hovers[0];
+const DOT = '[data-motion-part="dot"]';
+const FOLLOWS = "follows auto layout";
+
+test("a layer auto layout places is not translated", () => {
+  const h = chip(
+    { layoutMode: "HORIZONTAL", children: [dot({ layoutPositioning: "AUTO" })] },
+    { layoutMode: "HORIZONTAL", children: [dot({ layoutPositioning: "AUTO", x: 30 })] });
+  assert.deepEqual(h.changes, []);
+  assert.deepEqual(h.notTranslated, [{ layer: "Dot", property: "translate", reason: FOLLOWS }]);
+});
+
+test("an absolute layer in auto layout, or a layer outside it, translates", () => {
+  const moved = { property: "translate", from: { value: "0px 0px" }, to: { value: "20px 0px" } };
+  const absolute = chip(
+    { layoutMode: "VERTICAL", children: [dot({ layoutPositioning: "ABSOLUTE" })] },
+    { layoutMode: "VERTICAL", children: [dot({ layoutPositioning: "ABSOLUTE", x: 30 })] });
+  assert.deepEqual(absolute.changes, [Object.assign({ layer: "Dot", part: DOT }, moved)]);
+  const free = chip({ layoutMode: "NONE", children: [dot()] }, { layoutMode: "NONE", children: [dot({ x: 30 })] });
+  assert.deepEqual(free.changes, [Object.assign({ layer: "Dot", part: DOT }, moved)]);
+  assert.deepEqual(free.notTranslated, []);
+});
+
+test("a size on a hug or fill axis follows auto layout; a fixed one comes across", () => {
+  const h = chip(
+    { layoutMode: "HORIZONTAL", layoutSizingHorizontal: "HUG", children: [
+      dot({ layoutSizingHorizontal: "FIXED", layoutSizingVertical: "FILL" })] },
+    { layoutMode: "HORIZONTAL", layoutSizingHorizontal: "HUG", width: 140, children: [
+      dot({ layoutSizingHorizontal: "FIXED", layoutSizingVertical: "FILL", width: 80, height: 30 })] });
+  assert.deepEqual(h.changes, [{ layer: "Dot", part: DOT, property: "width", from: { value: "40px" }, to: { value: "80px" } }]);
+  assert.deepEqual(h.notTranslated, [
+    { property: "width", reason: FOLLOWS },
+    { layer: "Dot", property: "height", reason: FOLLOWS },
+  ]);
+});
+
+test("a changed auto layout setting is reported", () => {
+  const h = chip({ layoutMode: "HORIZONTAL" }, { layoutMode: "VERTICAL" });
+  assert.deepEqual(h.notTranslated, [{ property: "layoutMode", reason: "is not animated" }]);
+});
+
+test("a layer turned about its centre rotates and does not translate", () => {
+  // At rest the Dot's centre is (30, 20). Turned 90deg anticlockwise about it, its top-left corner is
+  // at (20, 40): x + 20cos90 + 10sin90 = 30 and y - 20sin90 + 10cos90 = 20.
+  const turned = chip({ children: [dot()] }, { children: [dot({ x: 20, y: 40, rotation: 90 })] });
+  assert.deepEqual(turned.changes, [{ layer: "Dot", part: DOT, property: "rotate", from: { value: "0deg" }, to: { value: "-90deg" } }]);
+  assert.deepEqual(turned.notTranslated, []);
+  const moved = chip({ children: [dot()] }, { children: [dot({ x: 25, y: 40, rotation: 90 })] });
+  assert.deepEqual(moved.changes.map(c => [c.property, c.to.value]), [["rotate", "-90deg"], ["translate", "5px 0px"]]);
+});
+
+test("a token carries the value Figma resolves it to", () => {
+  const corners = { topLeftRadius: "nacara/size/radius", topRightRadius: "nacara/size/radius", bottomRightRadius: "nacara/size/radius", bottomLeftRadius: "nacara/size/radius" };
+  const h = chip(
+    { cornerRadius: 6, boundVariables: corners, fills: [{ type: "SOLID", color: { r: 1, g: 0, b: 0 }, opacity: 0.5, variable: "nacara/color/primary" }] },
+    { cornerRadius: 10, fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 1 }, opacity: 1 }] });
+  assert.deepEqual(h.changes, [
+    { property: "background-color", from: { token: "nacara.color.primary", value: "#ff000080" }, to: { value: "#0000ff" } },
+    { property: "border-radius", from: { token: "nacara.size.radius", value: "6px" }, to: { value: "10px" } },
+  ]);
+});
+
+test("two hovers with one name: the second is skipped, naming the first's set", () => {
+  const first = chipSet({ opacity: 1 }, { opacity: 0.5 }, "Promo card", "6");
+  const second = chipSet({ opacity: 1 }, { opacity: 0.8 }, "Promo-card", "7");
+  const document = motionDocument([first, second]);
+  assert.deepEqual(document.hovers.map(h => [h.name, h.changes[0].to.value]), [["promo-card", "0.5"]]);
+  assert.deepEqual(document.skipped, [{
+    component: "Promo-card", variant: "State=Default",
+    reason: 'Promo card already has a hover named "promo-card"; give this set another motion name.',
+  }]);
+});
+
+test("the panel shows the markup of each part that comes across", () => {
+  // ui.html's script, run against a document of plain objects that keep their text and children.
+  const vm = require("node:vm");
+  const html = require("node:fs").readFileSync(require("node:path").join(__dirname, "ui.html"), "utf8");
+  const script = html.slice(html.indexOf("<script>") + "<script>".length, html.lastIndexOf("</script>"));
+  const make = tag => ({
+    tag, children: [], textContent: "",
+    appendChild(c) { this.children.push(c); return c; },
+    append(...cs) { this.children.push(...cs); },
+    replaceChildren() { this.children = []; },
+  });
+  const byId = new Map();
+  const document = {
+    getElementById: id => byId.get(id) || byId.set(id, make("div")).get(id),
+    createElement: make,
+    createDocumentFragment: () => make("#fragment"),
+  };
+  const context = { document, parent: { postMessage() {} } };
+  vm.runInNewContext(script, context);
+  const card = set("Card");
+  const nested = opacity => [{ name: "Dot", type: "ELLIPSE", x: 0, y: 0, width: 4, height: 4, rotation: 0, opacity, fills: [], strokes: [] }];
+  child(variant(card, "Size=Small, State=Default"), "Accent").children = nested(1);
+  child(variant(card, "Size=Small, State=Hover"), "Accent").children = nested(0.5);
+  context.onmessage({ data: { pluginMessage: { type: "motion-scanned", result: { document: motionDocument([card]), sets: [] } } } });
+  const text = node => [node.textContent, ...node.children.map(text)].join("\n");
+  const shown = text(byId.get("motion-hovers"));
+  assert.match(shown, /Accent \(data-motion-part="accent"\): width: 40px → 80px/);
+  assert.match(shown, /background-color: nacara\.color\.bg-raised \(#ffffff\) → #f7f7ff/);
+  assert.match(shown, /Accent\/Dot \(data-motion-part="dot" inside data-motion-part="accent"\): opacity: 1 → 0.5/);
 });

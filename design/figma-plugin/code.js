@@ -1592,7 +1592,12 @@ const kebab = text => String(text).trim().toLowerCase().replace(/[^a-z0-9]+/g, "
 const round = (x, places) => Math.round(x * 10 ** places) / 10 ** places;
 const px = x => `${round(x, 2)}px`;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const tokenOf = variable => ({ token: variable.split("/").join(".") });
+// A token carries the value Figma resolves it to, which the site falls back to where it does not
+// define the token: { token: "nacara.color.bg-subtle", value: "#f4f4f5" } is var(--nacara-bg-subtle, #f4f4f5).
+const tokenOf = (variable, value) => {
+  const token = variable.split("/").join(".");
+  return value ? { token, value } : { token };
+};
 
 /** The motion name of a set: its name, kebab-cased. */
 function motionName(setName) {
@@ -1621,29 +1626,35 @@ const visibleEffects = effects => (effects || []).filter(e => e.visible !== fals
 
 function paintValue(paint) {
   if (!paint) return { value: "transparent" };
-  if (paint.variable) return tokenOf(paint.variable);
   const alpha = (paint.color.a === undefined ? 1 : paint.color.a) * (paint.opacity === undefined ? 1 : paint.opacity);
-  return { value: toHex({ r: paint.color.r, g: paint.color.g, b: paint.color.b, a: alpha }) };
+  const hex = toHex({ r: paint.color.r, g: paint.color.g, b: paint.color.b, a: alpha });
+  return paint.variable ? tokenOf(paint.variable, hex) : { value: hex };
 }
 
 function radiusValue(layer) {
   const bound = layer.boundVariables || {};
   const corners = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"];
   const names = corners.map(c => bound[c]);
-  if (names[0] && names.every(n => n === names[0])) return tokenOf(names[0]);
-  if (typeof layer.cornerRadius === "number") return { value: px(layer.cornerRadius) };
-  if (corners.every(c => typeof layer[c] === "number")) return { value: corners.map(c => px(layer[c])).join(" ") };
-  return null;
+  const literal =
+    typeof layer.cornerRadius === "number" ? px(layer.cornerRadius)
+    : corners.every(c => typeof layer[c] === "number") ? corners.map(c => px(layer[c])).join(" ")
+    : null;
+  if (names[0] && names.every(n => n === names[0])) return tokenOf(names[0], literal);
+  return literal ? { value: literal } : null;
 }
 
 function shadowValue(layer) {
-  if (layer.effectStyle && layer.effectStyle.token) return { token: layer.effectStyle.token };
   const shadows = visibleEffects(layer.effects).filter(e => e.type === "DROP_SHADOW");
-  if (!shadows.length) return { value: "none" };
-  return {
-    value: shadows.map(e => `${px(e.offset.x)} ${px(e.offset.y)} ${px(e.radius)} ${px(e.spread || 0)} ${toHex(e.color)}`).join(", "),
-  };
+  const literal = shadows.map(e => `${px(e.offset.x)} ${px(e.offset.y)} ${px(e.radius)} ${px(e.spread || 0)} ${toHex(e.color)}`).join(", ");
+  // The effect style's token, already dotted, with the layer's shadows (the style's) as its value.
+  if (layer.effectStyle && layer.effectStyle.token) return tokenOf(layer.effectStyle.token, literal);
+  return { value: literal || "none" };
 }
+
+// Auto layout, as snapshotSet reads it: the frame's layoutMode, and a layer's layoutPositioning and
+// sizing on each axis. A layer that auto layout places, or sizes (HUG or FILL), moves with the layout.
+const LAYOUT_KEYS = ["layoutMode", "layoutPositioning", "layoutSizingHorizontal", "layoutSizingVertical"];
+const FOLLOWS_AUTO_LAYOUT = "follows auto layout";
 
 // The keys of a layer snapshot that compareLayer does not report as "is not animated". Every other
 // key that differs between the two variants is reported, so a field a snapshot adds (Task 7's
@@ -1656,6 +1667,9 @@ const LAYER_KEYS_HANDLED = [
   "boundVariables",
   // positional: the root's x/y is its place in the set; a descendant's is a translate, in compareVariants
   "x", "y",
+  // auto layout: they decide whether a size or a place is the hover's or the layout's (compareLayer,
+  // compareVariants); a change to one of them is reported by compareLayer as "is not animated"
+  ...LAYOUT_KEYS,
   // structural: identity, nesting, tags and interaction, not appearance
   "name", "type", "id", "children", "selector", "motionName", "variantProperties", "reactions",
 ];
@@ -1695,8 +1709,15 @@ function compareLayer(a, b, self) {
     if (a.characters !== b.characters) report("text", "Text content does not animate; the layer's size follows it.");
     else if (sized) report("text", "A text layer's size follows its text and does not animate.");
   } else {
-    if (a.width !== b.width) change("width", { value: px(a.width) }, { value: px(b.width) });
-    if (a.height !== b.height) change("height", { value: px(a.height) }, { value: px(b.height) });
+    // On a HUG or FILL axis the size is the auto layout's (the content's, or the parent's), not the hover's.
+    const sized = key => [a[key], b[key]].some(s => s === "HUG" || s === "FILL");
+    const size = (property, key) => {
+      if (a[property] === b[property]) return;
+      if (sized(key)) report(property, FOLLOWS_AUTO_LAYOUT);
+      else change(property, { value: px(a[property]) }, { value: px(b[property]) });
+    };
+    size("width", "layoutSizingHorizontal");
+    size("height", "layoutSizingVertical");
   }
 
   const opacity = layer => (layer.opacity === undefined ? 1 : layer.opacity);
@@ -1718,6 +1739,8 @@ function compareLayer(a, b, self) {
     report("effect", `${kinds || "This effect"} does not translate; only drop shadows do.`);
   }
 
+  for (const key of LAYOUT_KEYS) if (!same(a[key], b[key])) report(key, NOT_ANIMATED);
+
   const boundA = a.boundVariables || {}, boundB = b.boundVariables || {};
   for (const key of new Set(Object.keys(boundA).concat(Object.keys(boundB)))) {
     if (BOUND_KEYS_HANDLED.includes(key) || same(boundA[key], boundB[key])) continue;
@@ -1729,6 +1752,25 @@ function compareLayer(a, b, self) {
   }
 
   return { changes, notTranslated };
+}
+
+const autoLayout = frame => Boolean(frame.layoutMode) && frame.layoutMode !== "NONE";
+const placed = (parent, layer) => autoLayout(parent) && layer.layoutPositioning !== "ABSOLUTE";
+
+// The centre of a layer in its parent. Figma's x and y are the rotated top-left corner, and rotation
+// is in degrees anticlockwise, so local (u, v) is at (x + u cos r + v sin r, y - u sin r + v cos r).
+function centre(layer) {
+  const r = ((layer.rotation || 0) * Math.PI) / 180;
+  const [u, v] = [layer.width / 2, layer.height / 2];
+  return [layer.x + u * Math.cos(r) + v * Math.sin(r), layer.y - u * Math.sin(r) + v * Math.cos(r)];
+}
+
+// How far a layer moves between two variants. CSS rotates about the centre, so a rotated layer
+// moves by its centre: one turned about its centre does not move at all.
+function offset(a, b) {
+  if (!a.rotation && !b.rotation) return [b.x - a.x, b.y - a.y];
+  const [ca, cb] = [centre(a), centre(b)];
+  return [round(cb[0] - ca[0], 2) || 0, round(cb[1] - ca[1], 2) || 0];
 }
 
 /**
@@ -1767,15 +1809,18 @@ function compareVariants(before, after, isTheme) {
         notTranslated.push({ layer: named, property: "layer", reason: as.length ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
         continue;
       } else pairs = [[named, as[0], bs[0]]];
-      for (const [layer, a, b] of pairs) compareChild(layer, a, b, name, chain, inSelf);
+      for (const [layer, a, b] of pairs) compareChild(layer, a, b, name, chain, inSelf, [parentA, parentB]);
     }
   };
-  const compareChild = (layer, a, b, name, chain, inSelf) => {
+  const compareChild = (layer, a, b, name, chain, inSelf, [parentA, parentB]) => {
     const tag = a.selector || b.selector || (inSelf ? ":self" : undefined);
     const self = isTheme && tag === ":self";
     const diff = compareLayer(a, b, self);
-    if (a.x !== b.x || a.y !== b.y) {
-      diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
+    const [dx, dy] = offset(a, b);
+    if (dx || dy) {
+      // Auto layout places a layer that is not absolute: its move is the layout's, not the hover's.
+      if (placed(parentA, a) || placed(parentB, b)) diff.notTranslated.push({ property: "translate", reason: FOLLOWS_AUTO_LAYOUT });
+      else diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(dx)} ${px(dy)}` } });
     }
     for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer }, n));
     const part = isTheme ? tag : `${chain ? chain + " " : ""}[data-motion-part="${kebab(name)}"]`;
@@ -1803,9 +1848,13 @@ function easingOf(easing) {
   return { type: easing.type };
 }
 
-/** The hovers of a set snapshot, in the motion document's shape, and the reactions it skips. */
+/**
+ * The hovers of a set snapshot, in the motion document's shape, and the reactions it skips;
+ * variants[i] is the resting variant of hovers[i].
+ */
 function hoversOf(setSnapshot) {
   const hovers = [];
+  const variants = [];
   const skipped = [];
   const isTheme = Boolean(setSnapshot.selector) || Object.prototype.hasOwnProperty.call(THEME_SELECTORS, setSnapshot.name);
   const name = setSnapshot.motionName || motionName(setSnapshot.name);
@@ -1837,6 +1886,7 @@ function hoversOf(setSnapshot) {
         const easing = easingOf(transition.easing);
         const duration = SPRING_PRESETS.includes(easing.type) ? PRESET_DURATION : Math.round(transition.duration * 1000);
         const { changes, notTranslated } = compareVariants(before, after, isTheme);
+        variants.push(before.name);
         hovers.push({
           name: others.length ? `${name}[${others.map(key => `${kebab(key)}=${kebab(props[key])}`).join(",")}]` : name,
           selector,
@@ -1849,17 +1899,34 @@ function hoversOf(setSnapshot) {
       }
     }
   }
-  return { hovers, skipped };
+  return { hovers, variants, skipped };
 }
 
-/** The motion document of a list of set snapshots. */
+/**
+ * The motion document of a list of set snapshots. A hover is named for F#'s setters, so a second
+ * hover with a name already taken (two sets that kebab alike) is skipped, saying which set has it.
+ */
 function motionDocument(setSnapshots) {
-  const results = setSnapshots.map(hoversOf);
-  return {
-    version: 1,
-    hovers: [].concat(...results.map(r => r.hovers)),
-    skipped: [].concat(...results.map(r => r.skipped)),
-  };
+  const hovers = [];
+  const skipped = [];
+  const owners = new Map();
+  for (const snapshot of setSnapshots) {
+    const result = hoversOf(snapshot);
+    skipped.push(...result.skipped);
+    result.hovers.forEach((hover, i) => {
+      const owner = owners.get(hover.name);
+      if (owner === undefined) {
+        owners.set(hover.name, snapshot.name);
+        hovers.push(hover);
+        return;
+      }
+      const reason = owner === snapshot.name
+        ? `another variant of this set has a hover named "${hover.name}" too; only the first is exported.`
+        : `${owner} already has a hover named "${hover.name}"; give this set another motion name.`;
+      skipped.push({ component: snapshot.name, variant: result.variants[i], reason });
+    });
+  }
+  return { version: 1, hovers, skipped };
 }
 
 // ---- motion in Figma: tags, snapshots, export ----------------------------------------------
@@ -2036,6 +2103,8 @@ function snapshotReader() {
     for (const key of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "itemSpacing"]) {
       if (typeof node[key] === "number") out[key] = node[key];
     }
+    // Whether auto layout places and sizes the layer (LAYOUT_KEYS): its move or size is then the layout's.
+    for (const key of LAYOUT_KEYS) if (typeof node[key] === "string") out[key] = node[key];
     if (node.type === "TEXT") {
       if (node.textStyleId) out.textStyle = node.textStyleId === figma.mixed ? "mixed" : await styleName(node.textStyleId);
       else if (node.fontSize !== undefined) Object.assign(out, { fontSize: plain(node.fontSize), fontName: plain(node.fontName) });
