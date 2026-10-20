@@ -111,6 +111,15 @@ Each scheme is a mode of the collection `Partas.Nacara.Theme`. On a Figma plan
 limited to one mode it is a collection of its own, `Partas.Nacara.Theme (Light)`
 and `Partas.Nacara.Theme (Dark)`. The documents are the same either way.
 
+## Motion
+
+Hovers drawn in Figma come across too. A hover is a variant whose **While
+hovering** interaction changes to another variant of its set with **Smart
+animate**. In the plugin's Motion section, **Find hovers** lists each hover with
+what comes across and what does not, and **Export motion** saves `motion.json`
+for `Partas.Nacara.Plugins.Motion` to read. The [motion guide](motion.md) has
+the steps, the markup a hover binds to, and the F# that configures it.
+
 ## Starting from your site's tokens
 
 A site whose tokens are already changed in F# can write them as the two

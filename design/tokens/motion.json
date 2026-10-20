@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "hovers": [
+    {
+      "name": "navbar-link",
+      "selector": ".nacara-navbar__link:not([data-active=\"true\"]):not([aria-current])",
+      "trigger": "hover",
+      "duration": 200,
+      "easing": {
+        "type": "EASE_OUT"
+      },
+      "changes": [
+        {
+          "property": "background-color",
+          "from": {
+            "value": "transparent"
+          },
+          "to": {
+            "token": "nacara.color.bg-subtle"
+          }
+        },
+        {
+          "property": "color",
+          "from": {
+            "token": "nacara.color.text-muted"
+          },
+          "to": {
+            "token": "nacara.color.text"
+          }
+        }
+      ],
+      "notTranslated": []
+    },
+    {
+      "name": "sidebar-link",
+      "selector": ".nacara-sidebar__link:not([aria-current=\"page\"])",
+      "trigger": "hover",
+      "duration": 1200,
+      "easing": {
+        "type": "GENTLE"
+      },
+      "changes": [
+        {
+          "property": "background-color",
+          "from": {
+            "value": "transparent"
+          },
+          "to": {
+            "token": "nacara.color.bg-subtle"
+          }
+        },
+        {
+          "property": "color",
+          "from": {
+            "token": "nacara.color.text-muted"
+          },
+          "to": {
+            "token": "nacara.color.text"
+          }
+        }
+      ],
+      "notTranslated": []
+    },
+    {
+      "name": "card[size=small]",
+      "selector": "[data-motion=\"card\"][data-size=\"small\"]",
+      "trigger": "hover",
+      "duration": 500,
+      "easing": {
+        "type": "CUSTOM_SPRING",
+        "mass": 1,
+        "stiffness": 300,
+        "damping": 20
+      },
+      "changes": [
+        {
+          "property": "background-color",
+          "from": {
+            "token": "nacara.color.bg-raised"
+          },
+          "to": {
+            "value": "#f7f7ff"
+          }
+        },
+        {
+          "property": "border-radius",
+          "from": {
+            "token": "nacara.size.radius"
+          },
+          "to": {
+            "value": "12px"
+          }
+        },
+        {
+          "property": "box-shadow",
+          "from": {
+            "value": "none"
+          },
+          "to": {
+            "token": "nacara.shadow.shadow"
+          }
+        },
+        {
+          "layer": "Accent",
+          "part": "[data-motion-part=\"accent\"]",
+          "property": "width",
+          "from": {
+            "value": "40px"
+          },
+          "to": {
+            "value": "80px"
+          }
+        },
+        {
+          "layer": "Accent",
+          "part": "[data-motion-part=\"accent\"]",
+          "property": "opacity",
+          "from": {
+            "value": "1"
+          },
+          "to": {
+            "value": "0.8"
+          }
+        }
+      ],
+      "notTranslated": []
+    },
+    {
+      "name": "card[size=large]",
+      "selector": "[data-motion=\"card\"][data-size=\"large\"]",
+      "trigger": "hover",
+      "duration": 250,
+      "easing": {
+        "type": "CUSTOM_CUBIC_BEZIER",
+        "x1": 0.4,
+        "y1": 0,
+        "x2": 0.2,
+        "y2": 1
+      },
+      "changes": [
+        {
+          "property": "background-color",
+          "from": {
+            "token": "nacara.color.bg-raised"
+          },
+          "to": {
+            "value": "#f7f7ff"
+          }
+        },
+        {
+          "property": "box-shadow",
+          "from": {
+            "value": "none"
+          },
+          "to": {
+            "token": "nacara.shadow.shadow"
+          }
+        },
+        {
+          "layer": "Accent",
+          "part": "[data-motion-part=\"accent\"]",
+          "property": "width",
+          "from": {
+            "value": "40px"
+          },
+          "to": {
+            "value": "80px"
+          }
+        },
+        {
+          "layer": "Accent",
+          "part": "[data-motion-part=\"accent\"]",
+          "property": "opacity",
+          "from": {
+            "value": "1"
+          },
+          "to": {
+            "value": "0.8"
+          }
+        }
+      ],
+      "notTranslated": [
+        {
+          "layer": "Title",
+          "property": "text",
+          "reason": "Text content does not animate; the layer's size follows it."
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}

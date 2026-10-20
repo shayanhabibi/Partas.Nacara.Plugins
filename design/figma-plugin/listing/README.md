@@ -33,6 +33,13 @@ Lengths come back in the units the theme uses, so 16px is 1rem again.
 Layouts: duplicate a template on the Layouts page, rename it Layout/<name>, delete the parts it
 leaves out, and Export layouts writes the Theme.addLayout lines that add it.
 
+Motion: a variant whose While hovering interaction changes to another variant of its set with
+Smart animate is a hover. Find hovers lists each one, with what comes across and what does not and
+why. Export motion saves motion.json, which Partas.Nacara.Plugins.Motion turns into CSS
+transitions or an anime.js script. A set of your own takes a motion name, and its hovers apply to
+elements with data-motion="<name>".
+Motion guide: https://shayanhabibi.github.io/Partas.Nacara.Plugins/guide/motion/
+
 From your site: load the two documents DesignTokens.write produces and Import into variables.
 Build components, example and layouts draws the theme's components, an example docs page and
 the layout templates in any file.
@@ -42,7 +49,7 @@ Source (Apache-2.0): https://github.com/shayanhabibi/Partas.Nacara.Plugins
 
 ## Tags
 
-design tokens, variables, documentation, theme, export, code
+design tokens, variables, documentation, theme, export, code, motion, hover
 
 ## Images
 

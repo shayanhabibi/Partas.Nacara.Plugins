@@ -11,6 +11,7 @@ Each package is independent. The full documentation is at
 | [Partas.Nacara.Plugins.Directives](#directives) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.Directives)](https://www.nuget.org/packages/Partas.Nacara.Plugins.Directives) |
 | [Partas.Nacara.Plugins.OgImage](#ogimage) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.OgImage)](https://www.nuget.org/packages/Partas.Nacara.Plugins.OgImage) |
 | [Partas.Nacara.Plugins.AgentFriendly](#agentfriendly) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.AgentFriendly)](https://www.nuget.org/packages/Partas.Nacara.Plugins.AgentFriendly) |
+| [Partas.Nacara.Plugins.Motion](#motion) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Plugins.Motion)](https://www.nuget.org/packages/Partas.Nacara.Plugins.Motion) |
 | [Partas.Nacara.Theme](#theme) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme)](https://www.nuget.org/packages/Partas.Nacara.Theme) |
 | [Partas.Nacara.Theme.Contracts](#theme-contracts) | [![NuGet](https://img.shields.io/nuget/v/Partas.Nacara.Theme.Contracts)](https://www.nuget.org/packages/Partas.Nacara.Theme.Contracts) |
 
@@ -314,6 +315,47 @@ Only markdown pages get a copy; every page is listed in `llms.txt`, under a
 heading for the first segment of its route. Each part can be turned off, and the
 sections, the summary and the excluded collections are yours to set.
 
+## Motion
+
+Hovers drawn in Figma, played on the site. A hover is a variant whose **While
+hovering** interaction smart-animates to another variant of its set. The theme's
+[Figma plugin](design/figma-plugin) exports them as `motion.json` (**Find hovers**,
+then **Export motion**), and this plugin writes them as CSS transitions in the
+theme's stylesheet, or as an anime.js script.
+
+```bash
+dotnet add package Partas.Nacara.Plugins.Motion
+```
+
+```fsharp
+let site =
+    Site.create "My site"
+    |> Markdown.register
+    |> Esbuild.register // bundles anime.js for the hovers it plays
+    |> Motion.registerWith (
+        Motion.document "design/tokens/motion.json"
+        >> Motion.hoverEngine "card[size=small]" Anime
+        >> Motion.duration "navbar-link" 150)
+    |> Theme.register theme
+```
+
+Register it before `Theme.register`, which bundles the CSS Motion offers. The
+theme's navbar, sidebar and table-of-contents links bind by their own classes. A
+component set of your own binds to `data-motion` and its other variant
+properties, so `<div data-motion="card" data-size="small">` plays the Card set's
+`Size=Small` hover. Hovers also play on `:focus-visible`.
+
+Fills, corner radius, drop shadows, opacity, size, rotation and a layer's
+position come across, bound to the site's tokens where Figma binds them to
+variables. Everything else is reported as a build warning, never dropped. Custom
+springs play as they settle, the same as anime.js 4.5.0. Figma's four spring
+presets are approximated over 1200ms. There is no scale: Figma resizes a layer,
+so a bigger hover variant comes across as width and height. A setter that names a
+hover the document does not have fails the build with the names it does have.
+
+The anime.js 4.5.0 it bundles is MIT, and its licence ships in the package as
+`LICENSE.anime.md`. `Motion.animeFromCdn` loads it from jsDelivr instead.
+
 ## Solid
 
 The live Partas.Solid examples plugin moved to the
@@ -441,5 +483,7 @@ Apache-2.0 code cannot be redistributed under a more permissive label, so the th
 package keeps its own licence rather than the repository-wide MIT. The remaining
 projects - `Partas.Nacara.Theme.Contracts`, `Partas.Nacara.Plugins.Directives`,
 `Partas.Nacara.Plugins.Tailwind`, `Partas.Nacara.Plugins.DaisyUI`,
-`Partas.Nacara.Plugins.OgImage` and `Partas.Nacara.Plugins.AgentFriendly` - are original
-work and stay MIT.
+`Partas.Nacara.Plugins.OgImage`, `Partas.Nacara.Plugins.AgentFriendly` and
+`Partas.Nacara.Plugins.Motion` - are original work and stay MIT. The Motion package bundles
+anime.js 4.5.0, copyright Julian Garnier, under its own MIT licence, shipped beside it as
+`LICENSE.anime.md`.

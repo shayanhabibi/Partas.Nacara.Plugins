@@ -28,6 +28,7 @@ let apiOptions =
                         "Partas.Nacara.Plugins.DaisyUI"
                         "Partas.Nacara.Plugins.OgImage"
                         "Partas.Nacara.Plugins.AgentFriendly"
+                        "Partas.Nacara.Plugins.Motion"
                     ] -> FSharpApiSource.create (System.IO.Path.Combine(beside, $"%s{name}.dll"))
             ]
     }
@@ -71,7 +72,8 @@ let theme =
                  "Theme"
                  [ Menu.page "guide/theme.md"
                    Menu.page "guide/styling.md"
-                   Menu.page "guide/figma.md" |> Menu.badge "New" ] ]
+                   Menu.page "guide/figma.md" ]
+             Menu.section "Motion" [ Menu.page "guide/motion.md" |> Menu.badge "New" ] ]
     |> Theme.navbarEnd
            [// NavbarDynamicWidget Search.trigger
             NavbarDynamicWidget(Versions.switcher (Versions.versions versions Versions.defaults))
@@ -83,6 +85,19 @@ let theme =
 PluginLayers.offer
     { Name = "directives"
       Css = ".nacara-steps { list-style: none; } .nacara-step { margin-block: 1rem; }" }
+
+// The motion guide's demo cards at rest. The motion document holds only what a hover changes,
+// so where a card starts from is the site's own CSS, in the values the Figma variants rest at.
+PluginLayers.offer
+    { Name = "motion-demo"
+      Css =
+          """
+.motion-demo { display: flex; flex-wrap: wrap; gap: var(--nacara-space-4); margin-block: var(--nacara-space-6); }
+[data-motion="card"] { display: flex; flex-direction: column; gap: var(--nacara-space-3); padding: var(--nacara-space-4); background-color: var(--nacara-bg-raised); border: 1px solid var(--nacara-border); border-radius: var(--nacara-radius); box-shadow: none; color: var(--nacara-text); }
+[data-motion="card"][data-size="small"] { width: 12rem; }
+[data-motion="card"][data-size="large"] { width: 18rem; }
+[data-motion="card"] [data-motion-part="accent"] { display: block; width: 40px; height: 4px; border-radius: 2px; background-color: var(--nacara-primary); opacity: 1; }
+""" }
 
 let reference =
     FSharpApi.collection "reference" DocFrontMatter.decoder apiOptions
@@ -121,6 +136,12 @@ let site =
     |> Nuglify.minifyHtml
     |> Versions.register versions
     |> GitHubPages.register
+    // Resolved against the working directory, which is wherever the build is started from, so the
+    // path is made absolute from this file.
+    |> Motion.registerWith (
+        Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
+        >> Motion.hoverEngine "card[size=small]" Anime
+    )
     |> Theme.register theme
     |> Site.collection (Theme.docs theme "content")
     |> Site.collection reference

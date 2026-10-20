@@ -32,6 +32,7 @@
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.Directives\Partas.Nacara.Plugins.Directives.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.OgImage\Partas.Nacara.Plugins.OgImage.fsproj" />
       <ProjectReference Include="..\src\Partas.Nacara.Plugins.AgentFriendly\Partas.Nacara.Plugins.AgentFriendly.fsproj" />
+      <ProjectReference Include="..\src\Partas.Nacara.Plugins.Motion\Partas.Nacara.Plugins.Motion.fsproj" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="static\" />

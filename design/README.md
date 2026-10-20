@@ -5,6 +5,9 @@ The theme's tokens, for design tools.
 - `tokens/light.tokens.json`, `tokens/dark.tokens.json`: `Tokens.defaults` as
   [design tokens](https://www.designtokens.org/tr/drafts/format/) documents, one per colour
   scheme, written by `DesignTokens.write`. A test fails when they drift from the defaults.
+- `tokens/motion.json`: the hovers this repository's docs site plays, exported from Figma by the
+  plugin's **Export motion** and read by `Partas.Nacara.Plugins.Motion`. It is not generated:
+  export it again after changing a hover in Figma.
 - `figma-plugin/`: a Figma development plugin that imports those documents as variables and
   exports variables back as the same documents. `figma-plugin/listing/` holds its Figma
   Community listing and how to publish it.
@@ -85,6 +88,15 @@ Theme.defaults
 A page with `layout: reference` in its front matter then uses it. Only which parts are shown
 comes back. Spacing and widths come from the tokens, and anything else a layout looks like is
 CSS, selected by `[data-layout="<name>"]`.
+
+## Motion
+
+A hover is a variant whose **While hovering** interaction changes to another variant of its set
+with **Smart animate**. In the plugin's Motion section, **Find hovers** lists each hover with what
+comes across and what does not, and why. A set of your own has a **Motion name of** field, and its
+hovers apply to elements with `data-motion` set to that name. **Export motion** saves
+`motion.json`; save it as `tokens/motion.json`. The docs site's
+[motion guide](https://shayanhabibi.github.io/Partas.Nacara.Plugins/guide/motion/) has the rest.
 
 ## Naming
 
