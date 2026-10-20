@@ -1,0 +1,293 @@
+{
+  "capturedFrom": "Figma web, Plugin API via window.figma, in a scratch file built by design/figma-plugin",
+  "date": "2026-10-20",
+  "notes": [
+    "Durations are seconds, stored as float32: 0.2 reads back as 0.20000000298023224 and Figma shows 200ms.",
+    "ON_HOVER is the UI's 'While hovering'. A variant's hover is a NODE action with navigation CHANGE_TO to the hover variant.",
+    "Spring presets (GENTLE here) store only their type. Figma shows them at 1200ms whatever duration is stored.",
+    "CUSTOM_SPRING takes mass, stiffness and damping only; initialVelocity is rejected.",
+    "Colours are 0-1 rounded to 3 places. 'variable' is the token variable a paint is bound to; boundVariables lists bound fields.",
+    "Card is an author component: Size=Small hover changes fill (unbound), corner radius (unbinds it), shadow style, Accent width and opacity; Size=Large hover also changes the Title text, which does not translate."
+  ],
+  "componentSets": [
+    {
+      "id": "1:170",
+      "name": "Navbar link",
+      "description": ".nacara-navbar__link. Active is the current section (data-active) or aria-current.",
+      "variants": [
+        {
+          "id": "1:164",
+          "name": "State=Default",
+          "variantProperties": { "State": "Default" },
+          "reactions": [
+            {
+              "trigger": { "type": "ON_HOVER" },
+              "actions": [
+                {
+                  "type": "NODE",
+                  "destinationId": "1:166",
+                  "navigation": "CHANGE_TO",
+                  "resetScrollPosition": true,
+                  "resetVideoPosition": false,
+                  "transition": { "type": "SMART_ANIMATE", "duration": 0.20000000298023224, "easing": { "type": "EASE_OUT" } }
+                }
+              ]
+            }
+          ],
+          "layer": {
+            "name": "State=Default", "type": "COMPONENT", "x": 16, "y": 16, "width": 67, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Guide", "x": 12, "y": 8, "width": 43, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.353, "g": 0.392, "b": 0.439 }, "opacity": 1, "variable": "nacara/color/text-muted" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              }
+            ]
+          }
+        },
+        {
+          "id": "1:166",
+          "name": "State=Hover",
+          "variantProperties": { "State": "Hover" },
+          "reactions": [],
+          "layer": {
+            "name": "State=Hover", "type": "COMPONENT", "x": 99, "y": 16, "width": 67, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.965, "g": 0.969, "b": 0.976 }, "opacity": 1, "variable": "nacara/color/bg-subtle" }], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Guide", "x": 12, "y": 8, "width": 43, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              }
+            ]
+          }
+        },
+        {
+          "id": "1:168",
+          "name": "State=Active",
+          "variantProperties": { "State": "Active" },
+          "reactions": [],
+          "layer": {
+            "name": "State=Active", "type": "COMPONENT", "x": 182, "y": 16, "width": 67, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.925, "g": 0.925, "b": 0.984 }, "opacity": 1, "variable": "nacara/color/primary-subtle" }], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Guide", "x": 12, "y": 8, "width": 43, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1:186",
+      "name": "Sidebar link",
+      "description": ".nacara-sidebar__link: sidebar-width, padding space-2 × space-3, radius-sm. Active is aria-current=page: a primary-subtle pill in primary at 600. A badge sits at the end.",
+      "variants": [
+        {
+          "id": "1:171",
+          "name": "State=Default",
+          "variantProperties": { "State": "Default" },
+          "reactions": [
+            {
+              "trigger": { "type": "ON_HOVER" },
+              "actions": [
+                {
+                  "type": "NODE",
+                  "destinationId": "1:176",
+                  "navigation": "CHANGE_TO",
+                  "resetScrollPosition": true,
+                  "resetVideoPosition": false,
+                  "transition": { "type": "SMART_ANIMATE", "duration": 0.30000001192092896, "easing": { "type": "GENTLE" } }
+                }
+              ]
+            }
+          ],
+          "layer": {
+            "name": "State=Default", "type": "COMPONENT", "x": 16, "y": 16, "width": 272, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Writing directives", "x": 12, "y": 8, "width": 123, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.353, "g": 0.392, "b": 0.439 }, "opacity": 1, "variable": "nacara/color/text-muted" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              },
+              { "name": "Badge", "type": "INSTANCE", "mainComponent": "Kind=New", "x": 221, "y": 10.5, "width": 39, "height": 20, "rotation": 0, "opacity": 1, "cornerRadius": 999, "fills": [], "strokes": [] }
+            ]
+          }
+        },
+        {
+          "id": "1:176",
+          "name": "State=Hover",
+          "variantProperties": { "State": "Hover" },
+          "reactions": [],
+          "layer": {
+            "name": "State=Hover", "type": "COMPONENT", "x": 16, "y": 73, "width": 272, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.965, "g": 0.969, "b": 0.976 }, "opacity": 1, "variable": "nacara/color/bg-subtle" }], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Writing directives", "x": 12, "y": 8, "width": 123, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              },
+              { "name": "Badge", "type": "INSTANCE", "mainComponent": "Kind=New", "x": 221, "y": 10.5, "width": 39, "height": 20, "rotation": 0, "opacity": 1, "cornerRadius": 999, "fills": [], "strokes": [] }
+            ]
+          }
+        },
+        {
+          "id": "1:181",
+          "name": "State=Active",
+          "variantProperties": { "State": "Active" },
+          "reactions": [],
+          "layer": {
+            "name": "State=Active", "type": "COMPONENT", "x": 16, "y": 130, "width": 272, "height": 41, "rotation": 0, "opacity": 1, "cornerRadius": 4,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.925, "g": 0.925, "b": 0.984 }, "opacity": 1, "variable": "nacara/color/primary-subtle" }], "strokes": [],
+            "boundVariables": {
+              "bottomLeftRadius": "nacara/size/radius-sm", "bottomRightRadius": "nacara/size/radius-sm", "topLeftRadius": "nacara/size/radius-sm", "topRightRadius": "nacara/size/radius-sm",
+              "paddingBottom": "nacara/size/space-2", "paddingTop": "nacara/size/space-2", "paddingLeft": "nacara/size/space-3", "paddingRight": "nacara/size/space-3"
+            },
+            "children": [
+              {
+                "name": "Label", "type": "TEXT", "characters": "Writing directives", "x": 12, "y": 8, "width": 128, "height": 25, "rotation": 0, "opacity": 1,
+                "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [],
+                "boundVariables": { "fontSize": ["nacara/size/font-size-sm"] }
+              },
+              { "name": "Badge", "type": "INSTANCE", "mainComponent": "Kind=New", "x": 221, "y": 10.5, "width": 39, "height": 20, "rotation": 0, "opacity": 1, "cornerRadius": 999, "fills": [], "strokes": [] }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1:199",
+      "name": "Card",
+      "description": "",
+      "variants": [
+        {
+          "id": "1:187",
+          "name": "Size=Small, State=Default",
+          "variantProperties": { "Size": "Small", "State": "Default" },
+          "reactions": [
+            {
+              "trigger": { "type": "ON_HOVER" },
+              "actions": [
+                {
+                  "type": "NODE",
+                  "destinationId": "1:190",
+                  "navigation": "CHANGE_TO",
+                  "resetScrollPosition": true,
+                  "resetVideoPosition": false,
+                  "transition": { "type": "SMART_ANIMATE", "duration": 0.5, "easing": { "type": "CUSTOM_SPRING", "easingFunctionSpring": { "mass": 1, "stiffness": 300, "damping": 20 } } }
+                }
+              ]
+            }
+          ],
+          "layer": {
+            "name": "Size=Small, State=Default", "type": "COMPONENT", "x": 16, "y": 16, "width": 200, "height": 80, "rotation": 0, "opacity": 1, "cornerRadius": 8,
+            "fills": [{ "type": "SOLID", "color": { "r": 1, "g": 1, "b": 1 }, "opacity": 1, "variable": "nacara/color/bg-raised" }],
+            "strokes": [{ "type": "SOLID", "color": { "r": 0.816, "g": 0.843, "b": 0.871 }, "opacity": 1, "variable": "nacara/color/border" }],
+            "boundVariables": { "bottomLeftRadius": "nacara/size/radius", "bottomRightRadius": "nacara/size/radius", "topLeftRadius": "nacara/size/radius", "topRightRadius": "nacara/size/radius" },
+            "children": [
+              { "name": "Title", "type": "TEXT", "characters": "Read more", "x": 17, "y": 17, "width": 62, "height": 15, "rotation": 0, "opacity": 1, "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [] },
+              { "name": "Accent", "type": "RECTANGLE", "x": 17, "y": 32, "width": 40, "height": 4, "rotation": 0, "opacity": 1, "cornerRadius": 0, "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [] }
+            ]
+          }
+        },
+        {
+          "id": "1:190",
+          "name": "Size=Small, State=Hover",
+          "variantProperties": { "Size": "Small", "State": "Hover" },
+          "reactions": [],
+          "layer": {
+            "name": "Size=Small, State=Hover", "type": "COMPONENT", "x": 232, "y": 16, "width": 200, "height": 80, "rotation": 0, "opacity": 1, "cornerRadius": 12,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.97, "g": 0.97, "b": 1 }, "opacity": 1 }],
+            "strokes": [{ "type": "SOLID", "color": { "r": 0.816, "g": 0.843, "b": 0.871 }, "opacity": 1, "variable": "nacara/color/border" }],
+            "effectStyle": { "name": "Shadow", "token": "nacara.shadow.shadow" },
+            "effects": [
+              { "type": "DROP_SHADOW", "color": { "r": 0.063, "g": 0.094, "b": 0.157, "a": 0.059 }, "offset": { "x": 0, "y": 1 }, "radius": 2, "spread": 0 },
+              { "type": "DROP_SHADOW", "color": { "r": 0.063, "g": 0.094, "b": 0.157, "a": 0.059 }, "offset": { "x": 0, "y": 4 }, "radius": 12, "spread": 0 }
+            ],
+            "children": [
+              { "name": "Title", "type": "TEXT", "characters": "Read more", "x": 17, "y": 17, "width": 62, "height": 15, "rotation": 0, "opacity": 1, "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [] },
+              { "name": "Accent", "type": "RECTANGLE", "x": 17, "y": 32, "width": 80, "height": 4, "rotation": 0, "opacity": 0.8, "cornerRadius": 0, "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [] }
+            ]
+          }
+        },
+        {
+          "id": "1:193",
+          "name": "Size=Large, State=Default",
+          "variantProperties": { "Size": "Large", "State": "Default" },
+          "reactions": [
+            {
+              "trigger": { "type": "ON_HOVER" },
+              "actions": [
+                {
+                  "type": "NODE",
+                  "destinationId": "1:196",
+                  "navigation": "CHANGE_TO",
+                  "resetScrollPosition": true,
+                  "resetVideoPosition": false,
+                  "transition": { "type": "SMART_ANIMATE", "duration": 0.25, "easing": { "type": "CUSTOM_CUBIC_BEZIER", "easingFunctionCubicBezier": { "x1": 0.4000000059604645, "y1": 0, "x2": 0.20000000298023224, "y2": 1 } } }
+                }
+              ]
+            }
+          ],
+          "layer": {
+            "name": "Size=Large, State=Default", "type": "COMPONENT", "x": 448, "y": 16, "width": 320, "height": 80, "rotation": 0, "opacity": 1, "cornerRadius": 8,
+            "fills": [{ "type": "SOLID", "color": { "r": 1, "g": 1, "b": 1 }, "opacity": 1, "variable": "nacara/color/bg-raised" }],
+            "strokes": [{ "type": "SOLID", "color": { "r": 0.816, "g": 0.843, "b": 0.871 }, "opacity": 1, "variable": "nacara/color/border" }],
+            "boundVariables": { "bottomLeftRadius": "nacara/size/radius", "bottomRightRadius": "nacara/size/radius", "topLeftRadius": "nacara/size/radius", "topRightRadius": "nacara/size/radius" },
+            "children": [
+              { "name": "Title", "type": "TEXT", "characters": "Read more", "x": 17, "y": 17, "width": 62, "height": 15, "rotation": 0, "opacity": 1, "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [] },
+              { "name": "Accent", "type": "RECTANGLE", "x": 17, "y": 32, "width": 40, "height": 4, "rotation": 0, "opacity": 1, "cornerRadius": 0, "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [] }
+            ]
+          }
+        },
+        {
+          "id": "1:196",
+          "name": "Size=Large, State=Hover",
+          "variantProperties": { "Size": "Large", "State": "Hover" },
+          "reactions": [],
+          "layer": {
+            "name": "Size=Large, State=Hover", "type": "COMPONENT", "x": 784, "y": 16, "width": 320, "height": 80, "rotation": 0, "opacity": 1, "cornerRadius": 8,
+            "fills": [{ "type": "SOLID", "color": { "r": 0.97, "g": 0.97, "b": 1 }, "opacity": 1 }],
+            "strokes": [{ "type": "SOLID", "color": { "r": 0.816, "g": 0.843, "b": 0.871 }, "opacity": 1, "variable": "nacara/color/border" }],
+            "boundVariables": { "bottomLeftRadius": "nacara/size/radius", "bottomRightRadius": "nacara/size/radius", "topLeftRadius": "nacara/size/radius", "topRightRadius": "nacara/size/radius" },
+            "effectStyle": { "name": "Shadow", "token": "nacara.shadow.shadow" },
+            "effects": [
+              { "type": "DROP_SHADOW", "color": { "r": 0.063, "g": 0.094, "b": 0.157, "a": 0.059 }, "offset": { "x": 0, "y": 1 }, "radius": 2, "spread": 0 },
+              { "type": "DROP_SHADOW", "color": { "r": 0.063, "g": 0.094, "b": 0.157, "a": 0.059 }, "offset": { "x": 0, "y": 4 }, "radius": 12, "spread": 0 }
+            ],
+            "children": [
+              { "name": "Title", "type": "TEXT", "characters": "Read more →", "x": 17, "y": 17, "width": 76, "height": 15, "rotation": 0, "opacity": 1, "fills": [{ "type": "SOLID", "color": { "r": 0.106, "g": 0.122, "b": 0.141 }, "opacity": 1, "variable": "nacara/color/text" }], "strokes": [] },
+              { "name": "Accent", "type": "RECTANGLE", "x": 17, "y": 32, "width": 80, "height": 4, "rotation": 0, "opacity": 0.8, "cornerRadius": 0, "fills": [{ "type": "SOLID", "color": { "r": 0.4, "g": 0.412, "b": 0.843 }, "opacity": 1, "variable": "nacara/color/primary" }], "strokes": [] }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
