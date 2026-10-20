@@ -263,11 +263,36 @@ module Motion =
                     Warnings = warnings document applied
                 }
 
+    /// <summary>The full path of a document, a relative one taken from the project root.</summary>
+    /// <remarks>An absolute path is returned as it is.</remarks>
+    /// <param name="root">The site's project root.</param>
+    /// <param name="path">The document's path, as the options name it.</param>
+    let resolve (root: string) (path: string) = Path.GetFullPath(Path.Combine(root, path))
+
+    /// <summary>The project root Nacara builds this site from.</summary>
+    /// <remarks>
+    /// The value after <c>--root</c> on the command line when there is one, otherwise the directory of
+    /// the site's project file, the same lookup Nacara makes.
+    /// </remarks>
+    let projectRoot () =
+        let arguments = System.Environment.GetCommandLineArgs() |> List.ofArray
+
+        let rec find arguments =
+            match arguments with
+            | "--root" :: value :: _ -> Path.GetFullPath value
+            | _ :: rest -> find rest
+            | [] -> Nacara.defaultProjectRoot ()
+
+        find arguments
+
     /// <summary>Reads the options' document, then compiles it.</summary>
-    /// <remarks>Fails, naming the resolved path and how to export the document, when the file is missing.</remarks>
+    /// <remarks>
+    /// A relative document path is taken from the project root. Fails, naming the resolved path and how
+    /// to export the document, when the file is missing.
+    /// </remarks>
     /// <param name="options">The options.</param>
     let load (options: MotionOptions) : Result<CompiledMotion, string> =
-        let path = Path.GetFullPath options.Document
+        let path = resolve (projectRoot ()) options.Document
 
         if not (File.Exists path) then
             Error

@@ -42,7 +42,7 @@ type HoverSettings =
 type MotionOptions =
     {
         /// <summary>The motion document the Figma plugin exported.</summary>
-        /// <remarks>Resolved against the working directory. Defaults to <c>"design/tokens/motion.json"</c>.</remarks>
+        /// <remarks>A relative path is taken from the site's project root, where Nacara reads <c>content</c> from. Defaults to <c>"design/tokens/motion.json"</c>.</remarks>
         Document: string
         /// <summary>The engine that plays the hovers.</summary>
         /// <remarks>Defaults to <c>Css</c>.</remarks>

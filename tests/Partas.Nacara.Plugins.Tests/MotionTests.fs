@@ -130,9 +130,27 @@ let tests =
             test "missing document fails with the resolved path" {
                 match Motion.load (Motion.document "nowhere/motion.json" Motion.defaults) with
                 | Error message ->
-                    Expect.stringContains message (Path.GetFullPath "nowhere/motion.json") "path"
+                    Expect.stringContains message (Path.Combine(Motion.projectRoot (), "nowhere", "motion.json")) "path"
                     Expect.stringContains message "Export motion" "how"
                 | Ok _ -> failtest "expected an error"
+            }
+
+            test "the project root is the directory of the nearest project file" {
+                Expect.equal (Motion.projectRoot ()) (Path.GetFullPath __SOURCE_DIRECTORY__) "root"
+            }
+
+            test "a relative document is taken from the project root" {
+                let root = Path.GetFullPath "site"
+
+                Expect.equal
+                    (Motion.resolve root "../design/tokens/motion.json")
+                    (Path.GetFullPath "design/tokens/motion.json")
+                    "relative"
+            }
+
+            test "an absolute document stays as it is" {
+                let path = Path.GetFullPath "elsewhere/motion.json"
+                Expect.equal (Motion.resolve (Path.GetFullPath "site") path) path "absolute"
             }
         ]
 

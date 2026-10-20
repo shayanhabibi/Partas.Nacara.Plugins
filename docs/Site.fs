@@ -139,7 +139,7 @@ let site =
     // Resolved against the working directory, which is wherever the build is started from, so the
     // path is made absolute from this file.
     |> Motion.registerWith (
-        Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
+        Motion.document "../design/tokens/motion.json"
         >> Motion.hoverEngine "card[size=small]" Anime
         // The cards' hover ends on a literal #f7f7ff in Figma, which stays light in the dark scheme.
         >> Motion.value "card[size=small]" "background-color" "var(--nacara-primary-subtle)"

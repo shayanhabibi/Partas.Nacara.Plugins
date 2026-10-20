@@ -298,15 +298,14 @@ one name. A misspelt name or key is an error, not a setting that does nothing.
 
 ### `Motion.document`
 
-The path of the exported document, resolved against the working directory: the
-directory the build is started from. That is not always the site's project
-directory, which Nacara reads `content` from. `dotnet run --project
-docs/docs.fsproj`, started at the repository's root, resolves the path against
-the root. A path made absolute from the site's own source file works from
-anywhere:
+The path of the exported document. A relative path is taken from the site's
+project root, the directory Nacara reads `content` from: the value of `--root`
+when the site is given one, otherwise the directory of the site's project file.
+It does not depend on where the build is started. This site's project is in
+`docs`, so it reaches the repository's `design/tokens` one level up:
 
 ```fsharp
-Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
+Motion.document "../design/tokens/motion.json"
 ```
 
 When the file is missing, the build fails. The message names the full path it
@@ -441,7 +440,7 @@ the small card on anime.js:
 |> Esbuild.register
 // …
 |> Motion.registerWith (
-    Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/motion.json"))
+    Motion.document "../design/tokens/motion.json"
     >> Motion.hoverEngine "card[size=small]" Anime
     >> Motion.value "card[size=small]" "background-color" "var(--nacara-primary-subtle)"
     >> Motion.value "card[size=large]" "background-color" "var(--nacara-primary-subtle)"
