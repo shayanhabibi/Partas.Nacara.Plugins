@@ -15,7 +15,9 @@ The template file, with the variables imported and a specimen sheet for each sch
 Figma Community, to duplicate into your own drafts:
 <https://www.figma.com/community/file/1694279269526963076>.
 
-To use the plugin in another file: in the Figma desktop app, open **Plugins → Development →
+The plugin's Figma Community page is
+<https://www.figma.com/community/plugin/1694284251753540121>, which opens once Figma has
+reviewed it. Until then, to use the plugin in another file: in the Figma desktop app, open **Plugins → Development →
 Import plugin from manifest…** and choose `figma-plugin/manifest.json`. Then run it, load the two
 `.tokens.json` files and choose **Import into variables**. Running it again updates the
 variables in place.

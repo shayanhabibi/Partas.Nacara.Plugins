@@ -250,7 +250,9 @@ layout drawn on the Layouts page comes back the same way, as the
 
 The plugin is
 [`design/figma-plugin`](https://github.com/shayanhabibi/Partas.Nacara.Plugins/tree/master/design/figma-plugin)
-in the repository. Until it is on Figma Community, clone the repository or
+in the repository, and its
+[Figma Community page](https://www.figma.com/community/plugin/1694284251753540121)
+opens once Figma has reviewed it. Until then, clone the repository or
 download it as a ZIP from GitHub (**Code → Download ZIP**), then in the Figma
 desktop app choose **Plugins → Development → Import plugin from manifest…** and
 pick `design/figma-plugin/manifest.json`. The plugin is then under **Plugins →

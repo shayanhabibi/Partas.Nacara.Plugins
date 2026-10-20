@@ -1,0 +1,102 @@
+<!doctype html>
+<!-- The plugin's Figma Community cover, 1920 × 1080. Rendered to cover.png with a headless browser:
+     chrome --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1920,1080 --screenshot=cover.png cover.html -->
+<meta charset="utf-8">
+<title>Nacara Theme Tokens</title>
+<style>
+  :root {
+    --bg: #0f1419; --bg-subtle: #161c23; --bg-raised: #1a2129; --border: #2a333d;
+    --text: #e6edf3; --muted: #9aa7b4; --primary: #9b9ef0; --primary-subtle: #21224a;
+    --kw: #c678dd; --fn: #61afef; --str: #98c379; --num: #d19a66; --type: #e5c07b; --punct: #abb2bf;
+    --sans: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --mono: "Cascadia Mono", "Fira Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(900px 600px at 85% -10%, #2b2d6b 0%, transparent 70%),
+      radial-gradient(700px 500px at -5% 110%, #1d2a3a 0%, transparent 70%),
+      var(--bg);
+    color: var(--text); font-family: var(--sans); padding: 110px 120px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  header { display: flex; align-items: center; gap: 44px; }
+  .icon {
+    width: 150px; height: 150px; border-radius: 34px; background: #6669d7; flex: none;
+    display: grid; place-items: center; color: #fff; font: 700 92px/1 var(--sans);
+    box-shadow: 0 20px 60px #6669d755;
+  }
+  h1 { font-size: 104px; font-weight: 750; letter-spacing: -0.025em; line-height: 1; }
+  .tagline { margin-top: 22px; font-size: 42px; color: var(--muted); }
+  .tagline b { color: var(--primary); font-weight: 600; }
+
+  .flow { display: grid; grid-template-columns: 1fr 70px 1fr 70px 1fr; align-items: stretch; }
+  .arrow { display: grid; place-items: center; color: var(--primary); font-size: 54px; }
+  .card {
+    background: var(--bg-raised); border: 2px solid var(--border); border-radius: 22px;
+    padding: 30px 34px; height: 470px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .label { font-size: 22px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .title { font-size: 32px; font-weight: 650; margin: 8px 0 24px; }
+
+  .vars { display: grid; grid-template-columns: 1fr 60px 60px; gap: 16px 18px; align-items: center; font: 25px var(--mono); }
+  .vars .head { font: 600 20px var(--sans); color: var(--muted); text-align: center; }
+  .vars .name { color: var(--text); white-space: nowrap; }
+  .vars .name span { color: var(--muted); }
+  .sw { width: 60px; height: 40px; border-radius: 9px; border: 2px solid #ffffff22; }
+
+  pre { font: 27px/1.55 var(--mono); color: var(--punct); white-space: pre; }
+  pre, .vars { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+  .k { color: var(--kw); } .f { color: var(--fn); } .s { color: var(--str); } .n { color: var(--num); } .t { color: var(--type); }
+  .p { color: var(--primary); }
+</style>
+
+<header>
+  <div class="icon">N</div>
+  <div>
+    <h1>Nacara Theme Tokens</h1>
+    <p class="tagline">Design your docs theme in Figma. <b>Export it to your site's F#.</b></p>
+  </div>
+</header>
+
+<section class="flow">
+  <div class="card">
+    <p class="label">Figma variables</p>
+    <p class="title">Light and Dark</p>
+    <div class="vars">
+      <span></span><span class="head">Light</span><span class="head">Dark</span>
+      <span class="name"><span>color/</span>primary</span><i class="sw" style="background:#6669d7"></i><i class="sw" style="background:#9b9ef0"></i>
+      <span class="name"><span>color/</span>bg-subtle</span><i class="sw" style="background:#f6f7f9"></i><i class="sw" style="background:#161c23"></i>
+      <span class="name"><span>color/</span>tip</span><i class="sw" style="background:#17935f"></i><i class="sw" style="background:#56d4a0"></i>
+      <span class="name"><span>color/</span>warning</span><i class="sw" style="background:#b5730c"></i><i class="sw" style="background:#e2b23c"></i>
+      <span class="name"><span>size/</span>space-4</span><span class="head" style="font:24px var(--mono);color:var(--text)">16</span><span class="head" style="font:24px var(--mono);color:var(--text)">16</span>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="card">
+    <p class="label">Export from variables</p>
+    <p class="title">light.tokens.json</p>
+<pre>{ <span class="s">"nacara"</span>: {
+  <span class="s">"color"</span>: {
+    <span class="s">"primary"</span>: {
+      <span class="s">"$type"</span>: <span class="s">"color"</span>,
+      <span class="s">"$value"</span>: <span class="s">"#6669d7"</span>
+    }, …</pre>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="card">
+    <p class="label">Your site</p>
+    <p class="title">Site.fsx</p>
+<pre><span class="t">Theme</span>.defaults
+|&gt; <span class="t">Theme</span>.<span class="f">tokens</span>
+    (<span class="t">DesignTokens</span>
+       .<span class="f">fromDirectory</span>
+         <span class="s">"design/tokens"</span>)</pre>
+    <p style="margin-top:auto;font-size:24px;color:var(--muted)"><span class="p">16px</span> comes back as <span class="p">1rem</span></p>
+  </div>
+</section>

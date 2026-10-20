@@ -47,8 +47,7 @@ design tokens, variables, documentation, theme, export, code
 ## Images
 
 - Icon: `icon.png`, 128 × 128.
-- Cover: 1920 × 1080. Export the Light frame on the Community file's Example page, placed on a
-  1920 × 1080 frame filled with `nacara/color/bg-subtle`.
+- Cover: `cover.png`, 1920 × 1080, rendered from `cover.html` (the command is at its top).
 
 ## Publishing
 
@@ -59,9 +58,11 @@ In the Figma desktop app:
 2. Run it in a copy of the Community file. Export from variables, Build components, example and
    layouts, and Export layouts should each finish without an error in the plugin's status line.
 3. **Plugins → Development → Manage plugins in development**, then **Publish** on this plugin.
-   Figma gives the plugin an id: put it in `manifest.json` in place of
-   `partas-nacara-theme-tokens`, and commit that.
+   The plugin's id, `1694284251753540121`, is the one Figma gave it, and is already in
+   `manifest.json`.
 4. Fill in the name, tagline, description, tags and images above, and submit for review.
 
-Once the plugin is approved, link it from the Community file's description, and add its
-Community link to `design/README.md` and the theme guide.
+The plugin's Community page is <https://www.figma.com/community/plugin/1694284251753540121>,
+which opens once Figma has reviewed it; `design/README.md` and the theme guide already link
+it. Once it is approved, link it from the Community file's description too, and drop the
+guide's instructions for loading the plugin from its manifest in favour of the Community page.
