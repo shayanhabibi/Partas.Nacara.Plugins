@@ -194,14 +194,1094 @@ async function exportTokens() {
   return documents;
 }
 
+// ---- library: components and an example page -----------------------------------------------
+//
+// Draws the theme's layout and components on a "Components" page, every paint and spacing bound
+// to the variables imported above, and composes them into a docs page per scheme on an "Example"
+// page. A component that already exists by name is kept, so running it again adds only what is
+// missing; the example frames are redrawn each time.
+
+const COMPONENTS_PAGE = "Components";
+const EXAMPLE_PAGE = "Example";
+// The theme turns ligatures off in code, and Figma cannot, so code uses a mono that has none.
+// Fira Mono is Fira Code, which is in the theme's font stack, without them.
+const MONOS = ["Fira Mono", "Source Code Pro", "Roboto Mono"];
+const WEIGHTS = ["Regular", "Medium", "Semi Bold", "Bold"];
+const CONTENT_WIDTH = 647; // 75ch of the body font
+const PAGE_WIDTH = 1440;
+
+// name, font (sans | mono), style, size, line height, letter spacing %, case, what it is
+const TEXT_STYLES = [
+  ["Heading/H1", "sans", "Bold", 36, 43.2, -2, "ORIGINAL", "h1, the page title"],
+  ["Heading/H2", "sans", "Bold", 24, 39.6, -1, "ORIGINAL", "h2"],
+  ["Heading/H3", "sans", "Bold", 19, 31.35, 0, "ORIGINAL", "h3"],
+  ["Heading/Step", "sans", "Bold", 18, 21.6, 0, "ORIGINAL", ".nacara-steps__title"],
+  ["Body/Default", "sans", "Regular", 16, 26.4, 0, "ORIGINAL", "Prose and callouts"],
+  ["Body/Strong", "sans", "Semi Bold", 16, 26.4, 0, "ORIGINAL", "Callout title (weight 650)"],
+  ["Body/Small", "sans", "Regular", 15, 24.75, 0, "ORIGINAL", "Table cells, sidebar links"],
+  ["Body/Small Strong", "sans", "Semi Bold", 15, 24.75, 0, "ORIGINAL", "Table headers, the active sidebar link"],
+  ["UI/Nav link", "sans", "Medium", 15, 24.75, 0, "ORIGINAL", "Navbar links"],
+  ["UI/Brand", "sans", "Semi Bold", 16, 26.4, 0, "ORIGINAL", "The navbar's site title"],
+  ["UI/Control", "sans", "Regular", 14, 20, 0, "ORIGINAL", "Selects in the navbar"],
+  ["Caption/Default", "sans", "Regular", 14, 23.1, 0, "ORIGINAL", "TOC links, footer, edit link"],
+  ["Caption/Label", "sans", "Regular", 12, 19.8, 0, "ORIGINAL", "The page nav's Previous / Next"],
+  ["Caption/Overline", "sans", "Bold", 12, 19.8, 6, "UPPER", "Sidebar section and TOC titles"],
+  ["Caption/Badge", "sans", "Semi Bold", 11, 18.15, 2, "UPPER", "Badge"],
+  ["Caption/Step number", "sans", "Medium", 10, 16.5, 12, "UPPER", ".nacara-steps__number"],
+  ["Caption/Terminal", "sans", "Regular", 12, 19.8, 2, "ORIGINAL", "A terminal frame's title"],
+  ["Code/Block", "mono", "Regular", 14, 22.4, 0, "ORIGINAL", "Code blocks"],
+  ["Code/Inline", "mono", "Regular", 14, 23.1, 0, "ORIGINAL", "Inline code"],
+  ["Code/Title", "mono", "Regular", 13, 21.45, 0, "ORIGINAL", "A code block's file name"],
+];
+
+const ICONS = {
+  GitHub: ["0 0 16 16", "fill", '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>'],
+  Menu: ["0 0 24 24", "stroke", '<path d="M4 6h16M4 12h16M4 18h16"/>'],
+  Search: ["0 0 24 24", "stroke", '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'],
+  Sun: ["0 0 24 24", "stroke", '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>'],
+  Link: ["0 0 24 24", "stroke", '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>'],
+  Edit: ["0 0 24 24", "stroke", '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'],
+  Copy: ["0 0 24 24", "stroke", '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'],
+  Check: ["0 0 24 24", "stroke", '<path d="M20 6 9 17l-5-5"/>'],
+  "Chevron down": ["0 0 24 24", "stroke", '<path d="m6 9 6 6 6-6"/>'],
+};
+
+/** The token variables, text styles and fonts the library draws with. */
+async function libraryContext() {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const variables = await figma.variables.getLocalVariablesAsync();
+  const shortName = v => {
+    const path = v.name.split("/");
+    return (path[0] === "tok" ? "tok-" : "") + path[path.length - 1];
+  };
+  const inCollection = c => variables.filter(v => v.variableCollectionId === c.id);
+  const joint = collections.find(c => c.name === COLLECTION);
+  const light = collections.find(c => c.name === schemeCollection("Light"));
+  const darkCollection = collections.find(c => c.name === schemeCollection("Dark"));
+
+  let V, dark;
+  if (joint) {
+    V = Object.fromEntries(inCollection(joint).map(v => [shortName(v), v]));
+    const mode = joint.modes.find(m => m.name === "Dark");
+    dark = mode ? { collection: joint, modeId: mode.modeId } : null;
+  } else if (light) {
+    V = Object.fromEntries(inCollection(light).map(v => [shortName(v), v]));
+    dark = darkCollection ? { byName: new Map(inCollection(darkCollection).map(v => [v.name, v])) } : null;
+  } else {
+    throw new Error(`Import the tokens first: there is no ${COLLECTION} collection.`);
+  }
+
+  const available = await figma.listAvailableFontsAsync();
+  const mono = MONOS.find(family => available.some(f => f.fontName.family === family && f.fontName.style === "Regular"));
+  if (!mono) throw new Error(`None of ${MONOS.join(", ")} is available for code.`);
+  await Promise.all([...WEIGHTS.map(style => figma.loadFontAsync({ family: "Inter", style })), figma.loadFontAsync({ family: mono, style: "Regular" })]);
+
+  const existing = await figma.getLocalTextStylesAsync();
+  const ts = {};
+  for (const [name, font, style, size, lineHeight, spacing, textCase, description] of TEXT_STYLES) {
+    const s = existing.find(t => t.name === name) || figma.createTextStyle();
+    s.name = name;
+    s.fontName = { family: font === "mono" ? mono : "Inter", style };
+    s.fontSize = size;
+    s.lineHeight = { unit: "PIXELS", value: lineHeight };
+    s.letterSpacing = { unit: "PERCENT", value: spacing };
+    s.textCase = textCase;
+    s.description = description;
+    ts[name] = s;
+  }
+
+  const shadow = (await figma.getLocalEffectStylesAsync()).find(s => s.name === "Shadow") || figma.createEffectStyle();
+  shadow.name = "Shadow";
+  shadow.description = "--nacara-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 6%)";
+  const ink = { r: 16 / 255, g: 24 / 255, b: 40 / 255, a: 0.06 };
+  shadow.effects = [
+    { type: "DROP_SHADOW", color: ink, offset: { x: 0, y: 1 }, radius: 2, spread: 0, visible: true, blendMode: "NORMAL" },
+    { type: "DROP_SHADOW", color: ink, offset: { x: 0, y: 4 }, radius: 12, spread: 0, visible: true, blendMode: "NORMAL" },
+  ];
+
+  return { V, dark, mono, ts, shadow, byId: new Map(variables.map(v => [v.id, v])) };
+}
+
+/** Drawing helpers over one context. */
+function drawingKit(ctx) {
+  const variable = name => {
+    const v = ctx.V[name];
+    if (!v) throw new Error(`No token variable for ${name}.`);
+    return v;
+  };
+  const bound = name => figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: 0, g: 0, b: 0 } }, "color", variable(name));
+  const paints = (node, prop, list) => (node[prop] = list.map(([name]) => bound(name)));
+  const bind = (node, fields, name) => fields.forEach(field => node.setBoundVariable(field, variable(name)));
+  const radius = (node, name) => bind(node, ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"], name);
+  const pad = (node, vertical, horizontal) => {
+    if (vertical) bind(node, ["paddingTop", "paddingBottom"], vertical);
+    if (horizontal) bind(node, ["paddingLeft", "paddingRight"], horizontal);
+  };
+  const sides = (node, top, right, bottom, left) => {
+    Object.assign(node, { strokeTopWeight: top, strokeRightWeight: right, strokeBottomWeight: bottom, strokeLeftWeight: left });
+    node.strokeAlign = "INSIDE";
+  };
+  const border = (node, name = "border", opacity) => {
+    paints(node, "strokes", [[name, opacity]]);
+    node.strokeWeight = 1;
+    node.strokeAlign = "INSIDE";
+  };
+  const layout = (node, direction, width) => {
+    node.layoutMode = direction;
+    node.primaryAxisSizingMode = "AUTO";
+    node.counterAxisSizingMode = "AUTO";
+    node.fills = [];
+    if (width) {
+      if (direction === "VERTICAL") node.counterAxisSizingMode = "FIXED";
+      else node.primaryAxisSizingMode = "FIXED";
+      node.resize(width, Math.max(node.height, 1));
+    }
+    return node;
+  };
+  const frame = (name, direction = "HORIZONTAL", width) => {
+    const f = layout(figma.createFrame(), direction, width);
+    f.name = name;
+    return f;
+  };
+  const component = (name, direction = "HORIZONTAL", width) => {
+    const c = layout(figma.createComponent(), direction, width);
+    c.name = name;
+    return c;
+  };
+  const text = async (characters, style, color = "text") => {
+    const t = figma.createText();
+    await t.setTextStyleIdAsync(ctx.ts[style].id);
+    t.characters = characters;
+    paints(t, "fills", [[color]]);
+    return t;
+  };
+  // A text that wraps at its parent's width.
+  const fillText = (parent, t) => {
+    parent.appendChild(t);
+    t.layoutSizingHorizontal = "FILL";
+    t.textAutoResize = "HEIGHT";
+    return t;
+  };
+  const put = (parent, child, name) => {
+    child.name = name;
+    parent.appendChild(child);
+    return child;
+  };
+  const append = (parent, child, horizontal, vertical) => {
+    parent.appendChild(child);
+    if (horizontal) child.layoutSizingHorizontal = horizontal;
+    if (vertical) child.layoutSizingVertical = vertical;
+    return child;
+  };
+  // A colour at an opacity over the node: what CSS writes as color-mix. It is a layer of its own,
+  // at a layer opacity, because instances drop the opacity of a variable-bound paint.
+  const tint = (node, name, color, opacity, strokes) => {
+    const layer = figma.createRectangle();
+    layer.name = name;
+    node.appendChild(layer);
+    layer.layoutPositioning = "ABSOLUTE";
+    layer.x = 0;
+    layer.y = 0;
+    layer.resize(node.width, node.height);
+    layer.constraints = { horizontal: "STRETCH", vertical: "STRETCH" };
+    if (strokes) {
+      layer.fills = [];
+      paints(layer, "strokes", [[color]]);
+      sides(layer, ...strokes);
+    } else {
+      paints(layer, "fills", [[color]]);
+      node.insertChild(0, layer);
+    }
+    layer.opacity = opacity;
+    return layer;
+  };
+  const recolour = (node, color) => {
+    for (const n of node.findAll(n => n.type === "VECTOR")) {
+      if (n.strokes.length) paints(n, "strokes", [[color]]);
+      if (n.fills.length) paints(n, "fills", [[color]]);
+    }
+    return node;
+  };
+  // Variants in a row (or column) with room around them, the way the Components page shows them.
+  const variantSet = (variants, parent, name, direction = "HORIZONTAL") => {
+    const set = figma.combineAsVariants(variants, parent);
+    set.name = name;
+    set.layoutMode = direction;
+    set.primaryAxisSizingMode = "AUTO";
+    set.counterAxisSizingMode = "AUTO";
+    set.itemSpacing = 16;
+    set.paddingTop = set.paddingBottom = set.paddingLeft = set.paddingRight = 16;
+    set.cornerRadius = 8;
+    return set;
+  };
+  const textProperty = (owner, name, value, nodes) => {
+    const key = owner.addComponentProperty(name, "TEXT", value);
+    nodes.forEach(n => (n.componentPropertyReferences = Object.assign({}, n.componentPropertyReferences, { characters: key })));
+    return key;
+  };
+  return { variable, bound, paints, bind, radius, pad, sides, border, frame, component, text, fillText, put, append, tint, recolour, variantSet, textProperty };
+}
+
+/** The key of a component property by its name (Figma suffixes it with an id). */
+const propertyKey = (owner, name) => Object.keys(owner.componentPropertyDefinitions).find(k => k.split("#")[0] === name);
+const variantOf = (set, name) => set.children.find(v => v.name === name);
+
+async function pageNamed(name) {
+  const page = figma.root.children.find(p => p.name === name) || Object.assign(figma.createPage(), { name });
+  await page.loadAsync();
+  return page;
+}
+
+/** The library's components, built where missing. */
+async function buildComponents(ctx, page) {
+  const k = drawingKit(ctx);
+  const found = name => page.findOne(n => (n.type === "COMPONENT" || n.type === "COMPONENT_SET") && n.name === name);
+
+  // Each group of components is a section holding a vertical board.
+  const boards = {};
+  const board = name => {
+    if (boards[name]) return boards[name];
+    let section = page.children.find(n => n.type === "SECTION" && n.name === name);
+    if (!section) {
+      const bottom = Math.max(0, ...page.children.map(n => n.y + n.height + 80));
+      section = figma.createSection();
+      section.name = name;
+      page.appendChild(section);
+      section.x = 0;
+      section.y = bottom;
+    }
+    let b = section.children.find(n => n.name === "Board");
+    if (!b) {
+      b = k.frame("Board", "VERTICAL");
+      b.itemSpacing = 40;
+      section.appendChild(b);
+      b.x = 48;
+      b.y = 72;
+    }
+    return (boards[name] = { section, board: b });
+  };
+  const fit = () => {
+    for (const { section, board: b } of Object.values(boards)) section.resizeWithoutConstraints(Math.max(b.width + 96, 600), b.height + 120);
+  };
+  const lib = {};
+  const ensure = async (name, group, build) => {
+    lib[name] = found(name) || (await build(board(group).board));
+    return lib[name];
+  };
+
+  // Icons
+  for (const [name, [viewBox, mode, body]] of Object.entries(ICONS)) {
+    await ensure(`Icon/${name}`, "Icons", async parent => {
+      const attrs = mode === "fill" ? 'fill="#000"' : 'fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+      const c = figma.createComponentFromNode(figma.createNodeFromSvg(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="${viewBox}" ${attrs}>${body}</svg>`));
+      c.name = `Icon/${name}`;
+      c.fills = [];
+      k.recolour(c, "text-muted");
+      c.description = `The theme's ${name} icon. CSS draws it in currentColor; override the vector's paint where it is used.`;
+      parent.appendChild(c);
+      return c;
+    });
+  }
+  const icon = (name, size, color) => {
+    const i = lib[`Icon/${name}`].createInstance();
+    i.resize(size, size);
+    return color ? k.recolour(i, color) : i;
+  };
+
+  // Badge
+  await ensure("Badge", "Badges & inline code", async parent => {
+    const variants = [];
+    for (const [kind, background, opacity, color] of [["Default", "bg-subtle", 1, "text-muted"], ["New", "tip", 0.18, "tip"], ["Beta", "warning", 0.18, "warning"], ["Deprecated", "danger", 0.18, "danger"]]) {
+      const c = k.component(`Kind=${kind}`);
+      c.paddingTop = c.paddingBottom = 1;
+      c.paddingLeft = c.paddingRight = 6;
+      c.cornerRadius = 999;
+      c.clipsContent = true;
+      const t = await k.text(kind, "Caption/Badge", color);
+      t.name = "Label";
+      c.appendChild(t);
+      k.tint(c, "Background", background, opacity);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Badge");
+    k.textProperty(set, "Label", "New", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = ".nacara-badge on a sidebar link or section. New is data-kind new/updated (tip), Beta is experimental/beta (warning), Deprecated is deprecated (danger); the background is the kind colour at 18%.";
+    return set;
+  });
+
+  // Inline code
+  await ensure("Inline code", "Badges & inline code", async parent => {
+    const c = k.component("Inline code");
+    c.paddingTop = c.paddingBottom = 1.75;
+    c.paddingLeft = c.paddingRight = 5.25;
+    k.radius(c, "radius-sm");
+    k.paints(c, "fills", [["code-inline-bg"]]);
+    k.border(c, "code-inline-border");
+    const t = await k.text("Theme.register", "Code/Inline");
+    t.name = "Code";
+    c.appendChild(t);
+    k.textProperty(c, "Code", "Theme.register", [t]);
+    c.description = "Inline code in prose: code-inline-bg, code-inline-border, radius-sm, mono at 0.875em.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Navbar link
+  await ensure("Navbar link", "Navigation", async parent => {
+    const variants = [];
+    for (const [state, background, color] of [["Default", null, "text-muted"], ["Hover", "bg-subtle", "text"], ["Active", "primary-subtle", "primary"]]) {
+      const c = k.component(`State=${state}`);
+      k.pad(c, "space-2", "space-3");
+      k.radius(c, "radius-sm");
+      if (background) k.paints(c, "fills", [[background]]);
+      const t = await k.text("Guide", "UI/Nav link", color);
+      t.name = "Label";
+      c.appendChild(t);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Navbar link");
+    k.textProperty(set, "Label", "Guide", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = ".nacara-navbar__link. Active is the current section (data-active) or aria-current.";
+    return set;
+  });
+
+  // Icon button
+  await ensure("Icon button", "Navigation", async parent => {
+    const variants = [];
+    for (const [state, background, color] of [["Default", null, "text-muted"], ["Hover", "bg-subtle", "text"]]) {
+      const c = k.component(`State=${state}`);
+      c.primaryAxisSizingMode = c.counterAxisSizingMode = "FIXED";
+      c.resize(36, 36);
+      c.primaryAxisAlignItems = c.counterAxisAlignItems = "CENTER";
+      k.bind(c, ["width", "height"], "control-height");
+      k.radius(c, "control-radius");
+      if (background) k.paints(c, "fills", [[background]]);
+      const i = icon("GitHub", 18, color === "text-muted" ? null : color);
+      i.name = "Icon";
+      c.appendChild(i);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Icon button");
+    const key = set.addComponentProperty("Icon", "INSTANCE_SWAP", lib["Icon/GitHub"].id);
+    set.children.forEach(v => (v.findOne(n => n.type === "INSTANCE").componentPropertyReferences = { mainComponent: key }));
+    set.description = ".nacara-icon-button: a control-height square with control-radius. The GitHub link (NavbarIcon) and the mobile menu toggle.";
+    return set;
+  });
+
+  // Select
+  await ensure("Select", "Navigation", async parent => {
+    const c = k.component("Select");
+    c.counterAxisSizingMode = "FIXED";
+    c.resize(82, 36);
+    c.primaryAxisSizingMode = "AUTO";
+    c.counterAxisAlignItems = "CENTER";
+    k.bind(c, ["height"], "control-height");
+    c.itemSpacing = 6;
+    k.pad(c, null, "space-2");
+    k.radius(c, "control-radius");
+    k.paints(c, "fills", [["bg-subtle"]]);
+    k.border(c);
+    const t = await k.text("System", "UI/Control", "text-muted");
+    t.name = "Value";
+    c.appendChild(t);
+    const chevron = icon("Chevron down", 14);
+    chevron.name = "Chevron";
+    c.appendChild(chevron);
+    k.textProperty(c, "Value", "System", [t]);
+    c.description = "select.nacara-theme-select (Light, Dark, System) and the version switcher: bg-subtle, border, control-radius, control-height.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Section title
+  await ensure("Section title", "Navigation", async parent => {
+    const c = k.component("Section title");
+    c.counterAxisAlignItems = "CENTER";
+    k.bind(c, ["itemSpacing"], "space-2");
+    const t = await k.text("Directives", "Caption/Overline", "text-muted");
+    t.name = "Title";
+    c.appendChild(t);
+    const badge = variantOf(lib.Badge, "Kind=New").createInstance();
+    badge.name = "Badge";
+    c.appendChild(badge);
+    k.textProperty(c, "Title", "Directives", [t]);
+    badge.componentPropertyReferences = { visible: c.addComponentProperty("Badge", "BOOLEAN", false) };
+    c.description = ".nacara-sidebar__title and .nacara-toc__title: 0.75rem, 700, uppercase, .06em, text-muted.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Sidebar link
+  await ensure("Sidebar link", "Navigation", async parent => {
+    const variants = [];
+    for (const [state, background, color, style] of [["Default", null, "text-muted", "Body/Small"], ["Hover", "bg-subtle", "text", "Body/Small"], ["Active", "primary-subtle", "primary", "Body/Small Strong"]]) {
+      const c = k.component(`State=${state}`, "HORIZONTAL", 272);
+      c.counterAxisAlignItems = "CENTER";
+      c.primaryAxisAlignItems = "SPACE_BETWEEN";
+      k.pad(c, "space-2", "space-3");
+      k.radius(c, "radius-sm");
+      if (background) k.paints(c, "fills", [[background]]);
+      const t = await k.text("Writing directives", style, color);
+      t.name = "Label";
+      c.appendChild(t);
+      const badge = variantOf(lib.Badge, "Kind=New").createInstance();
+      badge.name = "Badge";
+      c.appendChild(badge);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Sidebar link", "VERTICAL");
+    k.textProperty(set, "Label", "Writing directives", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    const key = set.addComponentProperty("Badge", "BOOLEAN", false);
+    set.children.forEach(v => (v.findOne(n => n.type === "INSTANCE").componentPropertyReferences = { visible: key }));
+    set.description = ".nacara-sidebar__link: sidebar-width, padding space-2 × space-3, radius-sm. Active is aria-current=page: a primary-subtle pill in primary at 600. A badge sits at the end.";
+    return set;
+  });
+
+  // Sidebar group
+  await ensure("Sidebar group", "Navigation", async parent => {
+    const variants = [];
+    for (const open of [false, true]) {
+      const c = k.component(`Open=${open}`, "HORIZONTAL", 272);
+      c.counterAxisAlignItems = "CENTER";
+      c.primaryAxisAlignItems = "SPACE_BETWEEN";
+      k.pad(c, "space-2", "space-3");
+      k.radius(c, "radius-sm");
+      const t = await k.text("Components", "Body/Small", "text-muted");
+      t.name = "Label";
+      c.appendChild(t);
+      const chevron = icon("Chevron down", 19);
+      chevron.name = "Chevron";
+      chevron.opacity = 0.55;
+      if (!open) chevron.rotation = 90;
+      c.appendChild(chevron);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Sidebar group", "VERTICAL");
+    k.textProperty(set, "Label", "Components", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = "summary.nacara-sidebar__group-title of a collapsible group. The chevron turns 90° when open; the group's links sit behind a 1px border guide.";
+    return set;
+  });
+
+  // TOC link
+  await ensure("TOC link", "Navigation", async parent => {
+    const variants = [];
+    for (const level of ["2", "3"]) {
+      for (const [state, color] of [["Default", "text-muted"], ["Active", "primary"]]) {
+        const c = k.component(`Level=${level}, State=${state}`, "HORIZONTAL", 240);
+        c.paddingTop = c.paddingBottom = 2;
+        c.paddingRight = 12;
+        c.paddingLeft = level === "2" ? 12 : 24;
+        if (state === "Active") {
+          k.paints(c, "strokes", [["primary"]]);
+          k.sides(c, 0, 0, 0, 2);
+        }
+        const t = await k.text(level === "2" ? "Design tokens" : "Replacing a layer", "Caption/Default", color);
+        t.name = "Label";
+        c.appendChild(t);
+        variants.push(c);
+      }
+    }
+    const set = k.variantSet(variants, parent, "TOC link", "VERTICAL");
+    k.textProperty(set, "Label", "Design tokens", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = ".nacara-toc__link. Active (scroll-spy's data-active) is primary with a 2px primary bar on the TOC's rail. Level 3 indents by space-3.";
+    return set;
+  });
+
+  // Callout
+  await ensure("Callout", "Content blocks", async parent => {
+    const body = "Do not drop tokens unless you are replacing every custom property it defines.";
+    const variants = [];
+    for (const [kind, color] of [["Note", "note"], ["Tip", "tip"], ["Warning", "warning"], ["Danger", "danger"]]) {
+      const c = k.component(`Kind=${kind}`, "HORIZONTAL", CONTENT_WIDTH);
+      c.clipsContent = true;
+      k.radius(c, "radius");
+      k.paints(c, "fills", [["bg"]]);
+      k.paints(c, "strokes", [["border"]]);
+      k.sides(c, 1, 1, 1, 0);
+      const bar = figma.createRectangle();
+      bar.name = "Accent";
+      bar.resize(3, 10);
+      k.paints(bar, "fills", [[color]]);
+      k.append(c, bar, null, "FILL");
+      const content = k.append(c, k.frame("Content", "VERTICAL"), "FILL");
+      k.pad(content, "space-3", "space-4");
+      k.bind(content, ["itemSpacing"], "space-1");
+      const title = k.fillText(content, await k.text(kind, "Body/Strong", color));
+      title.name = "Title";
+      const paragraph = k.fillText(content, await k.text(body, "Body/Default"));
+      paragraph.name = "Body";
+      k.tint(c, "Tint", color, 0.06);
+      k.radius(k.tint(c, "Outline", color, 0.35, [1, 1, 1, 0]), "radius");
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Callout", "VERTICAL");
+    k.textProperty(set, "Title", "Note", set.children.map(v => v.findOne(n => n.name === "Title")));
+    k.textProperty(set, "Body", body, set.children.map(v => v.findOne(n => n.name === "Body")));
+    const shown = set.addComponentProperty("Show title", "BOOLEAN", true);
+    set.children.forEach(v => {
+      const t = v.findOne(n => n.name === "Title");
+      t.componentPropertyReferences = Object.assign({}, t.componentPropertyReferences, { visible: shown });
+    });
+    set.description = "aside.nacara-callout[data-kind][data-title]: the kind colour at 6% over bg, a border of the kind at 35% over border, and a 3px left border in the kind colour. caution draws as Warning. The title is data-title, in the kind colour at 650.";
+    return set;
+  });
+
+  // Blockquote
+  await ensure("Blockquote", "Content blocks", async parent => {
+    const c = k.component("Blockquote", "VERTICAL", CONTENT_WIDTH);
+    k.pad(c, "space-2", "space-4");
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 0, 0, 0, 3);
+    const t = k.fillText(c, await k.text("A quotation, set in the muted text colour.", "Body/Default", "text-muted"));
+    t.name = "Text";
+    k.textProperty(c, "Text", t.characters, [t]);
+    c.description = "blockquote in prose: a 3px left border, text-muted.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Details
+  await ensure("Details", "Content blocks", async parent => {
+    const summary = "Why are the layers ordered this way?";
+    const variants = [];
+    for (const open of [false, true]) {
+      const c = k.component(`Open=${open}`, "VERTICAL", CONTENT_WIDTH);
+      c.clipsContent = true;
+      k.radius(c, "radius");
+      k.paints(c, "fills", [["bg-subtle"]]);
+      k.border(c);
+      const row = k.append(c, k.frame("Summary"), "FILL");
+      row.counterAxisAlignItems = "CENTER";
+      k.pad(row, "space-2", "space-4");
+      k.bind(row, ["itemSpacing"], "space-2");
+      const caret = icon("Chevron down", 12, "text");
+      caret.opacity = 0.6;
+      if (!open) caret.rotation = 90;
+      row.appendChild(caret);
+      const t = await k.text(summary, "Body/Default");
+      t.name = "Summary text";
+      row.appendChild(t);
+      if (open) {
+        k.paints(row, "strokes", [["border"]]);
+        k.sides(row, 0, 0, 1, 0);
+        const inner = k.append(c, k.frame("Body", "VERTICAL"), "FILL");
+        k.pad(inner, "space-3", "space-4");
+        k.fillText(inner, await k.text("Order decides ties rather than specificity, so a later layer wins against an earlier one.", "Body/Default")).name = "Body text";
+      }
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Details", "VERTICAL");
+    k.textProperty(set, "Summary", summary, set.children.map(v => v.findOne(n => n.name === "Summary text")));
+    set.description = "details.nacara-details: bg-subtle, border, radius. The caret turns from closed to open.";
+    return set;
+  });
+
+  // Step
+  await ensure("Step", "Content blocks", async parent => {
+    const c = k.component("Step", "VERTICAL", CONTENT_WIDTH);
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 0, 0, 0, 2);
+    k.bind(c, ["paddingLeft"], "space-4");
+    c.itemSpacing = 6;
+    const number = await k.text("Step 1", "Caption/Step number", "primary");
+    number.name = "Number";
+    c.appendChild(number);
+    const title = k.fillText(c, await k.text("Install the theme", "Heading/Step", "heading"));
+    title.name = "Title";
+    const body = k.fillText(c, await k.text("Add the package and register it on your site.", "Body/Default"));
+    body.name = "Body";
+    for (const t of [number, title, body]) k.textProperty(c, t.name, t.characters, [t]);
+    c.description = "li.nacara-steps__step in ol.nacara-steps, space-6 apart: a 2px left border, the number in primary, the title at 1.125rem.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Tab and Tabs
+  await ensure("Tab", "Content blocks", async parent => {
+    const variants = [];
+    for (const selected of [false, true]) {
+      const c = k.component(`Selected=${selected}`);
+      k.pad(c, "space-2", "space-3");
+      k.radius(c, "radius-sm");
+      if (selected) {
+        k.paints(c, "fills", [["bg"]]);
+        await c.setEffectStyleIdAsync(ctx.shadow.id);
+      }
+      const t = await k.text("F#", selected ? "Body/Small Strong" : "Body/Small", selected ? "text" : "text-muted");
+      t.name = "Label";
+      c.appendChild(t);
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Tab");
+    k.textProperty(set, "Label", "F#", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = "button.nacara-tabs__tab. Selected is bg, text, 600 and the theme shadow: a segmented control.";
+    return set;
+  });
+  await ensure("Tabs", "Content blocks", async parent => {
+    const c = k.component("Tabs", "VERTICAL", CONTENT_WIDTH);
+    c.clipsContent = true;
+    k.radius(c, "radius");
+    k.border(c);
+    const list = k.append(c, k.frame("Tab list"), "FILL");
+    k.paints(list, "fills", [["bg-subtle"]]);
+    k.bind(list, ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "itemSpacing"], "space-1");
+    k.paints(list, "strokes", [["border"]]);
+    k.sides(list, 0, 0, 1, 0);
+    const label = propertyKey(lib.Tab, "Label");
+    list.appendChild(variantOf(lib.Tab, "Selected=true").createInstance());
+    const second = variantOf(lib.Tab, "Selected=false").createInstance();
+    list.appendChild(second);
+    second.setProperties({ [label]: "JavaScript" });
+    const panel = k.append(c, k.frame("Panel", "VERTICAL"), "FILL");
+    k.pad(panel, "space-4", "space-4");
+    k.fillText(panel, await k.text("The selected tab's panel. Tabs with the same data-sync stay in step across the page.", "Body/Default")).name = "Panel text";
+    c.description = "<nacara-tabs>: border and radius; the tab list is bg-subtle with space-1 padding, the panel space-4.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Code block. One drawn with a font other than the code font is redrawn.
+  const codeFont = node => node.findAll(n => n.type === "TEXT" && n.name === "Code").every(t => t.getRangeAllFontNames(0, t.characters.length).every(f => f.family === ctx.mono));
+  const staleCode = found("Code block");
+  if (staleCode && !codeFont(staleCode)) staleCode.remove();
+  await ensure("Code block", "Code, tables & page furniture", async parent => {
+    const variants = [];
+    for (const kind of ["Code", "Terminal"]) {
+      const c = k.component(`Frame=${kind}`, "VERTICAL", CONTENT_WIDTH);
+      c.clipsContent = true;
+      k.radius(c, "radius");
+      k.paints(c, "fills", [["bg-subtle"]]);
+      k.border(c);
+      const bar = k.append(c, k.frame("Title bar"), "FILL");
+      bar.counterAxisAlignItems = "CENTER";
+      k.pad(bar, "space-2", "space-4");
+      k.paints(bar, "strokes", [["border"]]);
+      k.sides(bar, 0, 0, 1, 0);
+      if (kind === "Terminal") {
+        bar.primaryAxisAlignItems = "CENTER";
+        const dots = k.frame("Dots");
+        dots.itemSpacing = 5.6;
+        for (const color of ["danger", "warning", "tip"]) {
+          const dot = figma.createEllipse();
+          dot.resize(9.6, 9.6);
+          k.paints(dot, "fills", [[color]]);
+          dot.opacity = 0.75;
+          dots.appendChild(dot);
+        }
+        bar.appendChild(dots);
+        dots.layoutPositioning = "ABSOLUTE";
+        dots.constraints = { horizontal: "MIN", vertical: "CENTER" };
+        k.put(bar, await k.text("Terminal", "Caption/Terminal", "text-muted"), "Title");
+        dots.x = 16;
+        dots.y = (bar.height - 9.6) / 2;
+      } else {
+        k.put(bar, await k.text("Site.fs", "Code/Title", "text-muted"), "Title");
+      }
+      const body = k.append(c, k.frame("Body", "VERTICAL"), "FILL");
+      k.pad(body, "space-4", "space-4");
+      if (kind === "Terminal") k.paints(body, "fills", [["bg"]]);
+      const code = k.fillText(body, await codeText(k, kind === "Code" ? SAMPLE_FSHARP : SAMPLE_TERMINAL));
+      code.name = "Code";
+      const copy = k.frame("Copy button");
+      copy.primaryAxisSizingMode = copy.counterAxisSizingMode = "FIXED";
+      copy.resize(32, 32);
+      copy.primaryAxisAlignItems = copy.counterAxisAlignItems = "CENTER";
+      k.radius(copy, "radius-sm");
+      k.paints(copy, "fills", [["bg"]]);
+      k.border(copy);
+      copy.appendChild(icon("Copy", 18));
+      c.appendChild(copy);
+      copy.layoutPositioning = "ABSOLUTE";
+      copy.constraints = { horizontal: "MAX", vertical: "MIN" };
+      copy.x = c.width - 40;
+      copy.y = bar.height + 8;
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Code block", "VERTICAL");
+    const title = set.addComponentProperty("Title", "BOOLEAN", true);
+    const copy = set.addComponentProperty("Copy button", "BOOLEAN", true);
+    for (const v of set.children) {
+      v.findOne(n => n.name === "Title bar").componentPropertyReferences = { visible: title };
+      v.findOne(n => n.name === "Copy button").componentPropertyReferences = { visible: copy };
+    }
+    set.description = "figure.nacara-code. Code: bg-subtle, border, radius, with the file name in mono. Terminal: a centred sans title, three dots, a bg body. Syntax colours are bound to tok/color/*; the copy button shows on hover on the site.";
+    return set;
+  });
+
+  // Table
+  await ensure("Table cell", "Code, tables & page furniture", async parent => {
+    const variants = [];
+    for (const header of [true, false]) {
+      const c = k.component(`Header=${header}`, "HORIZONTAL", 200);
+      k.pad(c, "space-2", "space-3");
+      k.paints(c, "strokes", [["border"]]);
+      k.sides(c, 0, 1, 1, 0);
+      if (header) k.paints(c, "fills", [["bg-subtle"]]);
+      const t = k.fillText(c, await k.text("Cell", header ? "Body/Small Strong" : "Body/Small"));
+      t.name = "Text";
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Table cell");
+    k.textProperty(set, "Text", "Cell", set.children.map(v => v.findOne(n => n.type === "TEXT")));
+    set.description = "th and td: padding space-2 × space-3, a 1px border on the right and bottom (the table draws the top and left), headers bg-subtle at 650.";
+    return set;
+  });
+  await ensure("Table", "Code, tables & page furniture", async parent => {
+    const c = k.component("Table", "VERTICAL", CONTENT_WIDTH);
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 1, 0, 0, 1);
+    const key = propertyKey(lib["Table cell"], "Text");
+    const rows = [
+      ["Function", "Reaches"],
+      ["Theme.lightTokens", "the --nacara-* properties, light scheme"],
+      ["Theme.darkTokens", "the same, dark scheme"],
+      ["Theme.lightSyntax", "the --tok-* highlighting colours, light scheme"],
+    ];
+    rows.forEach((cells, r) => {
+      const row = k.append(c, k.frame("Row"), "FILL");
+      cells.forEach((value, i) => {
+        const cell = variantOf(lib["Table cell"], `Header=${r === 0}`).createInstance();
+        row.appendChild(cell);
+        cell.layoutSizingHorizontal = i === 0 ? "FIXED" : "FILL";
+        cell.layoutSizingVertical = "FILL";
+        cell.setProperties({ [key]: value });
+      });
+    });
+    c.description = "A prose table at 0.9375rem with collapsed 1px borders, made of Table cell instances.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Page nav
+  await ensure("Page nav link", "Code, tables & page furniture", async parent => {
+    const variants = [];
+    for (const direction of ["Previous", "Next"]) {
+      const c = k.component(`Direction=${direction}`, "VERTICAL", 315);
+      if (direction === "Next") c.counterAxisAlignItems = "MAX";
+      k.pad(c, "space-3", "space-4");
+      k.radius(c, "radius");
+      k.border(c);
+      k.put(c, await k.text(direction, "Caption/Label", "text-muted"), "Label");
+      k.put(c, await k.text(direction === "Previous" ? "Writing directives" : "Plugin style layers", "Body/Default", "primary"), "Title");
+      variants.push(c);
+    }
+    const set = k.variantSet(variants, parent, "Page nav link");
+    k.textProperty(set, "Title", "Writing directives", set.children.map(v => v.findOne(n => n.name === "Title")));
+    set.description = "a.nacara-page-nav__link: padding space-3 × space-4, border, radius; the border turns primary on hover. Next aligns right.";
+    return set;
+  });
+  await ensure("Page nav", "Code, tables & page furniture", async parent => {
+    const c = k.component("Page nav", "HORIZONTAL", CONTENT_WIDTH);
+    k.bind(c, ["itemSpacing"], "space-4");
+    k.bind(c, ["paddingTop"], "space-6");
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 1, 0, 0, 0);
+    for (const v of lib["Page nav link"].children) k.append(c, v.createInstance(), "FILL");
+    c.children[1].setProperties({ [propertyKey(lib["Page nav link"], "Title")]: "Plugin style layers" });
+    c.description = "nav.nacara-page-nav: a top border with space-6 above the links, space-12 below the content.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Edit link
+  await ensure("Edit link", "Code, tables & page furniture", async parent => {
+    const c = k.component("Edit link");
+    c.counterAxisAlignItems = "CENTER";
+    k.bind(c, ["itemSpacing"], "space-1");
+    c.appendChild(icon("Edit", 14));
+    k.put(c, await k.text("Edit this page", "Caption/Default", "text-muted"), "Label");
+    c.description = "a.nacara-edit-link: 0.875rem, text-muted, primary on hover. Shown when Theme.editUrl is set.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // Footer
+  await ensure("Footer", "Code, tables & page furniture", async parent => {
+    const c = k.component("Footer", "VERTICAL", PAGE_WIDTH);
+    c.counterAxisAlignItems = "CENTER";
+    k.pad(c, "space-8", "space-4");
+    k.paints(c, "fills", [["bg"]]);
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 1, 0, 0, 0);
+    const t = await k.text("Built with Nacara", "Caption/Default", "text-muted");
+    t.name = "Text";
+    c.appendChild(t);
+    k.textProperty(c, "Text", t.characters, [t]);
+    c.description = "footer.nacara-footer (Theme.footer): bg, a top border, text-muted, centred.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  // ---- the layout: navbar, sidebar, table of contents ----
+
+  await ensure("Navbar", "Layout", async parent => {
+    const c = k.component("Navbar", "HORIZONTAL", PAGE_WIDTH);
+    c.counterAxisSizingMode = "FIXED";
+    c.resize(PAGE_WIDTH, 56);
+    k.bind(c, ["height"], "navbar-height");
+    c.counterAxisAlignItems = "CENTER";
+    k.pad(c, null, "space-4");
+    k.bind(c, ["itemSpacing"], "space-4");
+    k.paints(c, "strokes", [["border"]]);
+    k.sides(c, 0, 0, 1, 0);
+    k.tint(c, "Backdrop", "bg", 0.85).effects = [{ type: "BACKGROUND_BLUR", radius: 8, visible: true }];
+    const brand = await k.text("Partas.Nacara.Plugins", "UI/Brand");
+    brand.name = "Brand";
+    c.appendChild(brand);
+    const links = k.frame("Links");
+    k.bind(links, ["itemSpacing"], "space-1");
+    c.appendChild(links);
+    const label = propertyKey(lib["Navbar link"], "Label");
+    links.appendChild(variantOf(lib["Navbar link"], "State=Active").createInstance());
+    const reference = variantOf(lib["Navbar link"], "State=Default").createInstance();
+    links.appendChild(reference);
+    reference.setProperties({ [label]: "Reference" });
+    const end = k.frame("End");
+    end.counterAxisAlignItems = "CENTER";
+    end.primaryAxisAlignItems = "MAX";
+    k.bind(end, ["itemSpacing"], "space-1");
+    k.append(c, end, "FILL");
+    const version = lib.Select.createInstance();
+    end.appendChild(version);
+    version.setProperties({ [propertyKey(lib.Select, "Value")]: "1.0" });
+    end.appendChild(variantOf(lib["Icon button"], "State=Default").createInstance());
+    end.appendChild(lib.Select.createInstance());
+    c.description = "header.nacara-navbar: navbar-height, bg at navbar-opacity with an 8px backdrop blur, a bottom border. Brand, then the navbar sections, then the end items and the theme select.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  await ensure("Sidebar", "Layout", async parent => {
+    const c = k.component("Sidebar", "VERTICAL", 272);
+    k.bind(c, ["width"], "sidebar-width");
+    c.itemSpacing = 1;
+    const linkSet = lib["Sidebar link"];
+    const label = propertyKey(linkSet, "Label");
+    const badge = propertyKey(linkSet, "Badge");
+    const link = (text, state = "Default", withBadge = false) => {
+      const i = variantOf(linkSet, `State=${state}`).createInstance();
+      i.setProperties({ [label]: text, [badge]: withBadge });
+      return i;
+    };
+    k.append(c, link("Getting started"), "FILL");
+    const sections = [
+      ["Directives", true, [["Writing directives"]]],
+      ["OgImage", true, [["Link preview images"]]],
+      ["Theme", true, [["Cascade layers", "Active"], ["Plugin style layers", "Default", true]]],
+    ];
+    for (const [title, isNew, links] of sections) {
+      const section = k.append(c, k.frame("Section", "VERTICAL"), "FILL");
+      k.bind(section, ["itemSpacing"], "space-2");
+      k.bind(section, ["paddingBottom"], "space-6");
+      const heading = lib["Section title"].createInstance();
+      section.appendChild(heading);
+      heading.setProperties({ [propertyKey(lib["Section title"], "Title")]: title, [propertyKey(lib["Section title"], "Badge")]: isNew });
+      const list = k.append(section, k.frame("List", "VERTICAL"), "FILL");
+      list.itemSpacing = 1;
+      for (const [text, state, withBadge] of links) k.append(list, link(text, state, withBadge), "FILL");
+    }
+    c.description = "nav.nacara-sidebar: sidebar-width, sticky under the navbar. Sections are space-6 apart, each a title over its links.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  await ensure("TOC", "Layout", async parent => {
+    const c = k.component("TOC", "VERTICAL", 240);
+    k.bind(c, ["width"], "toc-width");
+    k.bind(c, ["itemSpacing"], "space-2");
+    const title = lib["Section title"].createInstance();
+    c.appendChild(title);
+    title.setProperties({ [propertyKey(lib["Section title"], "Title")]: "On this page" });
+    const list = k.append(c, k.frame("List", "VERTICAL"), "FILL");
+    k.bind(list, ["itemSpacing"], "space-1");
+    k.paints(list, "strokes", [["border"]]);
+    k.sides(list, 0, 0, 0, 1);
+    list.strokeAlign = "OUTSIDE";
+    const label = propertyKey(lib["TOC link"], "Label");
+    for (const [text, level, state] of [["Design tokens", 2, "Active"], ["Tokens in Figma", 3, "Default"], ["Style layers", 2, "Default"], ["Replacing a layer", 3, "Default"], ["Dropping a layer", 3, "Default"], ["Licensing", 2, "Default"]]) {
+      const i = variantOf(lib["TOC link"], `Level=${level}, State=${state}`).createInstance();
+      k.append(list, i, "FILL");
+      i.setProperties({ [label]: text });
+    }
+    c.description = "nav.nacara-toc: toc-width, a 1px rail; the active heading is primary with a 2px bar. Hidden below 1200px.";
+    parent.appendChild(c);
+    return c;
+  });
+
+  fit();
+  return lib;
+}
+
+const SAMPLE_FSHARP = [
+  [["// Configure the theme", "tok-comment"]],
+  [["let", "tok-keyword"], [" theme ", "text"], ["=", "tok-operator"]],
+  [["    Theme", "tok-type"], [".", "tok-punctuation"], ["defaults", "tok-property"]],
+  [["    ", "text"], ["|>", "tok-operator"], [" Theme", "tok-type"], [".", "tok-punctuation"], ["navbar", "tok-function"], [" [ ", "tok-punctuation"], ["NavbarSection", "tok-constructor"], ["(", "tok-punctuation"], ['"Guide"', "tok-string"], [", ", "tok-punctuation"], ['"guide"', "tok-string"], [") ]", "tok-punctuation"]],
+  [["    ", "text"], ["|>", "tok-operator"], [" Theme", "tok-type"], [".", "tok-punctuation"], ["editUrl", "tok-function"], [" ", "text"], ['"https://github.com/you/repo/edit/main/docs"', "tok-string"]],
+  [["    ", "text"], ["|>", "tok-operator"], [" Theme", "tok-type"], [".", "tok-punctuation"], ["brandIcon", "tok-function"], [" (", "tok-punctuation"], ["BrandIcon", "tok-constructor"], [".", "tok-punctuation"], ["Image", "tok-constructor"], [" ", "text"], ['"logo.svg"', "tok-string"], [")", "tok-punctuation"]],
+];
+const SAMPLE_TERMINAL = [
+  [["$ ", "text-muted"], ["dotnet fsi build.fsx -- docs --watch", "text"]],
+  [["Serving docs/output on http://localhost:8080", "text-muted"]],
+];
+
+/** Lines of [text, colour token] as one code text, each run in its token's colour. */
+async function codeText(k, lines) {
+  const t = await k.text(lines.map(line => line.map(run => run[0]).join("")).join("\n"), "Code/Block");
+  let at = 0;
+  for (const line of lines) {
+    for (const [run, token] of line) {
+      t.setRangeFills(at, at + run.length, [k.bound(token)]);
+      at += run.length;
+    }
+    at += 1;
+  }
+  return t;
+}
+
+/** A docs page composed from the library, in light; and the same page in dark. */
+async function buildExample(ctx, lib, page) {
+  const k = drawingKit(ctx);
+  for (const old of page.children.filter(n => n.name.startsWith("Docs page"))) old.remove();
+
+  const root = k.frame("Docs page — Light", "VERTICAL", PAGE_WIDTH);
+  root.clipsContent = true;
+  k.paints(root, "fills", [["bg"]]);
+  page.appendChild(root);
+  root.x = 0;
+  root.y = 0;
+
+  k.append(root, lib.Navbar.createInstance(), "FILL");
+  const row = k.append(root, k.frame("Layout"), "FILL");
+  row.primaryAxisAlignItems = "CENTER";
+  row.counterAxisAlignItems = "MIN";
+  k.pad(row, "space-8", "space-4");
+  k.bind(row, ["itemSpacing"], "layout-gap");
+  row.appendChild(lib.Sidebar.createInstance());
+
+  const content = k.frame("Content", "VERTICAL", CONTENT_WIDTH);
+  row.appendChild(content);
+  // Blocks with their CSS margins; adjacent margins collapse to the larger.
+  const blocks = [];
+  const block = (node, top, bottom) => blocks.push([node, top, bottom]);
+  const prose = async parts => {
+    if (parts.every(p => typeof p === "string")) {
+      const t = await k.text(parts.join(""), "Body/Default");
+      t.resize(CONTENT_WIDTH, t.height);
+      t.textAutoResize = "HEIGHT";
+      return t;
+    }
+    const line = k.frame("Paragraph", "HORIZONTAL", CONTENT_WIDTH);
+    line.layoutWrap = "WRAP";
+    line.counterAxisAlignItems = "CENTER";
+    // A word per text, so the paragraph wraps between words as prose does. A text's width leaves
+    // out a trailing space, so the space between words is the gap: Inter's at 16px.
+    line.itemSpacing = 4.5;
+    for (const part of parts) {
+      if (typeof part === "string") {
+        for (const word of part.trim().split(/\s+/)) line.appendChild(await k.text(word, "Body/Default"));
+      } else {
+        const code = lib["Inline code"].createInstance();
+        line.appendChild(code);
+        code.setProperties({ [propertyKey(lib["Inline code"], "Code")]: part.code });
+      }
+    }
+    return line;
+  };
+  const instance = (set, variant) => (variant ? variantOf(set, variant) : set).createInstance();
+
+  block(await k.text("Cascade layers", "Heading/H1", "heading"), 0, 16);
+  block(await prose([{ code: "Partas.Nacara.Theme" }, " is the documentation theme this site is built with: layout, navbar, design tokens and the web components behind them."]), 0, 16);
+  block(instance(lib["Code block"], "Frame=Code"), 0, 16);
+  block(await prose([{ code: "Theme.register" }, " installs it; ", { code: "Theme.docs" }, " builds the collection that renders your Markdown."]), 0, 16);
+  block(await k.text("Design tokens", "Heading/H2", "heading"), 48, 12);
+  block(await prose(["The tokens layer is the one layer you do not write CSS for. It is a record, and every field in it is a custom property the rest of the theme reads."]), 0, 16);
+  block(lib.Table.createInstance(), 0, 24);
+  block(await k.text("Tokens in Figma", "Heading/H3", "heading"), 32, 8);
+  block(await prose(["The repository's design/figma-plugin imports the tokens as Figma variables and exports them back."]), 0, 16);
+  const tip = instance(lib.Callout, "Kind=Tip");
+  tip.setProperties({ [propertyKey(lib.Callout, "Title")]: "Tip", [propertyKey(lib.Callout, "Body")]: "Lengths come back in the unit each token already uses, so 16px reads back as 1rem." });
+  block(tip, 0, 16);
+  block(lib.Tabs.createInstance(), 0, 16);
+  block(await k.text("Style layers", "Heading/H2", "heading"), 48, 12);
+  const warning = instance(lib.Callout, "Kind=Warning");
+  warning.setProperties({ [propertyKey(lib.Callout, "Show title")]: false });
+  block(warning, 0, 16);
+  block(lib["Edit link"].createInstance(), 32, 0);
+  block(lib["Page nav"].createInstance(), 48, 0);
+
+  let previous = 0;
+  blocks.forEach(([node, top, bottom], i) => {
+    const gap = i === 0 ? 0 : Math.max(previous, top);
+    if (gap) {
+      const spacer = k.frame("Spacer");
+      spacer.resize(1, gap);
+      spacer.primaryAxisSizingMode = spacer.counterAxisSizingMode = "FIXED";
+      content.appendChild(spacer);
+    }
+    content.appendChild(node);
+    if (node.type !== "TEXT" || node.textAutoResize !== "WIDTH_AND_HEIGHT") node.layoutSizingHorizontal = node.name === "Edit link" ? "HUG" : "FILL";
+    previous = bottom;
+  });
+
+  row.appendChild(lib.TOC.createInstance());
+  k.append(root, lib.Footer.createInstance(), "FILL");
+
+  const dark = root.clone();
+  dark.name = "Docs page — Dark";
+  dark.x = PAGE_WIDTH + 160;
+  if (ctx.dark && ctx.dark.modeId) dark.setExplicitVariableModeForCollection(ctx.dark.collection, ctx.dark.modeId);
+  else if (ctx.dark) rebind(ctx, dark, ctx.dark.byName);
+  else dark.remove();
+  return { light: root, dark: ctx.dark ? dark : null };
+}
+
+/** Points every colour bound under a node at the same-named variable of another collection. */
+function rebind(ctx, root, byName) {
+  const swap = paint => {
+    const alias = paint.boundVariables && paint.boundVariables.color;
+    const from = alias && ctx.byId.get(alias.id);
+    const to = from && byName.get(from.name);
+    return to ? figma.variables.setBoundVariableForPaint(paint, "color", to) : paint;
+  };
+  const repaint = (node, prop) => {
+    const before = node[prop];
+    if (!Array.isArray(before) || !before.some(p => p.boundVariables && p.boundVariables.color)) return;
+    node[prop] = before.map(swap);
+    node[prop] = node[prop].map((p, i) => Object.assign({}, p, { opacity: before[i].opacity }));
+  };
+  for (const node of [root, ...root.findAll()]) {
+    if (node.type === "TEXT" && node.fills === figma.mixed) {
+      for (const segment of node.getStyledTextSegments(["fills"])) node.setRangeFills(segment.start, segment.end, segment.fills.map(swap));
+      continue;
+    }
+    if ("fills" in node) repaint(node, "fills");
+    if ("strokes" in node) repaint(node, "strokes");
+  }
+}
+
+/** Builds the Components page and the Example page. */
+async function buildLibrary() {
+  const ctx = await libraryContext();
+  const components = await pageNamed(COMPONENTS_PAGE);
+  await figma.setCurrentPageAsync(components);
+  const lib = await buildComponents(ctx, components);
+  const example = await pageNamed(EXAMPLE_PAGE);
+  await figma.setCurrentPageAsync(example);
+  const { light, dark } = await buildExample(ctx, lib, example);
+  figma.viewport.scrollAndZoomIntoView([light, dark].filter(Boolean));
+  return { components: Object.keys(lib).length, mono: ctx.mono, schemes: dark ? "Light and Dark" : "Light" };
+}
+
 // ---- plugin entry --------------------------------------------------------------------------
 
 if (typeof __html__ !== "undefined") {
-  figma.showUI(__html__, { width: 420, height: 520, themeColors: true });
+  figma.showUI(__html__, { width: 420, height: 560, themeColors: true });
   figma.ui.onmessage = async message => {
     try {
       if (message.type === "import") figma.ui.postMessage({ type: "imported", result: await importTokens(message.documents) });
       if (message.type === "export") figma.ui.postMessage({ type: "exported", documents: await exportTokens() });
+      if (message.type === "build") figma.ui.postMessage({ type: "built", result: await buildLibrary() });
     } catch (error) {
       figma.ui.postMessage({ type: "error", message: String(error) });
     }

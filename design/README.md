@@ -32,6 +32,23 @@ Theme.defaults
 |> Theme.darkSyntax (DesignTokens.readSyntax dark)
 ```
 
+## Components and an example page
+
+With the tokens imported, **Build components and example** draws the theme on two pages:
+
+- **Components**: the navbar, sidebar, table of contents and footer, and the pieces a page is
+  made of. These are badges, callouts, code blocks (code and terminal frames), tables, tabs,
+  details, steps, blockquotes, page navigation and the edit link. Every colour, padding, gap and
+  radius is bound to a token variable, and each component's description names the CSS class it
+  draws. Text uses Inter for the theme's system font stack. Code uses Fira Mono, which is Fira
+  Code without ligatures: the theme turns ligatures off in code, and Figma cannot.
+- **Example**: a docs page at 1440px composed from those components, once per scheme. The dark
+  page is the light one with the Dark mode applied, or, where each scheme is a collection of its
+  own, rebound to the Dark collection's variables.
+
+A component that already exists by name is kept, so building again adds only what is missing. The
+example pages are redrawn each time.
+
 ## Naming
 
 | Theme | CSS | Token path | Figma variable |

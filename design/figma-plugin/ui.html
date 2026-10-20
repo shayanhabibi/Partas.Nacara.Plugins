@@ -20,6 +20,10 @@
   <button id="save-light">Save light.tokens.json</button>
   <button id="save-dark">Save dark.tokens.json</button>
 </div>
+<p>With the tokens imported, draw the theme's components on a <b>Components</b> page and a docs page composed from them, in each scheme, on an <b>Example</b> page. Components that already exist are kept.</p>
+<div class="row">
+  <button id="build">Build components and example</button>
+</div>
 <div id="status"></div>
 
 <script>
@@ -49,6 +53,11 @@
 
   document.getElementById("export").onclick = () => parent.postMessage({ pluginMessage: { type: "export" } }, "*");
 
+  document.getElementById("build").onclick = () => {
+    status("Building…");
+    parent.postMessage({ pluginMessage: { type: "build" } }, "*");
+  };
+
   const save = scheme => () => {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([document.getElementById(scheme).value], { type: "application/json" }));
@@ -68,6 +77,10 @@
         if (message.documents[scheme]) document.getElementById(scheme).value = JSON.stringify(message.documents[scheme], null, 2) + "\n";
       }
       status(`Exported ${Object.keys(message.documents).join(", ")}.`);
+    }
+    if (message.type === "built") {
+      const { components, schemes, mono } = message.result;
+      status(`${components} components on the Components page; the example page in ${schemes}. Code is set in ${mono}.`);
     }
     if (message.type === "error") status(message.message);
   };
