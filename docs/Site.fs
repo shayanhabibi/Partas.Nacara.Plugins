@@ -73,7 +73,8 @@ let theme =
              Menu.section
                  "Theme"
                  [ Menu.page "guide/theme.md"
-                   Menu.page "guide/styling.md" |> Menu.badge "New" ]
+                   Menu.page "guide/styling.md" |> Menu.badge "New"
+                   Menu.page "guide/figma.md" |> Menu.badge "New" ]
              |> Menu.badge "New" ]
     |> Theme.navbarEnd
            [// NavbarDynamicWidget Search.trigger

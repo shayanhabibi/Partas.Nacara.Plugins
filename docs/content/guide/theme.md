@@ -71,7 +71,7 @@ Theme.defaults
 ```
 
 The Figma plugin draws a template of each layout, and exports one you draw as
-the `Theme.addLayout` that adds it. See `design/README.md` in the repository.
+the `Theme.addLayout` that adds it: see [Designing in Figma](figma.md).
 
 ## Components
 
@@ -193,7 +193,7 @@ is not written twice, so restating a light value in `darkTokens` costs nothing.
 Each of these rewrites the `tokens` layer, so it fails if you dropped that layer —
 there is then nothing for the properties to go in.
 
-### Tokens in Figma
+### Tokens as documents
 
 `DesignTokens` writes one colour scheme as a
 [design tokens](https://www.designtokens.org/tr/drafts/format/) document, and
@@ -225,62 +225,9 @@ is `tok.color.keyword`. A `var()` of another token becomes an alias to it. The k
 | `font` | a font stack | `nacara.font.font-sans` |
 | `css` | anything else, kept as written | `nacara.css.content-width` (`75ch`) |
 
-#### Designing the theme in Figma
-
-The theme's Figma file is on
-[Figma Community](https://www.figma.com/community/file/1694279269526963076): the
-variables already imported, the components, and a template of each layout. To
-design a site's theme there and bring it back to the site:
-
-1. Duplicate the file into your drafts.
-2. Change the variables in the `Partas.Nacara.Theme` collections, Light and Dark,
-   and the `Shadow` and `Shadow (Dark)` effect styles. The components and the
-   example page follow, since they are bound to the variables.
-3. Run the plugin, choose **Export from variables**, and save `light.tokens.json`
-   and `dark.tokens.json` into a folder of the site, such as `design/tokens`.
-4. Read them in the site:
-
-```fsharp
-Theme.defaults |> Theme.tokens (DesignTokens.fromDirectory "design/tokens")
-```
-
-Exporting again and saving over the two files is all a later change takes. A
-layout drawn on the Layouts page comes back the same way, as the
-`Theme.addLayout` lines **Export layouts** writes.
-
-The plugin is
-[`design/figma-plugin`](https://github.com/shayanhabibi/Partas.Nacara.Plugins/tree/master/design/figma-plugin)
-in the repository, and its
-[Figma Community page](https://www.figma.com/community/plugin/1694284251753540121)
-opens once Figma has reviewed it. Until then, clone the repository or
-download it as a ZIP from GitHub (**Code → Download ZIP**), then in the Figma
-desktop app choose **Plugins → Development → Import plugin from manifest…** and
-pick `design/figma-plugin/manifest.json`. The plugin is then under **Plugins →
-Development** in every file. The browser version of Figma cannot load a plugin
-this way.
-
-#### What the plugin carries
-
-The plugin imports these documents into Figma and exports them back:
-
-- Colours, sizes and numbers are variables. A variable's name is the token path with
-  slashes (`nacara/color/bg-subtle`), and its code syntax is the CSS property, so Dev
-  Mode shows `var(--nacara-bg-subtle)`. The schemes are modes of one collection, or one
-  collection each on a Figma plan limited to one mode.
-- A shadow is an effect style, `Shadow` for Light and `Shadow (Dark)` for Dark, since no
-  variable can hold one.
-- The text styles the plugin draws read their size and weight from the font-size and
-  font-weight variables, so changing `font-size-2xl` resizes `Heading/H1`.
-
-So a theme designed in Figma comes back to code through the variables and the shadow
-styles. What lives only in a text style (its family, letter spacing, a weight with no
-token) or in a component's structure does not.
-
-Figma has only pixels. Reading a document converts each length back to the unit
-the token already uses, so `space-4` exported as `16px` reads back as `1rem`, and a
-line height stays a bare number. Reading goes by the last segment of a path, so
-variables regrouped in Figma still land on the right token. A variable with no
-matching token is ignored.
+Figma reads and writes these documents: [Designing in Figma](figma.md) has the
+theme's Figma file, the plugin, and how a theme designed there comes back to
+the site.
 
 ## Style layers
 
