@@ -6,6 +6,12 @@
   button { flex: 1; padding: 6px; border-radius: 4px; border: 1px solid var(--figma-color-border); background: var(--figma-color-bg-secondary); color: inherit; cursor: pointer; }
   button.primary { background: var(--figma-color-bg-brand); color: var(--figma-color-text-onbrand); border: 0; }
   #status { margin-top: 8px; white-space: pre-wrap; }
+  h3 { font-size: 13px; margin: 18px 0 4px; }
+  .card { margin-top: 8px; padding: 8px; border: 1px solid var(--figma-color-border); border-radius: 4px; }
+  .card code { word-break: break-all; }
+  .card ul { margin: 4px 0; padding-left: 18px; }
+  .muted { color: var(--figma-color-text-secondary); }
+  input[type="text"] { width: 100%; box-sizing: border-box; padding: 4px; color: inherit; background: var(--figma-color-bg-secondary); border: 1px solid var(--figma-color-border); border-radius: 4px; }
 </style>
 
 <p><b>To your site:</b> change the variables, then <b>Export from variables</b> and save both files into a folder of your site, such as <code>design/tokens</code>. Read them there with <code>Theme.tokens (DesignTokens.fromDirectory "design/tokens")</code>.</p>
@@ -30,6 +36,15 @@
 <div class="row">
   <button id="export-layouts">Export layouts</button>
 </div>
+<h3>Motion</h3>
+<p>A hover is a variant whose <b>While hovering</b> interaction changes to another variant of its set with <b>Smart animate</b>. <b>Export motion</b> and save <code>motion.json</code> as <code>design/tokens/motion.json</code> in your site, where <code>Partas.Nacara.Plugins.Motion</code> reads it.</p>
+<div class="row">
+  <button id="motion-scan">Find hovers</button>
+  <button class="primary" id="motion-export">Export motion</button>
+</div>
+<div id="motion-names"></div>
+<div id="motion-hovers"></div>
+<div id="motion-skipped"></div>
 <div id="status"></div>
 
 <script>
@@ -75,6 +90,91 @@
   document.getElementById("save-light").onclick = save("Light");
   document.getElementById("save-dark").onclick = save("Dark");
 
+  // ---- motion ----
+
+  const post = pluginMessage => parent.postMessage({ pluginMessage }, "*");
+  document.getElementById("motion-scan").onclick = () => {
+    status("Finding hovers…");
+    post({ type: "motion-scan" });
+  };
+  document.getElementById("motion-export").onclick = () => {
+    status("Exporting motion…");
+    post({ type: "motion-export" });
+  };
+
+  const element = (tag, text, className) => {
+    const e = document.createElement(tag);
+    if (text !== undefined) e.textContent = text;
+    if (className) e.className = className;
+    return e;
+  };
+  const list = (title, items) => {
+    const fragment = document.createDocumentFragment();
+    if (!items.length) return fragment;
+    fragment.appendChild(element("div", title, "muted"));
+    const ul = element("ul");
+    for (const item of items) ul.appendChild(element("li", item));
+    fragment.appendChild(ul);
+    return fragment;
+  };
+  const valueOf = v => (v.token ? v.token : v.value);
+  const easingOf = e => {
+    if (e.type === "CUSTOM_CUBIC_BEZIER") return `cubic-bezier(${e.x1}, ${e.y1}, ${e.x2}, ${e.y2})`;
+    if (e.type === "CUSTOM_SPRING") return `spring: mass ${e.mass}, stiffness ${e.stiffness}, damping ${e.damping}`;
+    return e.type;
+  };
+  const where = item => (item.layer ? `${item.layer}: ` : "");
+
+  const showMotion = ({ document: motion, sets }) => {
+    const names = document.getElementById("motion-names");
+    names.replaceChildren();
+    for (const set of sets.filter(s => !s.tagged)) {
+      const id = `motion-name-${set.id}`;
+      const label = element("label", `Motion name of ${set.name}`);
+      label.htmlFor = id;
+      const input = element("input");
+      input.type = "text";
+      input.id = id;
+      input.value = set.motionName;
+      input.onchange = () => {
+        status("Renaming…");
+        post({ type: "motion-rename", setId: set.id, name: input.value });
+      };
+      names.append(label, input);
+    }
+
+    const hovers = document.getElementById("motion-hovers");
+    hovers.replaceChildren();
+    for (const hover of motion.hovers) {
+      const card = element("div", undefined, "card");
+      card.appendChild(element("b", hover.name));
+      const selector = element("div");
+      selector.appendChild(element("code", hover.selector));
+      card.appendChild(selector);
+      card.appendChild(element("div", `${easingOf(hover.easing)}, ${hover.duration}ms`, "muted"));
+      card.appendChild(list("Comes across", hover.changes.map(c => `${where(c)}${c.property}: ${valueOf(c.from)} → ${valueOf(c.to)}`)));
+      card.appendChild(list("Does not come across, because…", hover.notTranslated.map(n => `${where(n)}${n.property}: ${n.reason}`)));
+      hovers.appendChild(card);
+    }
+
+    const skipped = document.getElementById("motion-skipped");
+    skipped.replaceChildren();
+    if (motion.skipped.length) {
+      const card = element("div", undefined, "card");
+      card.appendChild(list("Skipped", motion.skipped.map(s => `${s.component}, ${s.variant}: ${s.reason}`)));
+      skipped.appendChild(card);
+    }
+    const count = n => (n === 1 ? "1 hover" : `${n} hovers`);
+    return `${count(motion.hovers.length)} in ${sets.length} component sets` + (motion.skipped.length ? `; ${motion.skipped.length} skipped.` : ".");
+  };
+
+  const saveMotion = motion => {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(motion, null, 2) + "\n"], { type: "application/json" }));
+    link.download = "motion.json";
+    link.click();
+  };
+
   onmessage = ({ data: { pluginMessage: message } }) => {
     if (message.type === "imported") {
       const { written, collections, problems } = message.result;
@@ -94,6 +194,12 @@
       const { source, layouts } = message.result;
       document.getElementById("layouts").value = source ? `Theme.defaults\n${source}\n` : "";
       status(layouts.length ? `Exported ${layouts.join(", ")}.` : "No layouts of your own on the Layouts page.");
+    }
+    if (message.type === "motion-scanned") status(showMotion(message.result));
+    if (message.type === "motion-exported") {
+      const summary = showMotion(message.result);
+      saveMotion(message.result.document);
+      status(`Saved motion.json: ${summary}`);
     }
     if (message.type === "error") status(message.message);
   };

@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { motionName, hoversOf, motionDocument, applyTags, THEME_SELECTORS } = require("./code.js");
+const { motionName, hoversOf, motionDocument, applyTags, THEME_SELECTORS, tagThemeComponents, snapshotSet, exportMotion, renameMotion } = require("./code.js");
 const capture = require("../../tests/Partas.Nacara.Plugins.Tests/figma-hover.json");
 
 const set = name => JSON.parse(JSON.stringify(capture.componentSets.find(s => s.name === name)));
@@ -193,4 +193,187 @@ test("a shadow on a text layer is reported", () => {
   const h = hover(card, "card[size=small]");
   assert.deepEqual(h.changes.filter(c => c.layer === "Title"), []);
   assert.deepEqual(h.notTranslated.map(n => [n.layer, n.property]), [["Title", "box-shadow"]]);
+});
+
+// ---- Task 7: tags, snapshot and export, against fake Figma nodes ----
+
+// A fake Figma node: plain data, children, and shared plugin data in a Map that counts its writes.
+let writes = 0;
+const pluginData = node => {
+  const data = new Map();
+  node.getSharedPluginData = (ns, key) => data.get(`${ns}/${key}`) || "";
+  node.setSharedPluginData = (ns, key, value) => {
+    writes++;
+    if (value) data.set(`${ns}/${key}`, value);
+    else data.delete(`${ns}/${key}`);
+  };
+  return node;
+};
+
+// The Figma nodes a capture layer was read from: a paint's `variable` is a bound colour, names are ids.
+const alias = name => ({ type: "VARIABLE_ALIAS", id: `V:${name}` });
+const fakePaint = p => {
+  const paint = Object.assign({}, p);
+  delete paint.variable;
+  if (p.variable) paint.boundVariables = { color: alias(p.variable) };
+  return paint;
+};
+const fakeLayer = layer => {
+  const node = pluginData({});
+  for (const [key, value] of Object.entries(layer)) {
+    if (key === "fills" || key === "strokes") node[key] = value.map(fakePaint);
+    else if (key === "boundVariables") {
+      node.boundVariables = {};
+      for (const [k, v] of Object.entries(value)) node.boundVariables[k] = Array.isArray(v) ? v.map(alias) : alias(v);
+    } else if (key === "effectStyle") node.effectStyleId = `S:${value.name}`;
+    else if (key === "mainComponent") node.getMainComponentAsync = async () => ({ name: value });
+    else if (key === "children") node.children = value.map(fakeLayer);
+    else node[key] = value;
+  }
+  if (!node.effects) node.effects = [];
+  if (!node.effectStyleId) node.effectStyleId = "";
+  return node;
+};
+const fakeSet = snapshot => {
+  const node = pluginData({ id: snapshot.id, name: snapshot.name, type: "COMPONENT_SET", description: snapshot.description });
+  node.children = snapshot.variants.map(v =>
+    Object.assign(fakeLayer(v.layer), { id: v.id, name: v.name, type: "COMPONENT", variantProperties: v.variantProperties, reactions: v.reactions }));
+  return node;
+};
+const styles = Object.fromEntries(
+  capture.componentSets.flatMap(s => s.variants.map(v => v.layer.effectStyle).filter(Boolean)).map(s => [`S:${s.name}`, s]));
+const fakeFigma = root => ({
+  mixed: Symbol("mixed"),
+  root,
+  loadAllPagesAsync: async () => {},
+  getNodeByIdAsync: async id => {
+    const find = node => (node.id === id ? node : (node.children || []).map(find).find(Boolean));
+    return find(root) || null;
+  },
+  getStyleByIdAsync: async id => {
+    const style = styles[id];
+    return style ? { name: style.name, getSharedPluginData: (ns, key) => (ns === "nacara" && key === "token" ? style.token : "") } : null;
+  },
+  variables: { getVariableByIdAsync: async id => ({ name: id.slice(2) }) },
+});
+const fakePage = sets => ({
+  type: "PAGE", name: "Components",
+  children: [{ type: "SECTION", name: "Navigation", children: [{ type: "FRAME", name: "Board", children: sets }] }],
+});
+
+test("tagging reaches sets that already exist", async () => {
+  const navbar = fakeSet(set("Navbar link"));
+  const page = fakePage([navbar]);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  await tagThemeComponents(page);
+  const of = name => navbar.children.find(v => v.name === name);
+  assert.equal(navbar.getSharedPluginData("nacara", "selector"), ".nacara-navbar__link");
+  assert.equal(of("State=Default").getSharedPluginData("nacara", "selector"), '.nacara-navbar__link:not([data-active="true"]):not([aria-current])');
+  assert.equal(of("State=Active").getSharedPluginData("nacara", "selector"), '.nacara-navbar__link:is([data-active="true"],[aria-current])');
+  assert.equal(of("State=Hover").getSharedPluginData("nacara", "selector"), "");
+  assert.equal(of("State=Default").children[0].getSharedPluginData("nacara", "selector"), ":self");
+  writes = 0;
+  await tagThemeComponents(page);
+  assert.equal(writes, 0);
+});
+
+test("a renamed motion names the hover", () => {
+  const card = Object.assign(set("Card"), { motionName: "promo" });
+  const { hovers } = hoversOf(card);
+  assert.deepEqual(hovers.map(h => h.name), ["promo[size=small]", "promo[size=large]"]);
+  assert.equal(hovers[0].selector, '[data-motion="promo"][data-size="small"]');
+});
+
+test("every theme set with a hover has its selectors", () => {
+  assert.deepEqual(THEME_SELECTORS["Icon button"], { set: ".nacara-icon-button", variants: {}, layers: { Icon: ":self" } });
+  assert.deepEqual(THEME_SELECTORS["TOC link"], {
+    set: ".nacara-toc__link",
+    variants: {
+      "Level=2, State=Default": '.nacara-toc__link:not([data-level="3"]):not([data-active="true"])',
+      "Level=2, State=Active": '.nacara-toc__link:not([data-level="3"])[data-active="true"]',
+      "Level=3, State=Default": '.nacara-toc__link[data-level="3"]:not([data-active="true"])',
+      "Level=3, State=Active": '.nacara-toc__link[data-level="3"][data-active="true"]',
+    },
+    layers: { Label: ":self" },
+  });
+});
+
+test("snapshotSet reads the capture's shape", async () => {
+  const sets = capture.componentSets.map(fakeSet);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [fakePage(sets)] });
+  for (const [i, node] of sets.entries()) assert.deepEqual(await snapshotSet(node), capture.componentSets[i]);
+});
+
+test("a tagged set snapshots as applyTags tags it", async () => {
+  const sets = capture.componentSets.map(fakeSet);
+  const page = fakePage(sets);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  await tagThemeComponents(page);
+  for (const [i, node] of sets.entries()) {
+    assert.deepEqual(await snapshotSet(node), applyTags(set(capture.componentSets[i].name), THEME_SELECTORS));
+  }
+});
+
+test("an icon's colour comes across through its vectors", () => {
+  const variantOf = (id, name, fill, color, reactions) => ({
+    id, name, variantProperties: { State: name.split("=")[1] }, reactions,
+    layer: {
+      name, type: "COMPONENT", x: 0, y: 0, width: 36, height: 36, rotation: 0, opacity: 1, cornerRadius: 6, strokes: [],
+      fills: fill ? [{ type: "SOLID", color: { r: 1, g: 1, b: 1 }, opacity: 1, variable: fill }] : [],
+      children: [{
+        name: "Icon", type: "INSTANCE", mainComponent: "Icon/GitHub", x: 9, y: 9, width: 18, height: 18, rotation: 0, opacity: 1, fills: [], strokes: [],
+        children: ["Vector", "Vector 2"].map(n => ({
+          name: n, type: "VECTOR", x: 0, y: 0, width: 18, height: 18, rotation: 0, opacity: 1, strokes: [],
+          fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 1, variable: color }],
+        })),
+      }],
+    },
+  });
+  const transition = { type: "SMART_ANIMATE", duration: 0.2, easing: { type: "EASE_OUT" } };
+  const hoverTo = id => [{ trigger: { type: "ON_HOVER" }, actions: [{ type: "NODE", destinationId: id, navigation: "CHANGE_TO", transition }] }];
+  const iconButton = {
+    id: "1:1", name: "Icon button",
+    variants: [
+      variantOf("1:2", "State=Default", null, "nacara/color/text-muted", hoverTo("1:3")),
+      variantOf("1:3", "State=Hover", "nacara/color/bg-subtle", "nacara/color/text", []),
+    ],
+  };
+  const h = hover(applyTags(iconButton, THEME_SELECTORS), "icon-button");
+  assert.equal(h.selector, ".nacara-icon-button");
+  assert.deepEqual(h.changes, [
+    { property: "background-color", from: { value: "transparent" }, to: { token: "nacara.color.bg-subtle" } },
+    { property: "color", from: { token: "nacara.color.text-muted" }, to: { token: "nacara.color.text" } },
+  ]);
+  assert.deepEqual(h.notTranslated, []);
+});
+
+test("a bound width is reported once", () => {
+  const card = set("Card");
+  const before = child(variant(card, "Size=Small, State=Default"), "Accent");
+  const after = child(variant(card, "Size=Small, State=Hover"), "Accent");
+  before.boundVariables = { width: "nacara/size/a" };
+  after.boundVariables = { width: "nacara/size/b" };
+  const h = hover(card, "card[size=small]");
+  assert.equal(h.changes.filter(c => c.property === "width").length, 1);
+  assert.deepEqual(h.notTranslated, []);
+  after.width = before.width;
+  const unchanged = hover(card, "card[size=small]");
+  assert.deepEqual(unchanged.notTranslated, [{ layer: "Accent", property: "boundVariables.width", reason: "is not animated" }]);
+});
+
+test("exportMotion lists the sets with reactions, and renameMotion names one", async () => {
+  const sets = capture.componentSets.map(fakeSet);
+  const page = fakePage(sets.concat([fakeSet({ id: "9:9", name: "Badge", variants: [] })]));
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  await tagThemeComponents(page);
+  const before = await exportMotion();
+  assert.deepEqual(before.sets, capture.componentSets.map(s => ({
+    id: s.id, name: s.name, motionName: motionName(s.name), tagged: s.name !== "Card",
+  })));
+  assert.deepEqual(before.document, motionDocument(capture.componentSets.map(s => applyTags(s, THEME_SELECTORS))));
+  const card = capture.componentSets.find(s => s.name === "Card").id;
+  assert.deepEqual(await renameMotion(card, "Promo card"), { id: card, motionName: "promo-card" });
+  const after = await exportMotion();
+  assert.equal(after.sets.find(s => s.id === card).motionName, "promo-card");
+  assert.deepEqual(after.document.hovers.map(h => h.name).slice(2), ["promo-card[size=small]", "promo-card[size=large]"]);
 });

@@ -1529,6 +1529,7 @@ async function buildLibrary() {
   const components = await pageNamed(COMPONENTS_PAGE);
   await figma.setCurrentPageAsync(components);
   const lib = await buildComponents(ctx, components);
+  await tagThemeComponents(components);
   const example = await pageNamed(EXAMPLE_PAGE);
   await figma.setCurrentPageAsync(example);
   const { light, dark } = await buildExample(ctx, lib, example);
@@ -1556,6 +1557,12 @@ const THEME_SELECTORS = {
     },
     layers: { Label: ":self" },
   },
+  // The icon is an instance whose vectors CSS draws in currentColor: their fill is the button's colour.
+  "Icon button": {
+    set: ".nacara-icon-button",
+    variants: {},
+    layers: { Icon: ":self" },
+  },
   "Sidebar link": {
     set: ".nacara-sidebar__link",
     variants: {
@@ -1563,6 +1570,16 @@ const THEME_SELECTORS = {
       "State=Active": '.nacara-sidebar__link[aria-current="page"]',
     },
     layers: { Label: ":self", Badge: ".nacara-badge" },
+  },
+  "TOC link": {
+    set: ".nacara-toc__link",
+    variants: {
+      "Level=2, State=Default": '.nacara-toc__link:not([data-level="3"]):not([data-active="true"])',
+      "Level=2, State=Active": '.nacara-toc__link:not([data-level="3"])[data-active="true"]',
+      "Level=3, State=Default": '.nacara-toc__link[data-level="3"]:not([data-active="true"])',
+      "Level=3, State=Active": '.nacara-toc__link[data-level="3"][data-active="true"]',
+    },
+    layers: { Label: ":self" },
   },
 };
 
@@ -1586,12 +1603,8 @@ function motionName(setName) {
 function applyTags(snapshot, selectors) {
   const entry = selectors[snapshot.name];
   if (!entry) return snapshot;
-  const tagLayer = layer => {
-    const tagged = Object.assign({}, layer);
-    if (entry.layers[layer.name]) tagged.selector = entry.layers[layer.name];
-    if (layer.children) tagged.children = layer.children.map(tagLayer);
-    return tagged;
-  };
+  // A variant's own layers only, as tagThemeComponents: the Badge instance holds a Label of its own.
+  const tagLayer = layer => (entry.layers[layer.name] ? Object.assign({}, layer, { selector: entry.layers[layer.name] }) : layer);
   return Object.assign({}, snapshot, {
     selector: entry.set,
     variants: snapshot.variants.map(variant => {
@@ -1648,7 +1661,12 @@ const LAYER_KEYS_HANDLED = [
 ];
 const RADIUS_CORNERS = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"];
 // boundVariables entries compareLayer translates already: the radius corners, and fills (a paint's "variable").
+// snapshotSet leaves fills, strokes and effects out of boundVariables: a paint carries its own "variable".
 const BOUND_KEYS_HANDLED = RADIUS_CORNERS.concat(["fills"]);
+// Bound fields whose literal value compareLayer translates or reports: a changed binding is reported
+// only when the value stays the same, so a bound width that changes is not reported twice. The
+// paddings and item spacing snapshotSet reads are reported by the catch-all below.
+const BOUND_KEYS_LITERAL = ["width", "height", "opacity", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "itemSpacing"];
 const NOT_ANIMATED = "is not animated";
 
 /** The changes between one layer in two variants: CSS changes and what does not translate. */
@@ -1702,7 +1720,9 @@ function compareLayer(a, b, self) {
 
   const boundA = a.boundVariables || {}, boundB = b.boundVariables || {};
   for (const key of new Set(Object.keys(boundA).concat(Object.keys(boundB)))) {
-    if (!BOUND_KEYS_HANDLED.includes(key) && !same(boundA[key], boundB[key])) report(`boundVariables.${key}`, NOT_ANIMATED);
+    if (BOUND_KEYS_HANDLED.includes(key) || same(boundA[key], boundB[key])) continue;
+    if (BOUND_KEYS_LITERAL.includes(key) && !same(a[key], b[key])) continue;
+    report(`boundVariables.${key}`, NOT_ANIMATED);
   }
   for (const key of new Set(Object.keys(a).concat(Object.keys(b)))) {
     if (!LAYER_KEYS_HANDLED.includes(key) && !same(a[key], b[key])) report(key, NOT_ANIMATED);
@@ -1721,7 +1741,14 @@ function compareVariants(before, after, isTheme) {
   const changes = root.changes.slice();
   const notTranslated = root.notTranslated.slice();
 
-  const walk = (parentA, parentB, path, chain) => {
+  // An untagged layer inside a :self layer is :self too: an icon's vectors draw in its currentColor.
+  // Two of them changing the colour alike give one change; differently, the second is reported.
+  const selfColour = (layer, c) => {
+    const other = changes.find(x => !x.layer && x.property === c.property);
+    if (!other) changes.push(c);
+    else if (!same(other, c)) notTranslated.push({ layer, property: c.property, reason: "another :self layer changes this colour differently" });
+  };
+  const walk = (parentA, parentB, path, chain, inSelf) => {
     const kidsA = parentA.children || [], kidsB = parentB.children || [];
     const count = (kids, name) => kids.filter(k => k.name === name).length;
     const names = [...new Set(kidsA.concat(kidsB).map(k => k.name))];
@@ -1736,7 +1763,7 @@ function compareVariants(before, after, isTheme) {
         notTranslated.push({ layer, property: "layer", reason: a ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
         continue;
       }
-      const tag = a.selector || b.selector;
+      const tag = a.selector || b.selector || (inSelf ? ":self" : undefined);
       const self = isTheme && tag === ":self";
       const diff = compareLayer(a, b, self);
       if (a.x !== b.x || a.y !== b.y) {
@@ -1747,13 +1774,13 @@ function compareVariants(before, after, isTheme) {
       for (const c of diff.changes) {
         if (isTheme && !tag) notTranslated.push({ layer, property: c.property, reason: UNTAGGED_LAYER });
         else if (self && c.property !== "color") notTranslated.push({ layer, property: c.property, reason: SELF_ONLY });
-        else if (self) changes.push(c);
+        else if (self) selfColour(layer, c);
         else changes.push(Object.assign({ layer, part }, c));
       }
-      walk(a, b, layer, isTheme ? "" : part);
+      walk(a, b, layer, isTheme ? "" : part, self);
     }
   };
-  walk(rootA, rootB, "", "");
+  walk(rootA, rootB, "", "", false);
   return { changes, notTranslated };
 }
 
@@ -1828,6 +1855,197 @@ function motionDocument(setSnapshots) {
   };
 }
 
+// ---- motion in Figma: tags, snapshots, export ----------------------------------------------
+//
+// These read and write the file through figma.*. They are plain functions of a node, so they run
+// from an eval of this file as well as from the panel.
+
+const NACARA = "nacara";
+
+/** The component sets under a node: the page's own search where Figma has it, a walk otherwise. */
+function componentSetsIn(node) {
+  if (typeof node.findAllWithCriteria === "function") return node.findAllWithCriteria({ types: ["COMPONENT_SET"] });
+  const sets = [];
+  const walk = n => {
+    if (n.type === "COMPONENT_SET") sets.push(n);
+    else for (const child of n.children || []) walk(child);
+  };
+  walk(node);
+  return sets;
+}
+
+/**
+ * Tags the theme's component sets on a page, those built before tagging existed included: "selector"
+ * on the set, on each variant THEME_SELECTORS names, and on each named layer of a variant. Writes
+ * only what differs, so a second run changes nothing.
+ */
+async function tagThemeComponents(page) {
+  let sets = 0, written = 0;
+  const tag = (node, selector) => {
+    if (node.getSharedPluginData(NACARA, "selector") === selector) return;
+    node.setSharedPluginData(NACARA, "selector", selector);
+    written++;
+  };
+  for (const set of componentSetsIn(page)) {
+    const entry = THEME_SELECTORS[set.name];
+    if (!entry) continue;
+    sets++;
+    tag(set, entry.set);
+    for (const variant of set.children) {
+      if (entry.variants[variant.name]) tag(variant, entry.variants[variant.name]);
+      // A variant's own layers only: the Badge instance holds a Label of its own.
+      for (const layer of variant.children || []) if (entry.layers[layer.name]) tag(layer, entry.layers[layer.name]);
+    }
+  }
+  return { sets, written };
+}
+
+const round3 = x => round(x, 3);
+const roundColour = c => {
+  const out = { r: round3(c.r), g: round3(c.g), b: round3(c.b) };
+  if (c.a !== undefined) out.a = round3(c.a);
+  return out;
+};
+
+/** A snapshot reader with a cache of variable and style names, since one set asks for each many times. */
+function snapshotReader() {
+  const variables = new Map();
+  const variableName = async id => {
+    if (!variables.has(id)) {
+      const variable = await figma.variables.getVariableByIdAsync(id);
+      variables.set(id, variable ? variable.name : id);
+    }
+    return variables.get(id);
+  };
+  // boundVariables as variable names: an alias becomes its name, arrays and objects map through.
+  const names = async value => {
+    if (Array.isArray(value)) return Promise.all(value.map(names));
+    if (value && value.type === "VARIABLE_ALIAS") return variableName(value.id);
+    if (value && typeof value === "object") {
+      const out = {};
+      for (const [key, v] of Object.entries(value)) out[key] = await names(v);
+      return out;
+    }
+    return value;
+  };
+  const paint = async p => {
+    if (p.type !== "SOLID") {
+      // Not translated, but kept whole so two different gradients or images still differ.
+      const kept = JSON.parse(JSON.stringify(p));
+      delete kept.boundVariables;
+      return kept;
+    }
+    const out = { type: p.type, color: roundColour(p.color), opacity: round3(p.opacity === undefined ? 1 : p.opacity) };
+    if (p.boundVariables && p.boundVariables.color) out.variable = await variableName(p.boundVariables.color.id);
+    if (p.visible === false) out.visible = false;
+    return out;
+  };
+  // Mixed text fills compare as one paint that does not translate.
+  const paints = async list => (list === figma.mixed ? [{ type: "MIXED" }] : Promise.all(list.map(paint)));
+  const effect = e => {
+    const out = { type: e.type };
+    if (e.color) out.color = roundColour(e.color);
+    if (e.offset) out.offset = { x: e.offset.x, y: e.offset.y };
+    if (e.radius !== undefined) out.radius = e.radius;
+    if (e.spread !== undefined) out.spread = e.spread;
+    if (e.visible === false) out.visible = false;
+    return out;
+  };
+  const styleName = async id => {
+    const style = await figma.getStyleByIdAsync(id);
+    return style ? style.name : id;
+  };
+  const plain = v => (v === figma.mixed ? "mixed" : v);
+
+  // A layer in the capture's shape; the keys after it are read only where the node has them, and the
+  // comparison reports any of them that differ (they are not in LAYER_KEYS_HANDLED).
+  const layer = async node => {
+    const out = { name: node.name, type: node.type };
+    if (node.type === "TEXT") out.characters = node.characters;
+    if (node.type === "INSTANCE") {
+      const main = await node.getMainComponentAsync();
+      out.mainComponent = main ? main.name : null;
+    }
+    for (const key of ["x", "y", "width", "height", "rotation", "opacity"]) out[key] = node[key];
+    if (node.cornerRadius === figma.mixed) for (const corner of RADIUS_CORNERS) out[corner] = node[corner];
+    else if (typeof node.cornerRadius === "number") out.cornerRadius = node.cornerRadius;
+    if (node.fills !== undefined) out.fills = await paints(node.fills);
+    if (node.strokes !== undefined) out.strokes = await paints(node.strokes);
+    const bound = {};
+    for (const [key, value] of Object.entries(node.boundVariables || {})) {
+      if (key !== "fills" && key !== "strokes" && key !== "effects") bound[key] = await names(value);
+    }
+    if (Object.keys(bound).length) out.boundVariables = bound;
+    if (node.effectStyleId) {
+      const style = await figma.getStyleByIdAsync(node.effectStyleId);
+      if (style) out.effectStyle = { name: style.name, token: style.getSharedPluginData(NACARA, "token") };
+    }
+    if (node.effects && node.effects.length) out.effects = node.effects.map(effect);
+    if (node.visible === false) out.visible = false;
+    if (node.blendMode && node.blendMode !== "PASS_THROUGH" && node.blendMode !== "NORMAL") out.blendMode = node.blendMode;
+    for (const key of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "itemSpacing"]) {
+      if (typeof node[key] === "number") out[key] = node[key];
+    }
+    if (node.type === "TEXT") {
+      if (node.textStyleId) out.textStyle = node.textStyleId === figma.mixed ? "mixed" : await styleName(node.textStyleId);
+      else if (node.fontSize !== undefined) Object.assign(out, { fontSize: plain(node.fontSize), fontName: plain(node.fontName) });
+    }
+    const selector = node.getSharedPluginData ? node.getSharedPluginData(NACARA, "selector") : "";
+    if (selector) out.selector = selector;
+    if (node.children) out.children = await Promise.all(node.children.map(layer));
+    return out;
+  };
+  return { layer };
+}
+
+/** A component set as plain data, the shape hoversOf reads, with its "nacara" tags. */
+async function snapshotSet(set) {
+  const { layer } = snapshotReader();
+  const out = { id: set.id, name: set.name, description: set.description || "" };
+  const selector = set.getSharedPluginData(NACARA, "selector");
+  if (selector) out.selector = selector;
+  const name = set.getSharedPluginData(NACARA, "motion-name");
+  if (name) out.motionName = name;
+  out.variants = [];
+  for (const variant of set.children) {
+    const snapshot = {
+      id: variant.id,
+      name: variant.name,
+      variantProperties: Object.assign({}, variant.variantProperties),
+      reactions: (variant.reactions || []).map(r => JSON.parse(JSON.stringify({ trigger: r.trigger, actions: r.actions || (r.action ? [r.action] : []) }))),
+    };
+    const tag = variant.getSharedPluginData(NACARA, "selector");
+    if (tag) snapshot.selector = tag;
+    const root = await layer(variant);
+    delete root.selector; // the variant's tag is on the variant
+    snapshot.layer = root;
+    out.variants.push(snapshot);
+  }
+  return out;
+}
+
+/** The motion document of every component set in the file with a reaction, and those sets. */
+async function exportMotion() {
+  if (typeof figma.loadAllPagesAsync === "function") await figma.loadAllPagesAsync();
+  const snapshots = [];
+  for (const set of componentSetsIn(figma.root)) {
+    if (set.children.some(v => (v.reactions || []).length)) snapshots.push(await snapshotSet(set));
+  }
+  return {
+    document: motionDocument(snapshots),
+    sets: snapshots.map(s => ({ id: s.id, name: s.name, motionName: s.motionName || motionName(s.name), tagged: Boolean(s.selector) })),
+  };
+}
+
+/** Names a set's motion, kebab-cased; an empty name goes back to the set's own. */
+async function renameMotion(setId, name) {
+  const set = await figma.getNodeByIdAsync(setId);
+  if (!set || set.type !== "COMPONENT_SET") throw new Error(`No component set ${setId}.`);
+  const value = kebab(name || "");
+  set.setSharedPluginData(NACARA, "motion-name", value);
+  return { id: setId, motionName: value || motionName(set.name) };
+}
+
 // ---- plugin entry --------------------------------------------------------------------------
 
 if (typeof __html__ !== "undefined") {
@@ -1838,10 +2056,21 @@ if (typeof __html__ !== "undefined") {
       if (message.type === "export") figma.ui.postMessage({ type: "exported", documents: await exportTokens() });
       if (message.type === "build") figma.ui.postMessage({ type: "built", result: await buildLibrary() });
       if (message.type === "export-layouts") figma.ui.postMessage({ type: "exported-layouts", result: await exportLayouts() });
+      if (message.type === "motion-scan") figma.ui.postMessage({ type: "motion-scanned", result: await exportMotion() });
+      if (message.type === "motion-export") figma.ui.postMessage({ type: "motion-exported", result: await exportMotion() });
+      if (message.type === "motion-rename") {
+        await renameMotion(message.setId, message.name);
+        figma.ui.postMessage({ type: "motion-scanned", result: await exportMotion() });
+      }
     } catch (error) {
       figma.ui.postMessage({ type: "error", message: String(error) });
     }
   };
 }
 
-if (typeof module !== "undefined") module.exports = { THEME_SELECTORS, motionName, applyTags, compareVariants, hoversOf, motionDocument };
+if (typeof module !== "undefined") {
+  module.exports = {
+    THEME_SELECTORS, motionName, applyTags, compareVariants, hoversOf, motionDocument,
+    tagThemeComponents, snapshotSet, exportMotion, renameMotion,
+  };
+}
