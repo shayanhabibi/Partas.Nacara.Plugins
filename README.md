@@ -323,7 +323,8 @@ so it stays in sync with the library it compiles.
 ## Theme
 
 The documentation theme this repository's own site is built with: layout, navbar,
-design tokens and web components.
+design tokens and web components. Its tokens, components and layouts are also a
+[Figma Community file](https://www.figma.com/community/file/1694279269526963076).
 
 ```bash
 dotnet add package Partas.Nacara.Theme

@@ -225,8 +225,36 @@ is `tok.color.keyword`. A `var()` of another token becomes an alias to it. The k
 | `font` | a font stack | `nacara.font.font-sans` |
 | `css` | anything else, kept as written | `nacara.css.content-width` (`75ch`) |
 
-The repository's `design/figma-plugin` imports these documents into Figma and exports
-them back:
+#### Designing the theme in Figma
+
+The theme's Figma file is on
+[Figma Community](https://www.figma.com/community/file/1694279269526963076): the
+variables already imported, the components, and a template of each layout. To
+design a site's theme there and bring it back to the site:
+
+1. Duplicate the file into your drafts.
+2. Change the variables in the `Partas.Nacara.Theme` collections, Light and Dark,
+   and the `Shadow` and `Shadow (Dark)` effect styles. The components and the
+   example page follow, since they are bound to the variables.
+3. Run the plugin, choose **Export from variables**, and save `light.tokens.json`
+   and `dark.tokens.json` into a folder of the site, such as `design/tokens`.
+4. Read them in the site:
+
+```fsharp
+Theme.defaults |> Theme.tokens (DesignTokens.fromDirectory "design/tokens")
+```
+
+Exporting again and saving over the two files is all a later change takes. A
+layout drawn on the Layouts page comes back the same way, as the
+`Theme.addLayout` lines **Export layouts** writes.
+
+The plugin is `design/figma-plugin` in the repository. Until it is on Figma
+Community, run it in the Figma desktop app through **Plugins → Development →
+Import plugin from manifest…**, choosing its `manifest.json`.
+
+#### What the plugin carries
+
+The plugin imports these documents into Figma and exports them back:
 
 - Colours, sizes and numbers are variables. A variable's name is the token path with
   slashes (`nacara/color/bg-subtle`), and its code syntax is the CSS property, so Dev

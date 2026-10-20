@@ -6,12 +6,14 @@ The theme's tokens, for design tools.
   [design tokens](https://www.designtokens.org/tr/drafts/format/) documents, one per colour
   scheme, written by `DesignTokens.write`. A test fails when they drift from the defaults.
 - `figma-plugin/`: a Figma development plugin that imports those documents as variables and
-  exports variables back as the same documents.
+  exports variables back as the same documents. `figma-plugin/listing/` holds its Figma
+  Community listing and how to publish it.
 
 ## Figma
 
-The template file, with the variables imported and a specimen sheet for each scheme:
-<https://www.figma.com/design/Pp4xHuM3EbO839BHApfmAb>.
+The template file, with the variables imported and a specimen sheet for each scheme, is on
+Figma Community, to duplicate into your own drafts:
+<https://www.figma.com/community/file/1694279269526963076>.
 
 To use the plugin in another file: in the Figma desktop app, open **Plugins → Development →
 Import plugin from manifest…** and choose `figma-plugin/manifest.json`. Then run it, load the two

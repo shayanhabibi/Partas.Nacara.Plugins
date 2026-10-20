@@ -8,7 +8,8 @@
   #status { margin-top: 8px; white-space: pre-wrap; }
 </style>
 
-<p>Load <code>light.tokens.json</code> and <code>dark.tokens.json</code> (from <code>design/tokens</code>, or written by <code>DesignTokens.write</code>), or paste them.</p>
+<p><b>To your site:</b> change the variables, then <b>Export from variables</b> and save both files into a folder of your site, such as <code>design/tokens</code>. Read them there with <code>Theme.tokens (DesignTokens.fromDirectory "design/tokens")</code>.</p>
+<p><b>From your site:</b> load <code>light.tokens.json</code> and <code>dark.tokens.json</code> (written by <code>DesignTokens.write</code>), or paste them, and <b>Import into variables</b>.</p>
 <input id="files" type="file" accept=".json" multiple>
 <label for="Light">Light</label><textarea id="Light"></textarea>
 <label for="Dark">Dark</label><textarea id="Dark"></textarea>
