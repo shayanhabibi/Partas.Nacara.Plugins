@@ -112,3 +112,85 @@ test("the document holds every hover", () => {
   assert.deepEqual(document.hovers.map(h => h.name), ["navbar-link", "sidebar-link", "card[size=small]", "card[size=large]"]);
   assert.deepEqual(document.skipped, []);
 });
+
+// ---- fix round 1: nothing a variant changes is dropped ----
+
+const variant = (snapshot, name) => snapshot.variants.find(v => v.name === name).layer;
+const child = (layer, name) => layer.children.find(c => c.name === name);
+const SELF_ONLY = "a :self layer only carries its colour";
+const UNTAGGED = "no selector: tag the layer or leave it unchanged";
+
+test("a :self layer carries only its colour", () => {
+  const navbar = tagged("Navbar link");
+  child(variant(navbar, "State=Hover"), "Label").opacity = 0.5;
+  const h = hover(navbar, "navbar-link");
+  assert.deepEqual(h.changes.map(c => c.property), ["background-color", "color"]);
+  assert.deepEqual(h.notTranslated, [{ layer: "Label", property: "opacity", reason: SELF_ONLY }]);
+});
+
+test("a grandchild of an untagged set chains its parts", () => {
+  const card = set("Card");
+  const dot = opacity => ({ name: "Dot", type: "ELLIPSE", x: 0, y: 0, width: 4, height: 4, rotation: 0, opacity, fills: [], strokes: [] });
+  child(variant(card, "Size=Small, State=Default"), "Accent").children = [dot(1)];
+  child(variant(card, "Size=Small, State=Hover"), "Accent").children = [dot(0.5)];
+  const h = hover(card, "card[size=small]");
+  assert.deepEqual(h.changes.filter(c => c.layer === "Accent/Dot"), [
+    { layer: "Accent/Dot", part: '[data-motion-part="accent"] [data-motion-part="dot"]', property: "opacity", from: { value: "1" }, to: { value: "0.5" } },
+  ]);
+});
+
+test("a grandchild of a tagged set uses its own tag, or is reported", () => {
+  const sidebar = tagged("Sidebar link");
+  const kids = opacity => [
+    { name: "Dot", type: "ELLIPSE", selector: ".nacara-badge__dot", x: 0, y: 0, width: 4, height: 4, rotation: 0, opacity, fills: [], strokes: [] },
+    { name: "Count", type: "ELLIPSE", x: 0, y: 0, width: 4, height: 4, rotation: 0, opacity, fills: [], strokes: [] },
+  ];
+  child(variant(sidebar, "State=Default"), "Badge").children = kids(1);
+  child(variant(sidebar, "State=Hover"), "Badge").children = kids(0.5);
+  const h = hover(sidebar, "sidebar-link");
+  assert.deepEqual(h.changes.filter(c => c.layer === "Badge/Dot"), [
+    { layer: "Badge/Dot", part: ".nacara-badge__dot", property: "opacity", from: { value: "1" }, to: { value: "0.5" } },
+  ]);
+  assert.deepEqual(h.notTranslated, [{ layer: "Badge/Count", property: "opacity", reason: UNTAGGED }]);
+});
+
+test("a field the comparison does not model is reported", () => {
+  const sidebar = tagged("Sidebar link");
+  const after = variant(sidebar, "State=Hover");
+  child(after, "Badge").mainComponent = "Kind=Beta";
+  after.boundVariables = Object.assign({}, after.boundVariables, { paddingLeft: "nacara/size/space-4" });
+  after.blendMode = "MULTIPLY";
+  const h = hover(sidebar, "sidebar-link");
+  assert.deepEqual(h.notTranslated, [
+    { property: "boundVariables.paddingLeft", reason: "is not animated" },
+    { property: "blendMode", reason: "is not animated" },
+    { layer: "Badge", property: "mainComponent", reason: "is not animated" },
+  ]);
+});
+
+test("two layers sharing a name are reported, not compared", () => {
+  const card = set("Card");
+  const after = variant(card, "Size=Small, State=Hover");
+  after.children.push(JSON.parse(JSON.stringify(child(after, "Accent"))));
+  const h = hover(card, "card[size=small]");
+  assert.deepEqual(h.changes.filter(c => c.layer === "Accent"), []);
+  assert.deepEqual(h.notTranslated, [{ layer: "Accent", property: "layer", reason: "two layers share this name; rename one" }]);
+});
+
+test("a radius that cannot be read on one side is reported", () => {
+  const card = set("Card");
+  delete variant(card, "Size=Small, State=Hover").cornerRadius;
+  const h = hover(card, "card[size=small]");
+  assert.deepEqual(h.changes.filter(c => c.property === "border-radius"), []);
+  assert.deepEqual(h.notTranslated.map(n => n.property), ["border-radius"]);
+});
+
+test("a shadow on a text layer is reported", () => {
+  const card = set("Card");
+  child(variant(card, "Size=Small, State=Hover"), "Title").effects = [
+    { type: "DROP_SHADOW", color: { r: 0, g: 0, b: 0, a: 0.5 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0 },
+  ];
+  const h = hover(card, "card[size=small]");
+  assert.deepEqual(h.changes.filter(c => c.layer === "Title"), []);
+  assert.deepEqual(h.notTranslated.map(n => [n.layer, n.property]), [["Title", "box-shadow"]]);
+});

@@ -1569,6 +1569,7 @@ const THEME_SELECTORS = {
 const SPRING_PRESETS = ["GENTLE", "QUICK", "BOUNCY", "SLOW"];
 const PRESET_DURATION = 1200;
 const UNTAGGED_LAYER = "no selector: tag the layer or leave it unchanged";
+const SELF_ONLY = "a :self layer only carries its colour";
 
 const kebab = text => String(text).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const round = (x, places) => Math.round(x * 10 ** places) / 10 ** places;
@@ -1631,6 +1632,25 @@ function shadowValue(layer) {
   };
 }
 
+// The keys of a layer snapshot that compareLayer does not report as "is not animated". Every other
+// key that differs between the two variants is reported, so a field a snapshot adds (Task 7's
+// snapshotSet, or a later Figma API) is never dropped silently. Add a key here only on purpose.
+const LAYER_KEYS_HANDLED = [
+  // translated, or reported with their own reason, by compareLayer
+  "fills", "strokes", "characters", "width", "height", "opacity", "rotation", "effects", "effectStyle",
+  "cornerRadius", "topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius",
+  // compared entry by entry below, apart from the radius corners
+  "boundVariables",
+  // positional: the root's x/y is its place in the set; a descendant's is a translate, in compareVariants
+  "x", "y",
+  // structural: identity, nesting, tags and interaction, not appearance
+  "name", "type", "id", "children", "selector", "motionName", "variantProperties", "reactions",
+];
+const RADIUS_CORNERS = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"];
+// boundVariables entries compareLayer translates already: the radius corners, and fills (a paint's "variable").
+const BOUND_KEYS_HANDLED = RADIUS_CORNERS.concat(["fills"]);
+const NOT_ANIMATED = "is not animated";
+
 /** The changes between one layer in two variants: CSS changes and what does not translate. */
 function compareLayer(a, b, self) {
   const changes = [];
@@ -1664,50 +1684,76 @@ function compareLayer(a, b, self) {
   const opacity = layer => (layer.opacity === undefined ? 1 : layer.opacity);
   if (opacity(a) !== opacity(b)) change("opacity", { value: String(round(opacity(a), 3)) }, { value: String(round(opacity(b), 3)) });
 
-  change("border-radius", radiusValue(a), radiusValue(b));
+  const radiusA = radiusValue(a), radiusB = radiusValue(b);
+  if (Boolean(radiusA) !== Boolean(radiusB)) report("border-radius", "The corner radius cannot be read in one of the variants.");
+  else change("border-radius", radiusA, radiusB);
 
   const rotation = layer => -(layer.rotation || 0) || 0;
   if (rotation(a) !== rotation(b)) change("rotate", { value: `${round(rotation(a), 2)}deg` }, { value: `${round(rotation(b), 2)}deg` });
 
-  change("box-shadow", shadowValue(a), shadowValue(b));
+  const shadowA = shadowValue(a), shadowB = shadowValue(b);
+  if (text && !same(shadowA, shadowB)) report("box-shadow", "A shadow on a text layer does not translate.");
+  else change("box-shadow", shadowA, shadowB);
   const others = layer => visibleEffects(layer.effects).filter(e => e.type !== "DROP_SHADOW");
   if (!same(others(a), others(b))) {
     const kinds = [...new Set(others(a).concat(others(b)).map(e => e.type))].join(", ");
     report("effect", `${kinds || "This effect"} does not translate; only drop shadows do.`);
   }
 
+  const boundA = a.boundVariables || {}, boundB = b.boundVariables || {};
+  for (const key of new Set(Object.keys(boundA).concat(Object.keys(boundB)))) {
+    if (!BOUND_KEYS_HANDLED.includes(key) && !same(boundA[key], boundB[key])) report(`boundVariables.${key}`, NOT_ANIMATED);
+  }
+  for (const key of new Set(Object.keys(a).concat(Object.keys(b)))) {
+    if (!LAYER_KEYS_HANDLED.includes(key) && !same(a[key], b[key])) report(key, NOT_ANIMATED);
+  }
+
   return { changes, notTranslated };
 }
 
-/** Compares two variants of a set: the hover's changes and what does not translate. Children are matched by name. */
+/**
+ * Compares two variants of a set: the hover's changes and what does not translate. Descendants
+ * are matched by name at each level and named by their path, "Accent/Dot".
+ */
 function compareVariants(before, after, isTheme) {
   const rootA = before.layer || before, rootB = after.layer || after;
   const root = compareLayer(rootA, rootB, false);
   const changes = root.changes.slice();
   const notTranslated = root.notTranslated.slice();
-  const byName = layer => new Map((layer.children || []).map(child => [child.name, child]));
-  const childrenA = byName(rootA), childrenB = byName(rootB);
 
-  for (const name of new Set([...childrenA.keys(), ...childrenB.keys()])) {
-    const a = childrenA.get(name), b = childrenB.get(name);
-    if (!a || !b) {
-      notTranslated.push({ layer: name, property: "layer", reason: a ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
-      continue;
+  const walk = (parentA, parentB, path, chain) => {
+    const kidsA = parentA.children || [], kidsB = parentB.children || [];
+    const count = (kids, name) => kids.filter(k => k.name === name).length;
+    const names = [...new Set(kidsA.concat(kidsB).map(k => k.name))];
+    for (const name of names) {
+      const layer = path ? `${path}/${name}` : name;
+      if (count(kidsA, name) > 1 || count(kidsB, name) > 1) {
+        notTranslated.push({ layer, property: "layer", reason: "two layers share this name; rename one" });
+        continue;
+      }
+      const a = kidsA.find(k => k.name === name), b = kidsB.find(k => k.name === name);
+      if (!a || !b) {
+        notTranslated.push({ layer, property: "layer", reason: a ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
+        continue;
+      }
+      const tag = a.selector || b.selector;
+      const self = isTheme && tag === ":self";
+      const diff = compareLayer(a, b, self);
+      if (a.x !== b.x || a.y !== b.y) {
+        diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
+      }
+      for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer }, n));
+      const part = isTheme ? tag : `${chain ? chain + " " : ""}[data-motion-part="${kebab(name)}"]`;
+      for (const c of diff.changes) {
+        if (isTheme && !tag) notTranslated.push({ layer, property: c.property, reason: UNTAGGED_LAYER });
+        else if (self && c.property !== "color") notTranslated.push({ layer, property: c.property, reason: SELF_ONLY });
+        else if (self) changes.push(c);
+        else changes.push(Object.assign({ layer, part }, c));
+      }
+      walk(a, b, layer, isTheme ? "" : part);
     }
-    const tag = a.selector || b.selector;
-    const self = isTheme && tag === ":self";
-    const diff = compareLayer(a, b, self);
-    if (a.x !== b.x || a.y !== b.y) {
-      diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
-    }
-    for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer: name }, n));
-    if (isTheme && !tag) {
-      for (const c of diff.changes) notTranslated.push({ layer: name, property: c.property, reason: UNTAGGED_LAYER });
-      continue;
-    }
-    const part = self ? null : isTheme ? tag : `[data-motion-part="${kebab(name)}"]`;
-    for (const c of diff.changes) changes.push(part ? Object.assign({ layer: name, part }, c) : c);
-  }
+  };
+  walk(rootA, rootB, "", "");
   return { changes, notTranslated };
 }
 
