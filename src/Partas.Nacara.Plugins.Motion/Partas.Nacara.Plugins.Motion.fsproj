@@ -18,6 +18,7 @@
         <Compile Include="Spring.fs" />
         <Compile Include="Css.fs" />
         <Compile Include="Options.fs" />
+        <Compile Include="Script.fs" />
         <Compile Include="Motion.fs" />
         <EmbeddedResource Include="vendor/anime.esm.js" LogicalName="anime.esm.js" />
         <EmbeddedResource Include="vendor/LICENSE.anime.md" LogicalName="LICENSE.anime.md" />

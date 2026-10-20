@@ -1,6 +1,8 @@
 namespace Nacara.Plugins
 
 open System.IO
+open Nacara.Core
+open Partas.Nacara.Theme
 
 /// <summary>
 /// Hovers drawn in Figma, configured and compiled from F#.
@@ -223,3 +225,75 @@ module Motion =
             match MotionDocument.parse (File.ReadAllText path) with
             | Error message -> Error $"%s{path}: %s{message}"
             | Ok document -> compile options document
+
+    /// <summary>The name of the style layer the CSS hovers are offered to the theme in.</summary>
+    [<Literal>]
+    let LayerName = "motion"
+
+    type private MotionPlugin(options: MotionOptions) =
+        let compiled =
+            match load options with
+            | Ok compiled -> compiled
+            | Error message -> failwith $"Motion: %s{message}"
+
+        do PluginLayers.offer { Name = LayerName; Css = compiled.Css }
+
+        interface IPlugin with
+            member _.Name = "motion"
+
+            member _.Configure registry =
+                let registry =
+                    registry
+                    |> Registry.onPagesRouted (fun context ->
+                        for warning in compiled.Warnings do
+                            context.Diagnostics.Add(Diagnostic.warning "motion-not-translated" warning))
+
+                if compiled.AnimeHovers.IsEmpty then
+                    registry
+                else
+                    let script = MotionScript.entry options.AnimeSource options.ReducedMotion compiled.AnimeHovers
+                    let hash = (BuildCache.Hash script).Substring(0, 8).ToLowerInvariant()
+                    let destination = $"assets/motion.%s{hash}.js"
+                    let path = RelativePath.create destination
+
+                    let asset =
+                        match options.AnimeSource with
+                        | Bundled ->
+                            Bundle([ "motion.js", script; "anime.esm.js", MotionScript.anime () ], "motion.js", path)
+                        | Cdn _ -> WriteText(script, path)
+
+                    let registry = registry |> Registry.asset asset |> Registry.extra (Script(destination, true))
+
+                    match options.AnimeSource with
+                    | Cdn _ -> registry
+                    | Bundled ->
+                        registry
+                        |> Registry.onBuildComplete (fun context ->
+                            let file = AbsolutePath.value (AbsolutePath.combine context.OutputDirectory [ destination ])
+
+                            if context.Writes && File.Exists file && (File.ReadAllText file).Contains "\"./anime.esm.js\"" then
+                                context.Diagnostics.Add(
+                                    Diagnostic.error
+                                        "motion-needs-esbuild"
+                                        $"%s{destination} still imports ./anime.esm.js: the site has no bundler to resolve it"
+                                    |> Diagnostic.withHint "Add |> Esbuild.register to the site."
+                                ))
+
+    /// <summary>The plugin, with the default options.</summary>
+    /// <remarks>Loads the motion document at once and fails, naming the path, when it is missing.</remarks>
+    let create () = MotionPlugin(defaults) :> IPlugin
+
+    /// <summary>The plugin, with options changed by <c>configure</c>.</summary>
+    /// <remarks>Loads the motion document at once, offers its CSS to the theme once, and fails when either cannot be done.</remarks>
+    /// <param name="configure">Changes the default options.</param>
+    let createWith (configure: MotionOptions -> MotionOptions) = MotionPlugin(configure defaults) :> IPlugin
+
+    /// <summary>Adds the plugin to a site, with the default options.</summary>
+    /// <param name="site">The site.</param>
+    let register (site: Site) = Site.plugin (create ()) site
+
+    /// <summary>Adds the plugin to a site, with options changed by <c>configure</c>.</summary>
+    /// <param name="configure">Changes the default options.</param>
+    /// <param name="site">The site.</param>
+    let registerWith (configure: MotionOptions -> MotionOptions) (site: Site) =
+        Site.plugin (createWith configure) site

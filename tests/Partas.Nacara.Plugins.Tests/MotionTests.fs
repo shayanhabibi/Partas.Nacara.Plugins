@@ -83,3 +83,75 @@ let tests =
                 | Ok _ -> failtest "expected an error"
             }
         ]
+
+let private hover easing changes =
+    {
+        Name = "t"
+        Selector = "[data-motion=\"t\"]"
+        Trigger = "ON_HOVER"
+        DurationMs = 200
+        Easing = easing
+        Changes = changes
+        NotTranslated = []
+    }
+
+let private widen to' =
+    {
+        Layer = None
+        Part = None
+        Property = "width"
+        From = Literal "40px"
+        To = to'
+    }
+
+[<Tests>]
+let scriptTests =
+    testList
+        "motion script"
+        [
+            test "bundled entry imports only what it uses" {
+                let script =
+                    MotionScript.entry Bundled Instant [ hover (CubicBezier(0.4, 0.0, 0.2, 1.0)) [ widen (Literal "80px") ] ]
+
+                Expect.stringContains script "cubicBezier" "bezier"
+                Expect.stringContains script "createAnimatable" "animatable"
+                Expect.isFalse (script.Contains "spring") "no spring"
+                Expect.stringContains script "from \"./anime.esm.js\"" "bundled import"
+            }
+
+            test "cdn entry has no static import" {
+                let script =
+                    MotionScript.entry (Cdn "https://x/anime.js") Instant [ hover Linear [ widen (Literal "80px") ] ]
+
+                Expect.isFalse (script.Contains "import {") "no static import"
+                Expect.stringContains script "await import(" "dynamic import"
+                Expect.stringContains script "https://x/anime.js" "url"
+            }
+
+            test "anime script resolves tokens when the hover starts" {
+                let script =
+                    MotionScript.entry
+                        Bundled
+                        Instant
+                        [ hover Linear [ widen (Token "nacara.color.bg-subtle") ] ]
+
+                Expect.stringContains script "getPropertyValue(\"--nacara-bg-subtle\")" "resolved"
+                Expect.isFalse (script.Contains "var(--nacara-bg-subtle)") "not var()"
+            }
+
+            test "a light spring reaches anime.js rescaled" {
+                let light = Easing.Spring { Mass = 0.5; Stiffness = 100.0; Damping = 10.0 }
+                let script = MotionScript.entry Bundled Instant [ hover light [ widen (Literal "80px") ] ]
+                Expect.stringContains script "stiffness: 200" "stiffness"
+                Expect.stringContains script "damping: 20" "damping"
+            }
+
+            test "reduced motion is honoured in the script" {
+                let script = MotionScript.entry Bundled Instant [ hover Linear [ widen (Literal "80px") ] ]
+                Expect.stringContains script "prefers-reduced-motion: reduce" "media query"
+            }
+
+            test "the vendored anime.js is 4.5.0" {
+                Expect.stringContains (MotionScript.anime ()) "v4.5.0" "version"
+            }
+        ]
