@@ -119,6 +119,47 @@ the page wants a menu. The context's front matter is boxed, because one theme
 serves collections of more than one front-matter type: `unbox` it to the type
 of your collection.
 
+### Before and after the content
+
+Two more places take markup of the site's, where the theme has none of its own:
+
+| Setter | Where |
+| --- | --- |
+| `Theme.beforeContent` | Above the page's title, inside its `<main>`: an announcement, an old-version warning |
+| `Theme.afterContent` | After the content, before the edit link and page links: comments, a feedback form |
+
+```fsharp
+Theme.defaults
+|> Theme.beforeContent (fun _ page _ ->
+    Html.aside [
+        prop.className "nacara-callout"
+        prop.custom ("data-kind", "note")
+        prop.text "2.0 is out"
+    ])
+```
+
+They are drawn on every page, bare ones too, unless a layout says otherwise.
+
+### Parts for one layout
+
+A layout can render parts its own way, and leave the rest to the site:
+
+```fsharp
+Theme.defaults
+|> Theme.addLayout "landing" DocPage.splash
+|> Theme.beforeContent announcement
+|> Theme.layoutComponents "landing" (
+    ThemeComponents.navbar heroNavbar
+    >> ThemeComponents.beforeContent (fun _ _ _ -> Html.none))
+```
+
+On `landing` pages the navbar is `heroNavbar` and there is no announcement;
+every other page keeps the site's announcement and the theme's navbar. The
+`ThemeComponents` functions are the same parts as the `Theme` setters:
+`navbar`, `sidebar`, `toc`, `pageNav`, `editLink`, `footer`, `beforeContent` and
+`afterContent`. The layout has to exist already, built in or added before, and
+calling `layoutComponents` again for it adds to what it has.
+
 ## Design tokens
 
 The `tokens` layer is the one layer you do not write CSS for. It is a record, and

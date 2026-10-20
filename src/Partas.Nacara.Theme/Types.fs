@@ -302,6 +302,13 @@ type ThemeOptions =
         /// <see cref="M:Partas.Nacara.Theme.Theme.replaceNavbar" /> and the like.
         /// </remarks>
         Components: ThemeComponents
+        /// <summary>Parts of the page a layout renders its own way, by the layout's name.</summary>
+        /// <remarks>
+        /// Laid over <c>Components</c> on the pages of that layout: a part the layout names wins,
+        /// and the rest are the site's. Set them with
+        /// <see cref="M:Partas.Nacara.Theme.Theme.layoutComponents" />.
+        /// </remarks>
+        LayoutComponents: Map<string, ThemeComponents>
     }
 
 /// <summary>A part of the page as a site renders it in place of the theme's.</summary>
@@ -333,7 +340,90 @@ and ThemeComponents =
         EditLink: ThemeComponent option
         /// <summary>What every page ends with, including its <c>&lt;footer&gt;</c> element.</summary>
         Footer: ThemeComponent option
+        /// <summary>Markup above the page's title, inside its <c>&lt;main&gt;</c>.</summary>
+        /// <remarks>The theme has none of its own. Drawn on every page, bare ones too: an
+        /// announcement, a warning that the version is old.</remarks>
+        BeforeContent: ThemeComponent option
+        /// <summary>Markup after the page's content, before its edit link and page links.</summary>
+        /// <remarks>The theme has none of its own. Drawn on every page, bare ones too: comments,
+        /// a feedback form.</remarks>
+        AfterContent: ThemeComponent option
     }
+
+/// <summary>Builds the parts of the page a site or a layout renders its own way.</summary>
+[<RequireQualifiedAccess>]
+module ThemeComponents =
+
+    /// <summary>Every part the theme's own, and nothing before or after the content.</summary>
+    let none =
+        {
+            Navbar = None
+            Sidebar = None
+            Toc = None
+            PageNav = None
+            EditLink = None
+            Footer = None
+            BeforeContent = None
+            AfterContent = None
+        }
+
+    /// <summary>The parts of <c>over</c>, and those of <c>under</c> where <c>over</c> leaves one
+    /// out.</summary>
+    /// <param name="under">The parts beneath, such as the site's.</param>
+    /// <param name="over">The parts that win, such as a layout's.</param>
+    let layer (under: ThemeComponents) (over: ThemeComponents) =
+        {
+            Navbar = Option.orElse under.Navbar over.Navbar
+            Sidebar = Option.orElse under.Sidebar over.Sidebar
+            Toc = Option.orElse under.Toc over.Toc
+            PageNav = Option.orElse under.PageNav over.PageNav
+            EditLink = Option.orElse under.EditLink over.EditLink
+            Footer = Option.orElse under.Footer over.Footer
+            BeforeContent = Option.orElse under.BeforeContent over.BeforeContent
+            AfterContent = Option.orElse under.AfterContent over.AfterContent
+        }
+
+    /// <summary>A navbar in place of the theme's.</summary>
+    /// <param name="render">The navbar.</param>
+    /// <param name="parts">The parts so far.</param>
+    let navbar (render: ThemeComponent) (parts: ThemeComponents) = { parts with Navbar = Some render }
+
+    /// <summary>A section menu in place of the theme's.</summary>
+    /// <param name="render">The sidebar.</param>
+    /// <param name="parts">The parts so far.</param>
+    let sidebar (render: ThemeComponent) (parts: ThemeComponents) = { parts with Sidebar = Some render }
+
+    /// <summary>A table of contents in place of the theme's.</summary>
+    /// <param name="render">The table of contents.</param>
+    /// <param name="parts">The parts so far.</param>
+    let toc (render: ThemeComponent) (parts: ThemeComponents) = { parts with Toc = Some render }
+
+    /// <summary>Previous and next links in place of the theme's.</summary>
+    /// <param name="render">The links.</param>
+    /// <param name="parts">The parts so far.</param>
+    let pageNav (render: ThemeComponent) (parts: ThemeComponents) = { parts with PageNav = Some render }
+
+    /// <summary>An edit link in place of the theme's.</summary>
+    /// <param name="render">The link.</param>
+    /// <param name="parts">The parts so far.</param>
+    let editLink (render: ThemeComponent) (parts: ThemeComponents) = { parts with EditLink = Some render }
+
+    /// <summary>A footer in place of the theme's, its <c>&lt;footer&gt;</c> element included.</summary>
+    /// <param name="render">The footer.</param>
+    /// <param name="parts">The parts so far.</param>
+    let footer (render: ThemeComponent) (parts: ThemeComponents) = { parts with Footer = Some render }
+
+    /// <summary>Markup above the page's title.</summary>
+    /// <param name="render">The markup.</param>
+    /// <param name="parts">The parts so far.</param>
+    let beforeContent (render: ThemeComponent) (parts: ThemeComponents) =
+        { parts with BeforeContent = Some render }
+
+    /// <summary>Markup after the page's content.</summary>
+    /// <param name="render">The markup.</param>
+    /// <param name="parts">The parts so far.</param>
+    let afterContent (render: ThemeComponent) (parts: ThemeComponents) =
+        { parts with AfterContent = Some render }
 
 [<RequireQualifiedAccess>]
 module DocPage =

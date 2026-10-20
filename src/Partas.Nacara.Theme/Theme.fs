@@ -62,15 +62,8 @@ module Theme =
             BrandIcon = None
             MenuGroupLimit = 150
             Layouts = DocFrontMatter.builtInLayouts
-            Components =
-                {
-                    Navbar = None
-                    Sidebar = None
-                    Toc = None
-                    PageNav = None
-                    EditLink = None
-                    Footer = None
-                }
+            Components = ThemeComponents.none
+            LayoutComponents = Map.empty
         }
 
     /// <summary>A layout pages can name in their front matter, as <c>layout: &lt;name&gt;</c>.</summary>
@@ -99,6 +92,43 @@ module Theme =
     let addLayout (name: string) (shape: DocPage -> DocPage) (options: ThemeOptions) =
         { options with
             Layouts = Map.add name shape options.Layouts
+        }
+
+    /// <summary>Parts of the page a layout renders its own way.</summary>
+    /// <remarks>
+    /// <para>
+    /// Laid over the site's parts on that layout's pages: a part the layout names wins, and the
+    /// rest are the site's, or the theme's. A layout leaves out a part the site added, such as a
+    /// banner before the content, by rendering <c>Html.none</c> there.
+    /// </para>
+    /// <para>
+    /// Called again for the same layout, it changes what the layout has so far. The layout must
+    /// already be there: one of the built-in three, or added by
+    /// <see cref="M:Partas.Nacara.Theme.Theme.addLayout" /> before this.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults
+    /// |> Theme.addLayout "landing" DocPage.splash
+    /// |> Theme.layoutComponents "landing" (ThemeComponents.navbar heroNavbar)
+    /// </code>
+    /// </example>
+    /// <param name="name">The layout, as front matter names it.</param>
+    /// <param name="change">What it does to the layout's parts so far, built with the
+    /// <c>ThemeComponents</c> functions.</param>
+    /// <param name="options">The options so far.</param>
+    let layoutComponents (name: string) (change: ThemeComponents -> ThemeComponents) (options: ThemeOptions) =
+        if not (Map.containsKey name options.Layouts) then
+            let known = options.Layouts |> Map.keys |> String.concat ", "
+            failwith $"Theme.layoutComponents: there is no layout '%s{name}' - add it first. The layouts are: %s{known}"
+
+        let current =
+            Map.tryFind name options.LayoutComponents
+            |> Option.defaultValue ThemeComponents.none
+
+        { options with
+            LayoutComponents = Map.add name (change current) options.LayoutComponents
         }
 
     /// <summary>How many pages a menu group lists before it points at its own page instead.</summary>
@@ -390,7 +420,7 @@ module Theme =
     /// <param name="render">The navbar, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replaceNavbar (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with Navbar = Some render })
+        options |> replacing (ThemeComponents.navbar render)
 
     /// <summary>The site's own section menu, in place of the theme's.</summary>
     /// <remarks>Rendered on every page, menu or not: on a narrow screen the navbar's sections fold
@@ -398,7 +428,7 @@ module Theme =
     /// <param name="render">The sidebar, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replaceSidebar (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with Sidebar = Some render })
+        options |> replacing (ThemeComponents.sidebar render)
 
     /// <summary>The site's own table of contents, in place of the theme's.</summary>
     /// <remarks>Rendered only where the theme's would be: a page with a menu, a table of contents
@@ -406,14 +436,14 @@ module Theme =
     /// <param name="render">The table of contents, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replaceToc (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with Toc = Some render })
+        options |> replacing (ThemeComponents.toc render)
 
     /// <summary>The site's own previous and next links, in place of the theme's.</summary>
     /// <remarks>Rendered only on a page that shows them.</remarks>
     /// <param name="render">The links, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replacePageNav (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with PageNav = Some render })
+        options |> replacing (ThemeComponents.pageNav render)
 
     /// <summary>The site's own edit link, in place of the theme's.</summary>
     /// <remarks>Rendered only on a page that shows one, and whether or not
@@ -421,7 +451,7 @@ module Theme =
     /// <param name="render">The link, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replaceEditLink (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with EditLink = Some render })
+        options |> replacing (ThemeComponents.editLink render)
 
     /// <summary>The site's own footer, in place of the theme's.</summary>
     /// <remarks>
@@ -432,7 +462,30 @@ module Theme =
     /// <param name="render">The footer, from the options, the page and its context.</param>
     /// <param name="options">The options so far.</param>
     let replaceFooter (render: ThemeComponent) (options: ThemeOptions) =
-        options |> replacing (fun parts -> { parts with Footer = Some render })
+        options |> replacing (ThemeComponents.footer render)
+
+    /// <summary>Markup above every page's title, inside its <c>&lt;main&gt;</c>.</summary>
+    /// <remarks>For an announcement, or a warning that this version is old. A layout leaves it
+    /// out with <see cref="M:Partas.Nacara.Theme.Theme.layoutComponents" />.</remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults
+    /// |> Theme.beforeContent (fun _ _ _ ->
+    ///     Html.aside [ prop.className "nacara-callout"; prop.text "2.0 is out" ])
+    /// </code>
+    /// </example>
+    /// <param name="render">The markup, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let beforeContent (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (ThemeComponents.beforeContent render)
+
+    /// <summary>Markup after every page's content, before its edit link and page links.</summary>
+    /// <remarks>For comments, or a feedback form. A layout leaves it out with
+    /// <see cref="M:Partas.Nacara.Theme.Theme.layoutComponents" />.</remarks>
+    /// <param name="render">The markup, from the options, the page and its context.</param>
+    /// <param name="options">The options so far.</param>
+    let afterContent (render: ThemeComponent) (options: ThemeOptions) =
+        options |> replacing (ThemeComponents.afterContent render)
 
     /// <summary>The site's favicon.</summary>
     /// <param name="value">Its path, relative to the site root.</param>
@@ -573,7 +626,10 @@ module Theme =
             | Some render -> render options doc erased
             | None -> theirs ()
 
-        let parts = options.Components
+        let parts =
+            match doc.Layout |> Option.bind (fun name -> Map.tryFind name options.LayoutComponents) with
+            | Some own -> ThemeComponents.layer options.Components own
+            | None -> options.Components
 
         let layoutClass =
             if not doc.Styled then
@@ -767,6 +823,7 @@ module Theme =
                                                                                         ]
                                                                                 ]
                                                                         | None -> Html.none
+                                                                        part parts.BeforeContent (fun () -> Html.none)
                                                                         if doc.ShowTitle then
                                                                             Html.h1 doc.Title
                                                                         Html.div
@@ -775,6 +832,7 @@ module Theme =
                                                                                     .dangerouslySetInnerHTML
                                                                                     context.Content
                                                                             ]
+                                                                        part parts.AfterContent (fun () -> Html.none)
                                                                         if doc.ShowEditLink then
                                                                             part parts.EditLink (fun () ->
                                                                                 Components.editLink
