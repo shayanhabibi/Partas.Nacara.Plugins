@@ -63,19 +63,15 @@ let theme =
            "guide"
            [ Menu.page "guide/getting-started.md"
              Menu.section "Directives" [ Menu.page "guide/directives.md" ]
-             |> Menu.badge "New"
              Menu.section "OgImage" [ Menu.page "guide/og-image.md" ]
-             |> Menu.badge "New"
              Menu.section "AgentFriendly" [ Menu.page "guide/agent-friendly.md" ]
-             |> Menu.badge "New"
              Menu.section "Tailwind" [ Menu.page "guide/tailwind.md" ]
              Menu.section "DaisyUI" [ Menu.page "guide/daisyui.md" ]
              Menu.section
                  "Theme"
                  [ Menu.page "guide/theme.md"
-                   Menu.page "guide/styling.md" |> Menu.badge "New"
-                   Menu.page "guide/figma.md" |> Menu.badge "New" ]
-             |> Menu.badge "New" ]
+                   Menu.page "guide/styling.md"
+                   Menu.page "guide/figma.md" |> Menu.badge "New" ] ]
     |> Theme.navbarEnd
            [// NavbarDynamicWidget Search.trigger
             NavbarDynamicWidget(Versions.switcher (Versions.versions versions Versions.defaults))
