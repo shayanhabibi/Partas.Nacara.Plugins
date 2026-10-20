@@ -115,7 +115,7 @@ module Tokens =
     /// <c>PrimarySubtle</c> is <c>primary-subtle</c> and <c>Space12</c> is <c>space-12</c> -
     /// one run of digits, not one hyphen per digit.
     /// </remarks>
-    let private kebab (name: string) =
+    let internal kebab (name: string) =
         let builder = StringBuilder()
 
         name

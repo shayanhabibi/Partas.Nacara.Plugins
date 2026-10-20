@@ -23,6 +23,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Tokens.fs" />
+        <Compile Include="DesignTokens.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="CodeBlocks.fs" />
         <Compile Include="Icons.fs" />

@@ -68,6 +68,37 @@ is not written twice, so restating a light value in `darkTokens` costs nothing.
 Each of these rewrites the `tokens` layer, so it fails if you dropped that layer —
 there is then nothing for the properties to go in.
 
+### Tokens in Figma
+
+`DesignTokens` writes one colour scheme as a
+[design tokens](https://www.designtokens.org/tr/drafts/format/) document, and
+reads one back over a set of tokens:
+
+```fsharp
+let tokens = Tokens.defaults
+File.WriteAllText("light.tokens.json", DesignTokens.write tokens.Light tokens.SyntaxLight)
+
+Theme.defaults
+|> Theme.lightTokens (DesignTokens.readTokens (File.ReadAllText "light.tokens.json"))
+|> Theme.lightSyntax (DesignTokens.readSyntax (File.ReadAllText "light.tokens.json"))
+```
+
+A token's path is its prefix, its kind and its CSS name: `--nacara-bg-subtle` is
+`nacara.color.bg-subtle`, `--nacara-space-4` is `nacara.size.space-4`, `--tok-keyword`
+is `tok.color.keyword`. A `var()` of another token becomes an alias to it. Values
+with no design-tool type, such as `75ch` or a shadow, are kept as written under `css`.
+
+The repository's `design/figma-plugin` imports these documents as Figma variables
+and exports them back. A variable's name is the token path with slashes
+(`nacara/color/bg-subtle`), and its code syntax is the CSS property, so Dev Mode
+shows `var(--nacara-bg-subtle)`. The schemes are modes of one collection, or one
+collection each on a Figma plan limited to one mode.
+
+Figma has only pixels. Reading a document converts each length back to the unit
+the token already uses, so `space-4` exported as `16px` reads back as `1rem`.
+Reading goes by the last segment of a path, so variables regrouped in Figma still
+land on the right token. A variable with no matching token is ignored.
+
 ## Style layers
 
 The theme's stylesheet is not one file. It is a list of named parts, each written

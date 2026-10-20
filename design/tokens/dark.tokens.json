@@ -1,0 +1,309 @@
+{
+  "nacara": {
+    "font": {
+      "font-sans": {
+        "$type": "fontFamily",
+        "$value": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+      },
+      "font-mono": {
+        "$type": "fontFamily",
+        "$value": "ui-monospace, \"JetBrains Mono\", \"Fira Code\", \"SFMono-Regular\", Menlo, monospace"
+      }
+    },
+    "size": {
+      "space-1": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.25,
+          "unit": "rem"
+        }
+      },
+      "space-2": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.5,
+          "unit": "rem"
+        }
+      },
+      "space-3": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.75,
+          "unit": "rem"
+        }
+      },
+      "space-4": {
+        "$type": "dimension",
+        "$value": {
+          "value": 1,
+          "unit": "rem"
+        }
+      },
+      "space-6": {
+        "$type": "dimension",
+        "$value": {
+          "value": 1.5,
+          "unit": "rem"
+        }
+      },
+      "space-8": {
+        "$type": "dimension",
+        "$value": {
+          "value": 2,
+          "unit": "rem"
+        }
+      },
+      "space-12": {
+        "$type": "dimension",
+        "$value": {
+          "value": 3,
+          "unit": "rem"
+        }
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.5,
+          "unit": "rem"
+        }
+      },
+      "radius-sm": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0.25,
+          "unit": "rem"
+        }
+      },
+      "splash-width": {
+        "$type": "dimension",
+        "$value": {
+          "value": 68,
+          "unit": "rem"
+        }
+      },
+      "layout-gap": {
+        "$type": "dimension",
+        "$value": "{nacara.size.space-8}"
+      },
+      "sidebar-width": {
+        "$type": "dimension",
+        "$value": {
+          "value": 17,
+          "unit": "rem"
+        }
+      },
+      "toc-width": {
+        "$type": "dimension",
+        "$value": {
+          "value": 15,
+          "unit": "rem"
+        }
+      },
+      "navbar-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 3.5,
+          "unit": "rem"
+        }
+      },
+      "navbar-blur": {
+        "$type": "dimension",
+        "$value": {
+          "value": 8,
+          "unit": "px"
+        }
+      },
+      "control-height": {
+        "$type": "dimension",
+        "$value": {
+          "value": 2.25,
+          "unit": "rem"
+        }
+      },
+      "control-radius": {
+        "$type": "dimension",
+        "$value": "{nacara.size.radius-sm}"
+      }
+    },
+    "css": {
+      "content-width": {
+        "$type": "string",
+        "$value": "75ch"
+      },
+      "navbar-opacity": {
+        "$type": "string",
+        "$value": "85%"
+      },
+      "shadow": {
+        "$type": "string",
+        "$value": "0 1px 2px rgb(0 0 0 / 40%), 0 4px 14px rgb(0 0 0 / 35%)"
+      },
+      "shadow-floating": {
+        "$type": "string",
+        "$value": "{nacara.css.shadow}"
+      },
+      "code-inline-text": {
+        "$type": "string",
+        "$value": "currentColor"
+      },
+      "code-max-height": {
+        "$type": "string",
+        "$value": "none"
+      }
+    },
+    "color": {
+      "bg": {
+        "$type": "color",
+        "$value": "#0f1419"
+      },
+      "bg-subtle": {
+        "$type": "color",
+        "$value": "#161c23"
+      },
+      "bg-raised": {
+        "$type": "color",
+        "$value": "#1a2129"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#2a333d"
+      },
+      "text": {
+        "$type": "color",
+        "$value": "#e6edf3"
+      },
+      "text-muted": {
+        "$type": "color",
+        "$value": "#9aa7b4"
+      },
+      "primary": {
+        "$type": "color",
+        "$value": "#9b9ef0"
+      },
+      "primary-contrast": {
+        "$type": "color",
+        "$value": "#0f1419"
+      },
+      "primary-subtle": {
+        "$type": "color",
+        "$value": "#21224a"
+      },
+      "note": {
+        "$type": "color",
+        "$value": "#9b9ef0"
+      },
+      "tip": {
+        "$type": "color",
+        "$value": "#56d4a0"
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "#e2b23c"
+      },
+      "danger": {
+        "$type": "color",
+        "$value": "#ff7b72"
+      },
+      "heading": {
+        "$type": "color",
+        "$value": "{nacara.color.text}"
+      },
+      "code-inline-bg": {
+        "$type": "color",
+        "$value": "{nacara.color.bg-subtle}"
+      },
+      "code-inline-border": {
+        "$type": "color",
+        "$value": "{nacara.color.border}"
+      }
+    }
+  },
+  "tok": {
+    "color": {
+      "comment": {
+        "$type": "color",
+        "$value": "#7f848e"
+      },
+      "string": {
+        "$type": "color",
+        "$value": "#98c379"
+      },
+      "number": {
+        "$type": "color",
+        "$value": "#d19a66"
+      },
+      "constant": {
+        "$type": "color",
+        "$value": "#d19a66"
+      },
+      "constructor": {
+        "$type": "color",
+        "$value": "#61afef"
+      },
+      "property": {
+        "$type": "color",
+        "$value": "#e06c75"
+      },
+      "escape": {
+        "$type": "color",
+        "$value": "#56b6c2"
+      },
+      "keyword": {
+        "$type": "color",
+        "$value": "#c678dd"
+      },
+      "operator": {
+        "$type": "color",
+        "$value": "#56b6c2"
+      },
+      "function": {
+        "$type": "color",
+        "$value": "#61afef"
+      },
+      "type": {
+        "$type": "color",
+        "$value": "#e5c07b"
+      },
+      "namespace": {
+        "$type": "color",
+        "$value": "#61afef"
+      },
+      "variable": {
+        "$type": "color",
+        "$value": "#abb2bf"
+      },
+      "parameter": {
+        "$type": "color",
+        "$value": "#abb2bf"
+      },
+      "punctuation": {
+        "$type": "color",
+        "$value": "#abb2bf"
+      },
+      "tag": {
+        "$type": "color",
+        "$value": "#e06c75"
+      },
+      "attribute": {
+        "$type": "color",
+        "$value": "#d19a66"
+      },
+      "preprocessor": {
+        "$type": "color",
+        "$value": "#c678dd"
+      },
+      "invalid": {
+        "$type": "color",
+        "$value": "#e06c75"
+      },
+      "inserted": {
+        "$type": "color",
+        "$value": "#98c379"
+      },
+      "deleted": {
+        "$type": "color",
+        "$value": "#e06c75"
+      }
+    }
+  }
+}

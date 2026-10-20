@@ -1,0 +1,74 @@
+<style>
+  body { font: 12px/1.4 Inter, system-ui, sans-serif; margin: 12px; color: var(--figma-color-text); background: var(--figma-color-bg); }
+  label { display: block; font-weight: 600; margin: 8px 0 4px; }
+  textarea { width: 100%; height: 150px; box-sizing: border-box; font: 11px ui-monospace, monospace; color: inherit; background: var(--figma-color-bg-secondary); border: 1px solid var(--figma-color-border); border-radius: 4px; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  button { flex: 1; padding: 6px; border-radius: 4px; border: 1px solid var(--figma-color-border); background: var(--figma-color-bg-secondary); color: inherit; cursor: pointer; }
+  button.primary { background: var(--figma-color-bg-brand); color: var(--figma-color-text-onbrand); border: 0; }
+  #status { margin-top: 8px; white-space: pre-wrap; }
+</style>
+
+<p>Load <code>light.tokens.json</code> and <code>dark.tokens.json</code> (from <code>design/tokens</code>, or written by <code>DesignTokens.write</code>), or paste them.</p>
+<input id="files" type="file" accept=".json" multiple>
+<label for="Light">Light</label><textarea id="Light"></textarea>
+<label for="Dark">Dark</label><textarea id="Dark"></textarea>
+<div class="row">
+  <button class="primary" id="import">Import into variables</button>
+  <button id="export">Export from variables</button>
+</div>
+<div class="row">
+  <button id="save-light">Save light.tokens.json</button>
+  <button id="save-dark">Save dark.tokens.json</button>
+</div>
+<div id="status"></div>
+
+<script>
+  const schemes = ["Light", "Dark"];
+  const status = text => (document.getElementById("status").textContent = text);
+
+  document.getElementById("files").onchange = async event => {
+    for (const file of event.target.files) {
+      const scheme = schemes.find(s => file.name.toLowerCase().includes(s.toLowerCase()));
+      if (scheme) document.getElementById(scheme).value = await file.text();
+    }
+  };
+
+  document.getElementById("import").onclick = () => {
+    try {
+      const documents = {};
+      for (const scheme of schemes) {
+        const text = document.getElementById(scheme).value.trim();
+        if (text) documents[scheme] = JSON.parse(text);
+      }
+      if (!documents.Light) return status("Light is required: the other schemes alias and override it.");
+      parent.postMessage({ pluginMessage: { type: "import", documents } }, "*");
+    } catch (error) {
+      status(String(error));
+    }
+  };
+
+  document.getElementById("export").onclick = () => parent.postMessage({ pluginMessage: { type: "export" } }, "*");
+
+  const save = scheme => () => {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([document.getElementById(scheme).value], { type: "application/json" }));
+    link.download = `${scheme.toLowerCase()}.tokens.json`;
+    link.click();
+  };
+  document.getElementById("save-light").onclick = save("Light");
+  document.getElementById("save-dark").onclick = save("Dark");
+
+  onmessage = ({ data: { pluginMessage: message } }) => {
+    if (message.type === "imported") {
+      const { written, collections, problems } = message.result;
+      status(`Wrote ${written} values into ${collections.join(", ")}.` + (problems.length ? "\n" + problems.join("\n") : ""));
+    }
+    if (message.type === "exported") {
+      for (const scheme of schemes) {
+        if (message.documents[scheme]) document.getElementById(scheme).value = JSON.stringify(message.documents[scheme], null, 2) + "\n";
+      }
+      status(`Exported ${Object.keys(message.documents).join(", ")}.`);
+    }
+    if (message.type === "error") status(message.message);
+  };
+</script>
