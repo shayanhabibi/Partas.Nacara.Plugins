@@ -39,6 +39,38 @@ let tests =
                 Expect.stringContains compiled.Css "437ms" "duration"
             }
 
+            test "a duration on a spring hover fails" {
+                match compile (Motion.duration small 300) with
+                | Error message ->
+                    Expect.stringContains message $"\"%s{small}\"" "name"
+                    Expect.stringContains message "settling time" "why"
+                    Expect.stringContains message "Motion.easing" "fix"
+                | Ok _ -> failtest "expected an error"
+            }
+
+            test "a duration on a preset hover fails" {
+                match compile (Motion.duration "sidebar-link" 300) with
+                | Error message ->
+                    Expect.stringContains message "\"sidebar-link\"" "name"
+                    Expect.stringContains message "1200ms" "why"
+                | Ok _ -> failtest "expected an error"
+            }
+
+            test "a duration on a spring hover eased by a bezier wins" {
+                let compiled =
+                    compile (Motion.easing small (CubicBezier(0.2, 0.0, 0.0, 1.0)) >> Motion.duration small 333) |> ok
+
+                Expect.stringContains compiled.Css "333ms" "duration"
+            }
+
+            test "a duration on a bezier hover eased by a spring fails" {
+                let spring = Easing.Spring { Mass = 1.0; Stiffness = 300.0; Damping = 20.0 }
+
+                match compile (Motion.easing "card[size=large]" spring >> Motion.duration "card[size=large]" 300) with
+                | Error message -> Expect.stringContains message "settling time" "why"
+                | Ok _ -> failtest "expected an error"
+            }
+
             test "a value override replaces the after value" {
                 let compiled = compile (Motion.value small "Accent/width" "120px") |> ok
                 Expect.stringContains compiled.Css "width: 120px;" "new"

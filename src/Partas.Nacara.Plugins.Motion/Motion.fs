@@ -83,7 +83,11 @@ module Motion =
         update name (fun s -> { s with Engine = Some engine }) options
 
     /// <summary>Sets the duration of one hover in milliseconds.</summary>
-    /// <remarks>Defaults to the document's duration.</remarks>
+    /// <remarks>
+    /// Applies to a linear or cubic-bezier easing. A spring plays over its settling time and a spring
+    /// preset over 1200ms, so <c>compile</c> fails when the hover's easing, after any
+    /// <c>easing</c> override, is a spring or a preset. Defaults to the document's duration.
+    /// </remarks>
     /// <param name="name">The hover's name in the document.</param>
     /// <param name="ms">The duration in milliseconds.</param>
     /// <param name="options">The options to change.</param>
@@ -151,6 +155,22 @@ module Motion =
                         Some
                             $"The hover \"%s{hover.Name}\" has no change \"%s{key}\" to override. Known keys: %s{quoted keys}."))
 
+    let private checkDurations (options: MotionOptions) (document: MotionDocument) =
+        document.Hovers
+        |> List.tryPick (fun hover ->
+            match Map.tryFind hover.Name options.Hovers with
+            | Some { Duration = Some ms; Easing = easing } ->
+                match easing |> Option.defaultValue hover.Easing with
+                | Easing.Spring _ ->
+                    Some
+                        $"The hover \"%s{hover.Name}\" is given a duration of %d{ms}ms, but its easing is a spring, which plays over its settling time. Set Motion.easing to a cubic-bezier or linear easing to use a duration, or change the spring's mass, stiffness and damping."
+                | SpringPreset preset ->
+                    Some
+                        $"The hover \"%s{hover.Name}\" is given a duration of %d{ms}ms, but its easing is the %s{preset} spring preset, which plays over 1200ms. Set Motion.easing to a cubic-bezier or linear easing to use a duration, or to a custom spring."
+                | Linear
+                | CubicBezier _ -> None
+            | _ -> None)
+
     let private apply (options: MotionOptions) (hover: Hover) =
         match Map.tryFind hover.Name options.Hovers with
         | None -> hover
@@ -186,11 +206,18 @@ module Motion =
         ]
 
     /// <summary>Applies the options to a document and splits its hovers by engine.</summary>
-    /// <remarks>Fails, naming the known ones, when the options name a hover or a change the document does not have.</remarks>
+    /// <remarks>
+    /// Fails, naming the known ones, when the options name a hover or a change the document does not have.
+    /// Fails, too, when a hover with a spring or spring preset easing is given a duration.
+    /// </remarks>
     /// <param name="options">The options.</param>
     /// <param name="document">The parsed document.</param>
     let compile (options: MotionOptions) (document: MotionDocument) : Result<CompiledMotion, string> =
-        match checkNames options document |> Option.orElseWith (fun () -> checkKeys options document) with
+        match
+            checkNames options document
+            |> Option.orElseWith (fun () -> checkKeys options document)
+            |> Option.orElseWith (fun () -> checkDurations options document)
+        with
         | Some message -> Error message
         | None ->
             let enabled (hover: Hover) =
