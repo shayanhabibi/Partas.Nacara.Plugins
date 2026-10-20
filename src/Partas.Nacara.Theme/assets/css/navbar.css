@@ -54,7 +54,7 @@
     padding: var(--nacara-space-2) var(--nacara-space-3);
     border-radius: var(--nacara-radius-sm);
     color: var(--nacara-text-muted);
-    font-size: 0.9375rem;
+    font-size: var(--nacara-font-size-sm);
     font-weight: 500;
 }
 /* The same class on a dropdown's trigger, which a browser would otherwise draw as a control. */
@@ -177,7 +177,7 @@ button.nacara-navbar__link[data-nacara-dropdown]::after {
     background: var(--nacara-bg-subtle);
     color: var(--nacara-text-muted);
     font: inherit;
-    font-size: 0.875rem;
+    font-size: var(--nacara-font-size-xs);
     cursor: pointer;
 
     &:hover {

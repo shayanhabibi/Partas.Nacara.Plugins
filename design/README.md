@@ -18,19 +18,26 @@ Import plugin from manifest…** and choose `figma-plugin/manifest.json`. Then r
 `.tokens.json` files and choose **Import into variables**. Running it again updates the
 variables in place.
 
-To bring Figma edits back, choose **Export from variables**, save the two documents, and read
-them in the site:
+To bring Figma edits back, choose **Export from variables**, save the two documents over
+`tokens/`, and read them in the site:
 
 ```fsharp
-let light = File.ReadAllText "design/light.tokens.json"
-let dark = File.ReadAllText "design/dark.tokens.json"
-
-Theme.defaults
-|> Theme.lightTokens (DesignTokens.readTokens light)
-|> Theme.darkTokens (DesignTokens.readTokens dark)
-|> Theme.lightSyntax (DesignTokens.readSyntax light)
-|> Theme.darkSyntax (DesignTokens.readSyntax dark)
+Theme.defaults |> Theme.tokens (DesignTokens.fromDirectory "design/tokens")
 ```
+
+What comes back:
+
+- **Variables:** colours, spacing, radius, layout sizes, font sizes, line heights and the
+  heading weight, aliases included.
+- **Shadows:** the effect styles `Shadow` (Light) and `Shadow (Dark)`. A shadow is a style,
+  not a variable, because no variable can hold one; the plugin tags each style with its token
+  (shared plugin data, namespace `nacara`), so renaming it is safe.
+- **Text styles**, through the variables they are bound to: a style's size and, for headings,
+  its weight. Changing `font-size-2xl` resizes `Heading/H1`, and the export carries it.
+
+What does not: a text style's family (Inter and Fira Mono stand in for the theme's font
+stacks), letter spacing and weights that have no token, and component structure or any value
+not bound to a variable.
 
 ## Components and an example page
 
@@ -46,8 +53,9 @@ With the tokens imported, **Build components and example** draws the theme on tw
   page is the light one with the Dark mode applied, or, where each scheme is a collection of its
   own, rebound to the Dark collection's variables.
 
-A component that already exists by name is kept, so building again adds only what is missing. The
-example pages are redrawn each time.
+A component or text style that already exists by name is kept, so building again adds only what
+is missing and leaves your edits alone; only the text styles' bindings are applied again. The
+example pages are redrawn each time, the Dark one with the `Shadow (Dark)` style.
 
 ## Naming
 
@@ -57,6 +65,9 @@ example pages are redrawn each time.
 | `Space4` | `--nacara-space-4` | `nacara.size.space-4` (`1rem`) | `nacara/size/space-4` (`16`) |
 | `LayoutGap` | `--nacara-layout-gap` | `{nacara.size.space-8}` alias | alias to `nacara/size/space-8` |
 | `ContentWidth` | `--nacara-content-width` | `nacara.css.content-width` (`75ch`) | string `nacara/css/content-width` |
+| `FontSize2xl` | `--nacara-font-size-2xl` | `nacara.size.font-size-2xl` (`2.25rem`) | `nacara/size/font-size-2xl` (`36`) |
+| `LineHeight` | `--nacara-line-height` | `nacara.number.line-height` (`1.65`) | `nacara/number/line-height` |
+| `Shadow` | `--nacara-shadow` | `nacara.shadow.shadow` | effect style `Shadow`, `Shadow (Dark)` |
 | `Keyword` | `--tok-keyword` | `tok.color.keyword` | `tok/color/keyword` |
 
 Each scheme is a mode of the collection `Partas.Nacara.Theme`. On a plan limited to one mode

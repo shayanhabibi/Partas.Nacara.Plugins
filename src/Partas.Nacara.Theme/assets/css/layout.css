@@ -60,7 +60,7 @@
     background: var(--nacara-bg);
     color: var(--nacara-text);
     font: inherit;
-    font-size: 0.875rem;
+    font-size: var(--nacara-font-size-xs);
 }
 .nacara-sidebar__filter::placeholder {
     color: var(--nacara-text-muted);
@@ -103,7 +103,7 @@
     display: flex;
     align-items: center;
     margin: 0 0 var(--nacara-space-2);
-    font-size: 0.75rem;
+    font-size: var(--nacara-font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -124,7 +124,7 @@
     padding: var(--nacara-space-2) var(--nacara-space-3);
     border-radius: var(--nacara-radius-sm);
     color: var(--nacara-text-muted);
-    font-size: 0.9375rem;
+    font-size: var(--nacara-font-size-sm);
 }
 .nacara-sidebar__link:hover {
     background: var(--nacara-bg-subtle);
@@ -152,7 +152,7 @@
     padding: var(--nacara-space-2) var(--nacara-space-3);
     border-radius: var(--nacara-radius-sm);
     color: var(--nacara-text-muted);
-    font-size: 0.9375rem;
+    font-size: var(--nacara-font-size-sm);
     cursor: pointer;
     list-style: none;
 }
@@ -249,20 +249,21 @@
 
 .nacara-content :is(h1, h2, h3, h4, h5, h6) {
     color: var(--nacara-heading);
+    font-weight: var(--nacara-font-weight-heading);
 }
 .nacara-content h1 {
-    font-size: 2.25rem;
-    line-height: 1.2;
+    font-size: var(--nacara-font-size-2xl);
+    line-height: var(--nacara-line-height-heading);
     margin: 0 0 var(--nacara-space-4);
     letter-spacing: -0.02em;
 }
 .nacara-content h2 {
-    font-size: 1.5rem;
+    font-size: var(--nacara-font-size-xl);
     margin: var(--nacara-space-12) 0 var(--nacara-space-3);
     letter-spacing: -0.01em;
 }
 .nacara-content h3 {
-    font-size: 1.1875rem;
+    font-size: var(--nacara-font-size-lg);
     margin: var(--nacara-space-8) 0 var(--nacara-space-2);
 }
 .nacara-content p,
@@ -287,7 +288,7 @@
     width: 100%;
     margin: 0 0 var(--nacara-space-6);
     border-collapse: collapse;
-    font-size: 0.9375rem;
+    font-size: var(--nacara-font-size-sm);
     overflow-x: auto;
 }
 .nacara-content th,
@@ -363,11 +364,11 @@
 .nacara-toc {
     position: sticky;
     top: calc(var(--nacara-navbar-height) + var(--nacara-space-4));
-    font-size: 0.875rem;
+    font-size: var(--nacara-font-size-xs);
 }
 .nacara-toc__title {
     margin: 0 0 var(--nacara-space-2);
-    font-size: 0.75rem;
+    font-size: var(--nacara-font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -436,7 +437,7 @@
 }
 .nacara-page-nav__label {
     display: block;
-    font-size: 0.75rem;
+    font-size: var(--nacara-font-size-2xs);
     color: var(--nacara-text-muted);
 }
 
@@ -445,7 +446,7 @@
     align-items: center;
     gap: var(--nacara-space-1);
     margin-top: var(--nacara-space-8);
-    font-size: 0.875rem;
+    font-size: var(--nacara-font-size-xs);
     color: var(--nacara-text-muted);
 }
 .nacara-edit-link svg {
@@ -461,6 +462,6 @@
     background: var(--nacara-bg);
     border-top: 1px solid var(--nacara-border);
     color: var(--nacara-text-muted);
-    font-size: 0.875rem;
+    font-size: var(--nacara-font-size-xs);
     text-align: center;
 }

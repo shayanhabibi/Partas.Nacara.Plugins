@@ -1,5 +1,6 @@
 // Imports the theme's design tokens documents (design/tokens/*.tokens.json) as Figma
-// variables, and exports Figma variables back as the same documents.
+// variables, and exports Figma variables back as the same documents. A shadow token, which no
+// variable can hold, is an effect style instead.
 //
 // A variable's name is its token path with slashes: nacara.color.bg-subtle is
 // nacara/color/bg-subtle, and its WEB code syntax is var(--nacara-bg-subtle). A colour scheme is
@@ -44,7 +45,7 @@ function figmaValue(token) {
   if (isAlias(value)) return null;
   if (type === "color" && typeof value === "string" && value.startsWith("#")) return ["COLOR", parseHex(value)];
   if (type === "color" && value && value.hex) return ["COLOR", { ...parseHex(value.hex), a: value.alpha ?? 1 }];
-  if (type === "dimension" || type === "number") {
+  if (type === "dimension" || type === "number" || type === "fontWeight") {
     const amount = typeof value === "number" ? value : value.value;
     const unit = typeof value === "number" ? "px" : value.unit;
     return ["FLOAT", unit === "rem" ? amount * REM : amount];
@@ -60,6 +61,9 @@ function scopesFor(type, path) {
     return ["FRAME_FILL", "SHAPE_FILL", "STROKE_COLOR"];
   }
   if (type === "FLOAT") {
+    if (/^font-size/.test(leaf)) return ["FONT_SIZE"];
+    if (/^font-weight/.test(leaf)) return ["FONT_WEIGHT"];
+    if (/^line-height/.test(leaf)) return ["LINE_HEIGHT"];
     if (/^space-|gap$/.test(leaf)) return ["GAP"];
     if (/radius/.test(leaf)) return ["CORNER_RADIUS"];
     if (/blur/.test(leaf)) return ["EFFECT_FLOAT"];
@@ -98,6 +102,61 @@ async function schemeTargets(schemes) {
   }
 }
 
+// ---- shadows: effect styles, since a variable cannot hold one -------------------------------
+//
+// A shadow token is an effect style per scheme: "Shadow" for Light, "Shadow (Dark)" for Dark.
+// The token's path and scheme are kept on the style (shared plugin data, namespace "nacara"), so renaming it in Figma loses nothing.
+
+const shadowTitle = leaf => leaf.charAt(0).toUpperCase() + leaf.slice(1).replace(/-/g, " ");
+const shadowStyleName = (leaf, scheme) => (scheme === "Light" ? shadowTitle(leaf) : `${shadowTitle(leaf)} (${scheme})`);
+const pixels = length => (typeof length === "number" ? length : length.unit === "rem" ? length.value * REM : length.value);
+
+/** The effect style holding one scheme's value of a shadow token, if there is one. */
+async function shadowStyle(path, scheme) {
+  const styles = await figma.getLocalEffectStylesAsync();
+  return (
+    styles.find(s => s.getSharedPluginData("nacara", "token") === path.join(".") && s.getSharedPluginData("nacara", "scheme") === scheme) ||
+    styles.find(s => s.name === shadowStyleName(path[path.length - 1], scheme))
+  );
+}
+
+async function importShadow(path, scheme, layers) {
+  const style = (await shadowStyle(path, scheme)) || figma.createEffectStyle();
+  style.name = shadowStyleName(path[path.length - 1], scheme);
+  style.setSharedPluginData("nacara", "token", path.join("."));
+  style.setSharedPluginData("nacara", "scheme", scheme);
+  style.description = `var(--${path[0]}-${path[path.length - 1]}), ${scheme}`;
+  style.effects = (Array.isArray(layers) ? layers : [layers]).map(layer => ({
+    type: layer.inset ? "INNER_SHADOW" : "DROP_SHADOW",
+    color: parseHex(typeof layer.color === "string" ? layer.color : layer.color.hex),
+    offset: { x: pixels(layer.offsetX), y: pixels(layer.offsetY) },
+    radius: pixels(layer.blur),
+    spread: pixels(layer.spread || 0),
+    visible: true,
+    blendMode: "NORMAL",
+  }));
+}
+
+async function exportShadows(documents) {
+  for (const style of await figma.getLocalEffectStylesAsync()) {
+    const token = style.getSharedPluginData("nacara", "token");
+    const scheme = style.getSharedPluginData("nacara", "scheme");
+    if (!token || !scheme) continue;
+    const px = value => ({ value: Math.round(value * 100) / 100, unit: "px" });
+    const layers = style.effects
+      .filter(e => e.visible && (e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW"))
+      .map(e => ({
+        color: toHex(e.color),
+        offsetX: px(e.offset.x),
+        offsetY: px(e.offset.y),
+        blur: px(e.radius),
+        spread: px(e.spread || 0),
+        ...(e.type === "INNER_SHADOW" ? { inset: true } : {}),
+      }));
+    place((documents[scheme] = documents[scheme] || {}), token.split("."), { $type: "shadow", $value: layers });
+  }
+}
+
 // ---- import --------------------------------------------------------------------------------
 
 /** Writes { Light: document, Dark: document } into variables. Returns counts and problems. */
@@ -117,6 +176,16 @@ async function importTokens(documents) {
       for (const token of flatten(documents[scheme], [], [])) {
         const name = token.path.join("/");
         const key = `${collection.id}|${name}`;
+        if (token.type === "shadow") {
+          // An alias to another shadow has nothing to draw; the code keeps it as var(). A variable
+          // left from when the shadow was a string goes, or exporting would read it back instead.
+          const leaf = token.path[token.path.length - 1];
+          for (const [k, v] of byName) {
+            if (k.startsWith(`${collection.id}|`) && v.name.split("/").pop() === leaf) { v.remove(); byName.delete(k); }
+          }
+          if (pass === "values" && !isAlias(token.value)) { await importShadow(token.path, scheme, token.value); written++; }
+          continue;
+        }
         const direct = figmaValue(token);
         if ((pass === "values") !== (direct !== null)) continue;
 
@@ -177,20 +246,24 @@ async function exportTokens() {
         if (raw === undefined) continue;
         const aliased = raw && raw.type === "VARIABLE_ALIAS" ? byId.get(raw.id) : null;
         const resolved = aliased ? aliased.resolvedType : variable.resolvedType;
+        // Line heights and weights are bare numbers in the theme; every other FLOAT is a length.
+        const leaf = path[path.length - 1];
+        const bare = /^(line-height|font-weight)/.test(leaf);
         const type =
           resolved === "COLOR" ? "color"
-          : resolved === "FLOAT" ? "dimension"
+          : resolved === "FLOAT" ? (bare ? (leaf.startsWith("font-weight") ? "fontWeight" : "number") : "dimension")
           : path.includes("font") ? "fontFamily"
           : "string";
         const value =
           aliased ? `{${aliased.name.split("/").join(".")}}`
           : resolved === "COLOR" ? toHex(raw)
-          : resolved === "FLOAT" ? { value: raw, unit: "px" }
+          : resolved === "FLOAT" ? (bare ? Math.round(raw * 10000) / 10000 : { value: raw, unit: "px" })
           : raw;
         place(document, path, { $type: type, $value: value });
       }
     }
   }
+  await exportShadows(documents);
   return documents;
 }
 
@@ -234,6 +307,27 @@ const TEXT_STYLES = [
   ["Code/Title", "mono", "Regular", 13, 21.45, 0, "ORIGINAL", "A code block's file name"],
 ];
 
+// The size and weight variables a text style reads, so editing a token resizes every style on it.
+// The rest of a style's size is the theme's own, written in its CSS.
+const TEXT_BINDINGS = {
+  "Heading/H1": ["font-size-2xl", "font-weight-heading"],
+  "Heading/H2": ["font-size-xl", "font-weight-heading"],
+  "Heading/H3": ["font-size-lg", "font-weight-heading"],
+  "Heading/Step": [null, "font-weight-heading"],
+  "Body/Default": ["font-size"],
+  "Body/Strong": ["font-size"],
+  "UI/Brand": ["font-size"],
+  "Body/Small": ["font-size-sm"],
+  "Body/Small Strong": ["font-size-sm"],
+  "UI/Nav link": ["font-size-sm"],
+  "Caption/Default": ["font-size-xs"],
+  "UI/Control": ["font-size-xs"],
+  "Caption/Label": ["font-size-2xs"],
+  "Caption/Overline": ["font-size-2xs"],
+  "Caption/Terminal": ["font-size-2xs"],
+  "Code/Block": ["font-size-code"],
+};
+
 const ICONS = {
   GitHub: ["0 0 16 16", "fill", '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>'],
   Menu: ["0 0 24 24", "stroke", '<path d="M4 6h16M4 12h16M4 18h16"/>'],
@@ -276,30 +370,40 @@ async function libraryContext() {
   if (!mono) throw new Error(`None of ${MONOS.join(", ")} is available for code.`);
   await Promise.all([...WEIGHTS.map(style => figma.loadFontAsync({ family: "Inter", style })), figma.loadFontAsync({ family: mono, style: "Regular" })]);
 
+  // A style that already exists is the designer's: only its bindings are applied again. Line
+  // height is a percentage of the size, as the theme's unitless line heights are.
   const existing = await figma.getLocalTextStylesAsync();
   const ts = {};
   for (const [name, font, style, size, lineHeight, spacing, textCase, description] of TEXT_STYLES) {
-    const s = existing.find(t => t.name === name) || figma.createTextStyle();
-    s.name = name;
-    s.fontName = { family: font === "mono" ? mono : "Inter", style };
-    s.fontSize = size;
-    s.lineHeight = { unit: "PIXELS", value: lineHeight };
-    s.letterSpacing = { unit: "PERCENT", value: spacing };
-    s.textCase = textCase;
-    s.description = description;
+    let s = existing.find(t => t.name === name);
+    if (!s) {
+      s = figma.createTextStyle();
+      s.name = name;
+      s.fontName = { family: font === "mono" ? mono : "Inter", style };
+      s.fontSize = size;
+      s.lineHeight = { unit: "PERCENT", value: Math.round((lineHeight / size) * 10000) / 100 };
+      s.letterSpacing = { unit: "PERCENT", value: spacing };
+      s.textCase = textCase;
+      s.description = description;
+    }
+    const [sizeToken, weightToken] = TEXT_BINDINGS[name] || [];
+    if (sizeToken && V[sizeToken]) s.setBoundVariable("fontSize", V[sizeToken]);
+    if (weightToken && V[weightToken]) s.setBoundVariable("fontWeight", V[weightToken]);
     ts[name] = s;
   }
 
-  const shadow = (await figma.getLocalEffectStylesAsync()).find(s => s.name === "Shadow") || figma.createEffectStyle();
-  shadow.name = "Shadow";
-  shadow.description = "--nacara-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 6%)";
-  const ink = { r: 16 / 255, g: 24 / 255, b: 40 / 255, a: 0.06 };
-  shadow.effects = [
-    { type: "DROP_SHADOW", color: ink, offset: { x: 0, y: 1 }, radius: 2, spread: 0, visible: true, blendMode: "NORMAL" },
-    { type: "DROP_SHADOW", color: ink, offset: { x: 0, y: 4 }, radius: 12, spread: 0, visible: true, blendMode: "NORMAL" },
-  ];
+  // The shadow comes from the tokens' import; a file imported before shadows were tokens gets
+  // the theme's default here.
+  let shadow = await shadowStyle(["nacara", "shadow", "shadow"], "Light");
+  if (!shadow)
+    await importShadow(["nacara", "shadow", "shadow"], "Light", [
+      { color: "#1018280f", offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+      { color: "#1018280f", offsetX: 0, offsetY: 4, blur: 12, spread: 0 },
+    ]);
+  shadow = await shadowStyle(["nacara", "shadow", "shadow"], "Light");
+  const shadowDark = dark ? await shadowStyle(["nacara", "shadow", "shadow"], "Dark") : null;
 
-  return { V, dark, mono, ts, shadow, byId: new Map(variables.map(v => [v.id, v])) };
+  return { V, dark, mono, ts, shadow, shadowDark, byId: new Map(variables.map(v => [v.id, v])) };
 }
 
 /** Drawing helpers over one context. */
@@ -1233,6 +1337,10 @@ async function buildExample(ctx, lib, page) {
   if (ctx.dark && ctx.dark.modeId) dark.setExplicitVariableModeForCollection(ctx.dark.collection, ctx.dark.modeId);
   else if (ctx.dark) rebind(ctx, dark, ctx.dark.byName);
   else dark.remove();
+  // An effect style has no modes, so the dark shadow is a style of its own either way.
+  if (ctx.dark && ctx.shadowDark) {
+    for (const node of dark.findAll(n => "effectStyleId" in n && n.effectStyleId === ctx.shadow.id)) await node.setEffectStyleIdAsync(ctx.shadowDark.id);
+  }
   return { light: root, dark: ctx.dark ? dark : null };
 }
 

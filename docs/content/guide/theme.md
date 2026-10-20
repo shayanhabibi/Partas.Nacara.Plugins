@@ -72,32 +72,55 @@ there is then nothing for the properties to go in.
 
 `DesignTokens` writes one colour scheme as a
 [design tokens](https://www.designtokens.org/tr/drafts/format/) document, and
-reads one back over a set of tokens:
+reads documents back over a set of tokens:
 
 ```fsharp
 let tokens = Tokens.defaults
-File.WriteAllText("light.tokens.json", DesignTokens.write tokens.Light tokens.SyntaxLight)
+File.WriteAllText("design/tokens/light.tokens.json", DesignTokens.write tokens.Light tokens.SyntaxLight)
+File.WriteAllText("design/tokens/dark.tokens.json", DesignTokens.write tokens.Dark tokens.SyntaxDark)
 
-Theme.defaults
-|> Theme.lightTokens (DesignTokens.readTokens (File.ReadAllText "light.tokens.json"))
-|> Theme.lightSyntax (DesignTokens.readSyntax (File.ReadAllText "light.tokens.json"))
+Theme.defaults |> Theme.tokens (DesignTokens.fromDirectory "design/tokens")
 ```
+
+`DesignTokens.fromDirectory` reads `light.tokens.json` and `dark.tokens.json`, the
+names the Figma plugin saves under. A scheme whose document is missing keeps its
+tokens. `DesignTokens.readTheme` does the same from two strings, and
+`DesignTokens.readTokens` and `readSyntax` read one record at a time.
 
 A token's path is its prefix, its kind and its CSS name: `--nacara-bg-subtle` is
 `nacara.color.bg-subtle`, `--nacara-space-4` is `nacara.size.space-4`, `--tok-keyword`
-is `tok.color.keyword`. A `var()` of another token becomes an alias to it. Values
-with no design-tool type, such as `75ch` or a shadow, are kept as written under `css`.
+is `tok.color.keyword`. A `var()` of another token becomes an alias to it. The kinds:
 
-The repository's `design/figma-plugin` imports these documents as Figma variables
-and exports them back. A variable's name is the token path with slashes
-(`nacara/color/bg-subtle`), and its code syntax is the CSS property, so Dev Mode
-shows `var(--nacara-bg-subtle)`. The schemes are modes of one collection, or one
-collection each on a Figma plan limited to one mode.
+| Kind | Holds | Example |
+|---|---|---|
+| `color` | a hex colour | `nacara.color.primary` |
+| `size` | a length in `px` or `rem`, font sizes included | `nacara.size.font-size-2xl` |
+| `number` | a line height, or a `fontWeight` | `nacara.number.line-height` |
+| `shadow` | a `box-shadow`, one entry per layer | `nacara.shadow.shadow` |
+| `font` | a font stack | `nacara.font.font-sans` |
+| `css` | anything else, kept as written | `nacara.css.content-width` (`75ch`) |
+
+The repository's `design/figma-plugin` imports these documents into Figma and exports
+them back:
+
+- Colours, sizes and numbers are variables. A variable's name is the token path with
+  slashes (`nacara/color/bg-subtle`), and its code syntax is the CSS property, so Dev
+  Mode shows `var(--nacara-bg-subtle)`. The schemes are modes of one collection, or one
+  collection each on a Figma plan limited to one mode.
+- A shadow is an effect style, `Shadow` for Light and `Shadow (Dark)` for Dark, since no
+  variable can hold one.
+- The text styles the plugin draws read their size and weight from the font-size and
+  font-weight variables, so changing `font-size-2xl` resizes `Heading/H1`.
+
+So a theme designed in Figma comes back to code through the variables and the shadow
+styles. What lives only in a text style (its family, letter spacing, a weight with no
+token) or in a component's structure does not.
 
 Figma has only pixels. Reading a document converts each length back to the unit
-the token already uses, so `space-4` exported as `16px` reads back as `1rem`.
-Reading goes by the last segment of a path, so variables regrouped in Figma still
-land on the right token. A variable with no matching token is ignored.
+the token already uses, so `space-4` exported as `16px` reads back as `1rem`, and a
+line height stays a bare number. Reading goes by the last segment of a path, so
+variables regrouped in Figma still land on the right token. A variable with no
+matching token is ignored.
 
 ## Style layers
 
