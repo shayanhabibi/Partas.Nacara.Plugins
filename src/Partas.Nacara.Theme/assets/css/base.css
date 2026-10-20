@@ -17,8 +17,8 @@ html {
 
 body {
     margin: 0;
-    font-size: 1rem;
-    line-height: 1.65;
+    font-size: var(--nacara-font-size);
+    line-height: var(--nacara-line-height);
     color: var(--nacara-text);
     background: var(--nacara-bg);
     -webkit-font-smoothing: antialiased;

@@ -43,6 +43,12 @@ A new package also needs: an entry in `Partas.Nacara.Plugins.slnx`, a reference 
 project, a README section and package-table row, a `docs/content/guide/` page with a menu entry
 in `docs/Site.fs`, and its assembly name in `apiOptions.Sources` there for the API reference.
 
+## Design tokens
+
+`design/tokens/*.tokens.json` are `Tokens.defaults` written by `DesignTokens.write`; a test
+fails when a token changes and they are not regenerated (`design/README.md` has the script).
+`design/figma-plugin` imports them as Figma variables and exports them back.
+
 ## Doc comments
 
 Every public member has a `<summary>`. An option's default goes in its `<remarks>` as

@@ -21,6 +21,25 @@ type Tokens =
     {
         FontSans: string
         FontMono: string
+        /// <summary>The body text's size. The rest of the scale steps down to <c>FontSize2xs</c>
+        /// (captions and labels) and up to <c>FontSize2xl</c> (the page title).</summary>
+        FontSize: string
+        FontSize2xs: string
+        FontSizeXs: string
+        FontSizeSm: string
+        /// <summary>The size of h3.</summary>
+        FontSizeLg: string
+        /// <summary>The size of h2.</summary>
+        FontSizeXl: string
+        /// <summary>The size of h1.</summary>
+        FontSize2xl: string
+        /// <summary>The size of code in a code block.</summary>
+        FontSizeCode: string
+        FontWeightHeading: string
+        /// <summary>The body text's line height, as a multiple of its size.</summary>
+        LineHeight: string
+        LineHeightHeading: string
+        LineHeightCode: string
         Space1: string
         Space2: string
         Space3: string
@@ -115,7 +134,7 @@ module Tokens =
     /// <c>PrimarySubtle</c> is <c>primary-subtle</c> and <c>Space12</c> is <c>space-12</c> -
     /// one run of digits, not one hyphen per digit.
     /// </remarks>
-    let private kebab (name: string) =
+    let internal kebab (name: string) =
         let builder = StringBuilder()
 
         name
@@ -181,6 +200,18 @@ module Tokens =
         {
             FontSans = "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
             FontMono = "ui-monospace, \"JetBrains Mono\", \"Fira Code\", \"SFMono-Regular\", Menlo, monospace"
+            FontSize = "1rem"
+            FontSize2xs = "0.75rem"
+            FontSizeXs = "0.875rem"
+            FontSizeSm = "0.9375rem"
+            FontSizeLg = "1.1875rem"
+            FontSizeXl = "1.5rem"
+            FontSize2xl = "2.25rem"
+            FontSizeCode = "0.875rem"
+            FontWeightHeading = "700"
+            LineHeight = "1.65"
+            LineHeightHeading = "1.2"
+            LineHeightCode = "1.6"
             Space1 = "0.25rem"
             Space2 = "0.5rem"
             Space3 = "0.75rem"
@@ -209,7 +240,7 @@ module Tokens =
             Primary = "#6669d7"
             PrimaryContrast = "#ffffff"
             PrimarySubtle = "#ececfb"
-            Shadow = "0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 6%)"
+            Shadow = "0 1px 2px #1018280f, 0 4px 12px #1018280f"
             ShadowFloating = "var(--nacara-shadow)"
             Note = "#6669d7"
             Tip = "#17935f"
@@ -233,7 +264,7 @@ module Tokens =
             Primary = "#9b9ef0"
             PrimaryContrast = "#0f1419"
             PrimarySubtle = "#21224a"
-            Shadow = "0 1px 2px rgb(0 0 0 / 40%), 0 4px 14px rgb(0 0 0 / 35%)"
+            Shadow = "0 1px 2px #00000066, 0 4px 14px #00000059"
             Note = "#9b9ef0"
             Tip = "#56d4a0"
             Warning = "#e2b23c"

@@ -42,8 +42,8 @@
 .nacara-code code {
     display: block;
     font-family: var(--nacara-font-mono);
-    font-size: 0.875rem;
-    line-height: 1.6;
+    font-size: var(--nacara-font-size-code);
+    line-height: var(--nacara-line-height-code);
     font-variant-ligatures: none;
 }
 
@@ -56,7 +56,7 @@
     padding-left: 4.25rem;
     padding-right: 4.25rem;
     font-family: var(--nacara-font-sans);
-    font-size: 0.75rem;
+    font-size: var(--nacara-font-size-2xs);
     letter-spacing: 0.02em;
 }
 .nacara-code[data-frame="terminal"] .nacara-code__title::before {
@@ -219,7 +219,7 @@
     border-radius: var(--nacara-radius-sm);
     background: var(--nacara-bg);
     color: var(--nacara-text);
-    font-size: 0.75rem;
+    font-size: var(--nacara-font-size-2xs);
     line-height: 1.6;
     white-space: nowrap;
 }
