@@ -21,6 +21,7 @@
         <Compile Include="SpringTests.fs"/>
         <Compile Include="MotionCssTests.fs"/>
         <Compile Include="MotionTests.fs"/>
+        <Compile Include="FigmaPluginTests.fs"/>
         <Compile Include="Main.fs"/>
     </ItemGroup>
 

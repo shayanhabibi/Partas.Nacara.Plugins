@@ -1538,6 +1538,250 @@ async function buildLibrary() {
   return { components: Object.keys(lib).length, mono: ctx.mono, schemes: dark ? "Light and Dark" : "Light", layouts: layouts.map(f => f.name) };
 }
 
+// ---- motion --------------------------------------------------------------------------------
+//
+// A hover is a variant whose ON_HOVER reaction changes to another variant with Smart Animate.
+// These functions compare the two variants of a set snapshot (plain data, no figma.*) and write
+// the motion document that Partas.Nacara.Plugins.Motion reads. A snapshot may carry tags from
+// shared plugin data (namespace "nacara"): "selector" on the set, a variant or a layer, and
+// "motionName" on the set. Anything that does not translate is reported, never dropped.
+
+/** The theme's component sets, with the CSS selectors their hovers apply to. */
+const THEME_SELECTORS = {
+  "Navbar link": {
+    set: ".nacara-navbar__link",
+    variants: {
+      "State=Default": '.nacara-navbar__link:not([data-active="true"]):not([aria-current])',
+      "State=Active": '.nacara-navbar__link:is([data-active="true"],[aria-current])',
+    },
+    layers: { Label: ":self" },
+  },
+  "Sidebar link": {
+    set: ".nacara-sidebar__link",
+    variants: {
+      "State=Default": '.nacara-sidebar__link:not([aria-current="page"])',
+      "State=Active": '.nacara-sidebar__link[aria-current="page"]',
+    },
+    layers: { Label: ":self", Badge: ".nacara-badge" },
+  },
+};
+
+const SPRING_PRESETS = ["GENTLE", "QUICK", "BOUNCY", "SLOW"];
+const PRESET_DURATION = 1200;
+const UNTAGGED_LAYER = "no selector: tag the layer or leave it unchanged";
+
+const kebab = text => String(text).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const round = (x, places) => Math.round(x * 10 ** places) / 10 ** places;
+const px = x => `${round(x, 2)}px`;
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const tokenOf = variable => ({ token: variable.split("/").join(".") });
+
+/** The motion name of a set: its name, kebab-cased. */
+function motionName(setName) {
+  return kebab(setName);
+}
+
+/** A copy of a set snapshot tagged as tagThemeComponents tags the set in Figma; other sets come back as they are. */
+function applyTags(snapshot, selectors) {
+  const entry = selectors[snapshot.name];
+  if (!entry) return snapshot;
+  const tagLayer = layer => {
+    const tagged = Object.assign({}, layer);
+    if (entry.layers[layer.name]) tagged.selector = entry.layers[layer.name];
+    if (layer.children) tagged.children = layer.children.map(tagLayer);
+    return tagged;
+  };
+  return Object.assign({}, snapshot, {
+    selector: entry.set,
+    variants: snapshot.variants.map(variant => {
+      const tagged = Object.assign({}, variant, { layer: Object.assign({}, variant.layer) });
+      if (entry.variants[variant.name]) tagged.selector = entry.variants[variant.name];
+      if (variant.layer.children) tagged.layer.children = variant.layer.children.map(tagLayer);
+      return tagged;
+    }),
+  });
+}
+
+const visiblePaints = paints => (paints || []).filter(p => p.visible !== false);
+const visibleEffects = effects => (effects || []).filter(e => e.visible !== false);
+
+function paintValue(paint) {
+  if (!paint) return { value: "transparent" };
+  if (paint.variable) return tokenOf(paint.variable);
+  const alpha = (paint.color.a === undefined ? 1 : paint.color.a) * (paint.opacity === undefined ? 1 : paint.opacity);
+  return { value: toHex({ r: paint.color.r, g: paint.color.g, b: paint.color.b, a: alpha }) };
+}
+
+function radiusValue(layer) {
+  const bound = layer.boundVariables || {};
+  const corners = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"];
+  const names = corners.map(c => bound[c]);
+  if (names[0] && names.every(n => n === names[0])) return tokenOf(names[0]);
+  if (typeof layer.cornerRadius === "number") return { value: px(layer.cornerRadius) };
+  if (corners.every(c => typeof layer[c] === "number")) return { value: corners.map(c => px(layer[c])).join(" ") };
+  return null;
+}
+
+function shadowValue(layer) {
+  if (layer.effectStyle && layer.effectStyle.token) return { token: layer.effectStyle.token };
+  const shadows = visibleEffects(layer.effects).filter(e => e.type === "DROP_SHADOW");
+  if (!shadows.length) return { value: "none" };
+  return {
+    value: shadows.map(e => `${px(e.offset.x)} ${px(e.offset.y)} ${px(e.radius)} ${px(e.spread || 0)} ${toHex(e.color)}`).join(", "),
+  };
+}
+
+/** The changes between one layer in two variants: CSS changes and what does not translate. */
+function compareLayer(a, b, self) {
+  const changes = [];
+  const notTranslated = [];
+  const change = (property, from, to) => {
+    if (from && to && !same(from, to)) changes.push({ property, from, to });
+  };
+  const report = (property, reason) => notTranslated.push({ property, reason });
+  const text = a.type === "TEXT" || b.type === "TEXT";
+
+  const fillsA = visiblePaints(a.fills), fillsB = visiblePaints(b.fills);
+  const [fillA, fillB] = [fillsA[0], fillsB[0]];
+  if (!same(fillA, fillB)) {
+    const odd = [fillA, fillB].find(p => p && p.type !== "SOLID");
+    if (odd) report("fill", `${odd.type} fills do not translate; use a solid fill.`);
+    else change(text || self ? "color" : "background-color", paintValue(fillA), paintValue(fillB));
+  }
+  if (!same(fillsA.slice(1), fillsB.slice(1))) report("fill", "Only the first fill translates.");
+
+  if (!same(visiblePaints(a.strokes), visiblePaints(b.strokes))) report("stroke", "Strokes do not translate.");
+
+  if (text) {
+    const sized = a.width !== b.width || a.height !== b.height;
+    if (a.characters !== b.characters) report("text", "Text content does not animate; the layer's size follows it.");
+    else if (sized) report("text", "A text layer's size follows its text and does not animate.");
+  } else {
+    if (a.width !== b.width) change("width", { value: px(a.width) }, { value: px(b.width) });
+    if (a.height !== b.height) change("height", { value: px(a.height) }, { value: px(b.height) });
+  }
+
+  const opacity = layer => (layer.opacity === undefined ? 1 : layer.opacity);
+  if (opacity(a) !== opacity(b)) change("opacity", { value: String(round(opacity(a), 3)) }, { value: String(round(opacity(b), 3)) });
+
+  change("border-radius", radiusValue(a), radiusValue(b));
+
+  const rotation = layer => -(layer.rotation || 0) || 0;
+  if (rotation(a) !== rotation(b)) change("rotate", { value: `${round(rotation(a), 2)}deg` }, { value: `${round(rotation(b), 2)}deg` });
+
+  change("box-shadow", shadowValue(a), shadowValue(b));
+  const others = layer => visibleEffects(layer.effects).filter(e => e.type !== "DROP_SHADOW");
+  if (!same(others(a), others(b))) {
+    const kinds = [...new Set(others(a).concat(others(b)).map(e => e.type))].join(", ");
+    report("effect", `${kinds || "This effect"} does not translate; only drop shadows do.`);
+  }
+
+  return { changes, notTranslated };
+}
+
+/** Compares two variants of a set: the hover's changes and what does not translate. Children are matched by name. */
+function compareVariants(before, after, isTheme) {
+  const rootA = before.layer || before, rootB = after.layer || after;
+  const root = compareLayer(rootA, rootB, false);
+  const changes = root.changes.slice();
+  const notTranslated = root.notTranslated.slice();
+  const byName = layer => new Map((layer.children || []).map(child => [child.name, child]));
+  const childrenA = byName(rootA), childrenB = byName(rootB);
+
+  for (const name of new Set([...childrenA.keys(), ...childrenB.keys()])) {
+    const a = childrenA.get(name), b = childrenB.get(name);
+    if (!a || !b) {
+      notTranslated.push({ layer: name, property: "layer", reason: a ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
+      continue;
+    }
+    const tag = a.selector || b.selector;
+    const self = isTheme && tag === ":self";
+    const diff = compareLayer(a, b, self);
+    if (a.x !== b.x || a.y !== b.y) {
+      diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
+    }
+    for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer: name }, n));
+    if (isTheme && !tag) {
+      for (const c of diff.changes) notTranslated.push({ layer: name, property: c.property, reason: UNTAGGED_LAYER });
+      continue;
+    }
+    const part = self ? null : isTheme ? tag : `[data-motion-part="${kebab(name)}"]`;
+    for (const c of diff.changes) changes.push(part ? Object.assign({ layer: name, part }, c) : c);
+  }
+  return { changes, notTranslated };
+}
+
+function easingOf(easing) {
+  if (easing.type === "CUSTOM_CUBIC_BEZIER") {
+    const { x1, y1, x2, y2 } = easing.easingFunctionCubicBezier;
+    return { type: easing.type, x1: round(x1, 3), y1: round(y1, 3), x2: round(x2, 3), y2: round(y2, 3) };
+  }
+  if (easing.type === "CUSTOM_SPRING") {
+    const { mass, stiffness, damping } = easing.easingFunctionSpring;
+    return { type: easing.type, mass, stiffness, damping };
+  }
+  return { type: easing.type };
+}
+
+/** The hovers of a set snapshot, in the motion document's shape, and the reactions it skips. */
+function hoversOf(setSnapshot) {
+  const hovers = [];
+  const skipped = [];
+  const isTheme = Boolean(setSnapshot.selector) || Object.prototype.hasOwnProperty.call(THEME_SELECTORS, setSnapshot.name);
+  const name = setSnapshot.motionName || motionName(setSnapshot.name);
+  const byId = new Map(setSnapshot.variants.map(v => [v.id, v]));
+
+  for (const before of setSnapshot.variants) {
+    const skip = reason => skipped.push({ component: setSnapshot.name, variant: before.name, reason });
+    for (const reaction of before.reactions || []) {
+      const trigger = reaction.trigger ? reaction.trigger.type : "NONE";
+      if (trigger !== "ON_HOVER") { skip(`${trigger} is not translated; only While hovering is.`); continue; }
+      for (const action of reaction.actions || (reaction.action ? [reaction.action] : [])) {
+        const after = action.type === "NODE" && action.navigation === "CHANGE_TO" ? byId.get(action.destinationId) : null;
+        if (!after) { skip("The hover does not change to another variant of the set."); continue; }
+        const transition = action.transition;
+        if (!transition || transition.type !== "SMART_ANIMATE") {
+          skip(`${transition ? transition.type : "An instant change"} is not translated; use Smart Animate.`);
+          continue;
+        }
+        const props = before.variantProperties || {};
+        const switching = Object.keys(props).filter(key => props[key] !== (after.variantProperties || {})[key]);
+        if (switching.length !== 1) {
+          skip(`The hover variant differs in ${switching.length ? switching.join(", ") : "no variant property"}; it must differ in one.`);
+          continue;
+        }
+        const others = Object.keys(props).filter(key => key !== switching[0]);
+        const selector = setSnapshot.selector
+          ? before.selector || setSnapshot.selector
+          : `[data-motion="${name}"]` + others.map(key => `[data-${kebab(key)}="${kebab(props[key])}"]`).join("");
+        const easing = easingOf(transition.easing);
+        const duration = SPRING_PRESETS.includes(easing.type) ? PRESET_DURATION : Math.round(transition.duration * 1000);
+        const { changes, notTranslated } = compareVariants(before, after, isTheme);
+        hovers.push({
+          name: others.length ? `${name}[${others.map(key => `${kebab(key)}=${kebab(props[key])}`).join(",")}]` : name,
+          selector,
+          trigger: "hover",
+          duration,
+          easing,
+          changes,
+          notTranslated,
+        });
+      }
+    }
+  }
+  return { hovers, skipped };
+}
+
+/** The motion document of a list of set snapshots. */
+function motionDocument(setSnapshots) {
+  const results = setSnapshots.map(hoversOf);
+  return {
+    version: 1,
+    hovers: [].concat(...results.map(r => r.hovers)),
+    skipped: [].concat(...results.map(r => r.skipped)),
+  };
+}
+
 // ---- plugin entry --------------------------------------------------------------------------
 
 if (typeof __html__ !== "undefined") {
@@ -1553,3 +1797,5 @@ if (typeof __html__ !== "undefined") {
     }
   };
 }
+
+if (typeof module !== "undefined") module.exports = { THEME_SELECTORS, motionName, applyTags, compareVariants, hoversOf, motionDocument };
