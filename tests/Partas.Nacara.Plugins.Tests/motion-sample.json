@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "hovers": [
+    {
+      "name": "navbar-link",
+      "selector": ".nacara-navbar__link:not([data-active=\"true\"]):not([aria-current])",
+      "trigger": "hover",
+      "duration": 200,
+      "easing": { "type": "EASE_OUT" },
+      "changes": [
+        { "property": "background-color", "from": { "token": "nacara.color.bg-subtle" }, "to": { "token": "nacara.color.bg-raised" } },
+        { "property": "color", "from": { "token": "nacara.color.text-muted" }, "to": { "token": "nacara.color.text" } }
+      ]
+    },
+    {
+      "name": "card[size=large]",
+      "selector": "[data-motion=\"card\"][data-size=\"large\"]",
+      "trigger": "hover",
+      "duration": 300,
+      "easing": { "type": "CUSTOM_CUBIC_BEZIER", "x1": 0.25, "y1": 0.1, "x2": 0.25, "y2": 1 },
+      "changes": [
+        { "property": "translate", "from": { "value": "0px 0px" }, "to": { "value": "0px -4px" } },
+        { "property": "box-shadow", "from": { "token": "nacara.shadow.shadow" }, "to": { "value": "0px 8px 24px 0px #00000026" } }
+      ],
+      "notTranslated": [
+        { "layer": "Title", "property": "text", "reason": "Text content does not animate." }
+      ]
+    },
+    {
+      "name": "card[size=small]",
+      "selector": "[data-motion=\"card\"][data-size=\"small\"]",
+      "trigger": "hover",
+      "duration": 500,
+      "easing": { "type": "CUSTOM_SPRING", "mass": 1, "stiffness": 300, "damping": 20 },
+      "changes": [
+        { "property": "background-color", "from": { "token": "nacara.color.bg-raised" }, "to": { "value": "#f7f7ff" } },
+        { "layer": "Accent", "part": "[data-motion-part=\"accent\"]", "property": "width", "from": { "value": "40px" }, "to": { "value": "80px" } }
+      ]
+    },
+    {
+      "name": "sidebar-link",
+      "selector": ".nacara-sidebar__link",
+      "trigger": "hover",
+      "duration": 1200,
+      "easing": { "type": "GENTLE" },
+      "changes": [
+        { "property": "opacity", "from": { "value": "0.7" }, "to": { "value": "1" } },
+        { "layer": "Chevron", "part": ".nacara-sidebar__chevron", "property": "rotate", "from": { "value": "0deg" }, "to": { "value": "90deg" } }
+      ]
+    },
+    {
+      "name": "icon-button",
+      "selector": ".nacara-icon-button",
+      "trigger": "hover",
+      "duration": 150,
+      "easing": { "type": "LINEAR" },
+      "changes": [
+        { "property": "border-radius", "from": { "value": "8px" }, "to": { "value": "16px" } },
+        { "property": "height", "from": { "value": "32px" }, "to": { "value": "36px" } }
+      ]
+    }
+  ],
+  "skipped": [
+    { "component": "Tab", "variant": "Selected=False", "reason": "DISSOLVE is not translated; use Smart Animate." }
+  ]
+}

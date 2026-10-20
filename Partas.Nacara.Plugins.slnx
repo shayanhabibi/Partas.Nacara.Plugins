@@ -8,6 +8,7 @@
     <Project Path="src/Partas.Nacara.Plugins.AgentFriendly/Partas.Nacara.Plugins.AgentFriendly.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.DaisyUI/Partas.Nacara.Plugins.DaisyUI.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.Directives/Partas.Nacara.Plugins.Directives.fsproj" />
+    <Project Path="src/Partas.Nacara.Plugins.Motion/Partas.Nacara.Plugins.Motion.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.OgImage/Partas.Nacara.Plugins.OgImage.fsproj" />
     <Project Path="src/Partas.Nacara.Plugins.Tailwind/Partas.Nacara.Plugins.Tailwind.fsproj" />
   </Folder>

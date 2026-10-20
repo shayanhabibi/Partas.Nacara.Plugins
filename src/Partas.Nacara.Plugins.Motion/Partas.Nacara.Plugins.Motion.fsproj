@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>Partas.Nacara.Plugins.Motion</RootNamespace>
+        <AssemblyName>Partas.Nacara.Plugins.Motion</AssemblyName>
+        <PackageId>Partas.Nacara.Plugins.Motion</PackageId>
+        <Title>Partas.Nacara.Plugins.Motion</Title>
+        <Description>Hovers drawn in Figma, compiled into a Nacara site's CSS, or into a bundled anime.js script.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.1.0</Version><AssemblyVersion>0.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Document.fs" />
+        <None Include="../../README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Partas.Nacara.Theme.Contracts/Partas.Nacara.Theme.Contracts.fsproj" />
+        <PackageReference Include="Nacara.Core" Version="2.0.0-beta.6" />
+    </ItemGroup>
+
+</Project>
