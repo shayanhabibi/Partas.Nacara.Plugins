@@ -47,9 +47,12 @@ easing and duration you choose there are the hover's.
 :::step title="Find hovers"
 Run the plugin and choose **Find hovers**. Each hover gets a card with its
 name, the selector it applies to, and its easing and duration. Under
-**Comes across** are the CSS changes. Under **Does not come across, because…**
-is each change that does not translate, with the reason. An interaction the
-plugin cannot read at all is listed under **Skipped**, with the reason.
+**Comes across** are the CSS changes. A change to a layer inside names the
+markup it plays on, such as `Accent (data-motion-part="accent")`. A token shows
+the value it falls back to, such as `nacara.color.bg-raised (#ffffff)`. Under
+**Does not come across, because…** is each change that does not translate,
+with the reason. An interaction the plugin cannot read at all is listed under
+**Skipped**, with the reason.
 :::
 :::step title="Name the set"
 Each component set of your own has a field, **Motion name of** and the set's
@@ -58,11 +61,18 @@ the field the plugin shows the markup the hover plays on, such as
 `On elements with data-motion="card" data-size="small"`. The theme's own sets,
 Navbar link, Sidebar link, TOC link and Icon button, have no field. Their
 hovers apply to the theme's own classes.
+
+Each hover needs a name of its own. Two sets named `Promo card` and
+`Promo-card` are both `promo-card`, so the second one's hover is listed under
+**Skipped**, naming the first set. Give one of them another motion name.
 :::
 :::step title="Export motion"
 Choose **Export motion** and save `motion.json` as `design/tokens/motion.json`
 in your site, beside the tokens. A later change is the same export, saved over
 the file.
+
+The site reads `motion.json` when it starts, so a site running with a watch
+does not see a new export until you stop it and start it again.
 :::
 :::step title="Register the plugin"
 Register Motion before `Theme.register`. Motion offers its CSS to the theme,
@@ -114,7 +124,14 @@ The cards on this page are this Markdown:
   `tabindex="0"`.
 - **Style it at rest.** The document holds only what the hover changes, so where
   the element starts from is your CSS. This site offers its cards' resting
-  style as a layer of its own, in the values the Figma variants rest at:
+  style as a layer of its own, in the values the Figma variants rest at, below.
+- **Leave the transition to the hover.** A hover played by CSS sets the
+  element's `transition` to the properties it changes, and that replaces any
+  other `transition` the element has. To keep one of your own, write a rule of
+  your own that lists both, or play the hover with anime.js, which sets no
+  `transition`.
+
+The cards' resting style:
 
 ```fsharp
 PluginLayers.offer
@@ -141,16 +158,24 @@ A set with no other property has the motion name alone, such as `navbar-link`.
 |---|---|---|
 | The first solid fill | `background-color` | On a text layer, `color`. |
 | Corner radius | `border-radius` | Four different corners give four lengths. |
-| Drop shadows | `box-shadow` | The `Shadow` effect style is `var(--nacara-shadow)`. |
+| Drop shadows | `box-shadow` | The `Shadow` effect style is `var(--nacara-shadow, …)`. |
 | Opacity | `opacity` | Rounded to 3 decimals. |
-| Width and height | `width`, `height` | Not on a text layer; see below. |
-| Rotation | `rotate` | In degrees. |
-| Where a layer inside sits | `translate` | The offset from where it rests. |
+| Width and height | `width`, `height` | Not on a text layer, nor on a side auto layout sizes; see below. |
+| Rotation | `rotate` | In degrees, about the layer's centre. |
+| Where a layer inside sits | `translate` | The offset from where it rests; for a rotated layer, of its centre. |
 
 A value bound to a variable comes across as its custom property, so the hover
-follows the site's tokens and both colour schemes: `nacara/color/bg-subtle` is
-`var(--nacara-bg-subtle)`. An unbound colour is hex, `#rrggbb`, or `#rrggbbaa`
-when it is not opaque. An unbound length is in `px`.
+follows the site's tokens and both colour schemes. Beside it is the value
+Figma resolves the variable to, as a fallback: `nacara/color/bg-subtle` is
+`var(--nacara-bg-subtle, #f6f7f9)`. Where the site defines
+`--nacara-bg-subtle`, as the theme does for its own tokens, the hover uses the
+site's value. Where it does not, such as a variable of a collection of your
+own, the hover ends on Figma's value instead of on nothing. The fallback is the
+variable's value in the mode the component is drawn in, so it does not follow
+the colour scheme. anime.js falls back the same way.
+
+An unbound colour is hex, `#rrggbb`, or `#rrggbbaa` when it is not opaque. An
+unbound length is in `px`.
 
 ### Easing
 
@@ -177,7 +202,10 @@ spring. Both engines play the same curve.
 
 **The four spring presets are approximated.** Figma does not publish the
 parameters behind Gentle, Quick, Bouncy and Slow, and plays each over 1200ms.
-The plugin plays each over 1200ms too, with these stand-in springs:
+The plugin plays each over 1200ms too, on both engines, with these stand-in
+springs. CSS gets the stand-in as a `linear()` easing of 32 samples, and
+anime.js plays the same samples, so a preset looks the same whichever engine
+plays it:
 
 | Preset | Mass | Stiffness | Damping |
 |---|---|---|---|
@@ -219,6 +247,12 @@ The plugin reports everything below, in **Does not come across, because…** or
   are matched by name, so neither has a partner to tween to.
 - **Auto layout spacing and padding, and other bound fields.** Each one that
   changes is reported as "is not animated".
+- **What auto layout moves or sizes.** A layer in an auto layout frame that is
+  not absolutely positioned sits where the layout puts it, and a width or height
+  set to Hug or Fill is the layout's. When one of those changes, the layout did
+  it, not the hover, so it is reported as "follows auto layout". A Fixed width
+  or height comes across. To move a layer inside auto layout on hover, set its
+  position to **Absolute**.
 - **On the theme's own sets:** a changed layer the theme has no selector for, and
   anything but the colour of the `Label` and `Icon` layers. Those layers are the
   link or the button itself in the theme's HTML, so only their colour has
@@ -258,8 +292,9 @@ site
 
 A setter that names a hover the document does not have fails the build, and the
 message lists the hovers the document has. So does a `Motion.value` key the hover
-does not change, and a `Motion.duration` on a hover that plays a spring. A
-misspelt name or key is an error, not a setting that does nothing.
+does not change, a `Motion.duration` on a hover that plays a spring, a
+`SpringPreset` that is not one of the four, and a document with two hovers of
+one name. A misspelt name or key is an error, not a setting that does nothing.
 
 ### `Motion.document`
 
@@ -276,6 +311,10 @@ Motion.document (System.IO.Path.Combine(__SOURCE_DIRECTORY__, "../design/tokens/
 
 When the file is missing, the build fails. The message names the full path it
 looked at and says to run **Export motion** and save `motion.json` there.
+
+The document is read once, when the site starts. A site run with a watch, such
+as `dotnet fsi build.fsx -- docs --watch` here, keeps the hovers it started
+with: restart it after saving a new export.
 
 ### `Motion.engine`
 
@@ -329,6 +368,8 @@ Motion.easing "card[size=large]" (SpringPreset "QUICK")
 ```
 
 A custom spring here replaces a preset's stand-in, and the preset's warning goes.
+A preset name other than those four, such as `SpringPreset "GENTEL"`, fails the
+build, naming the hover and the four presets.
 
 ### `Motion.value`
 
@@ -373,6 +414,7 @@ Where anime.js comes from, for the hovers it plays. `Bundled`, the default, is
 the copy of anime.js 4.5.0 in this package. The script imports it, and the
 site's bundler resolves that import into one file, so the site needs
 `Esbuild.register`. Without it, the build fails with `motion-needs-esbuild`.
+The script carries anime.js's MIT licence notice, which the bundle keeps.
 
 `Motion.animeFromCdn` loads anime.js 4.5.0 from jsDelivr as the page loads
 instead, and needs no bundler. The url is `Motion.CdnUrl`,
