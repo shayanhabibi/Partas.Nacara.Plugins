@@ -322,7 +322,7 @@ test("an icon's colour comes across through its vectors", () => {
       fills: fill ? [{ type: "SOLID", color: { r: 1, g: 1, b: 1 }, opacity: 1, variable: fill }] : [],
       children: [{
         name: "Icon", type: "INSTANCE", mainComponent: "Icon/GitHub", x: 9, y: 9, width: 18, height: 18, rotation: 0, opacity: 1, fills: [], strokes: [],
-        children: ["Vector", "Vector 2"].map(n => ({
+        children: ["Vector", "Vector"].map(n => ({
           name: n, type: "VECTOR", x: 0, y: 0, width: 18, height: 18, rotation: 0, opacity: 1, strokes: [],
           fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 1, variable: color }],
         })),
@@ -367,8 +367,13 @@ test("exportMotion lists the sets with reactions, and renameMotion names one", a
   global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
   await tagThemeComponents(page);
   const before = await exportMotion();
+  const selectors = {
+    "Navbar link": ['.nacara-navbar__link:not([data-active="true"]):not([aria-current])'],
+    "Sidebar link": ['.nacara-sidebar__link:not([aria-current="page"])'],
+    Card: ['[data-motion="card"][data-size="small"]', '[data-motion="card"][data-size="large"]'],
+  };
   assert.deepEqual(before.sets, capture.componentSets.map(s => ({
-    id: s.id, name: s.name, motionName: motionName(s.name), tagged: s.name !== "Card",
+    id: s.id, name: s.name, motionName: motionName(s.name), tagged: s.name !== "Card", theme: s.name !== "Card", selectors: selectors[s.name],
   })));
   assert.deepEqual(before.document, motionDocument(capture.componentSets.map(s => applyTags(s, THEME_SELECTORS))));
   const card = capture.componentSets.find(s => s.name === "Card").id;
@@ -376,4 +381,86 @@ test("exportMotion lists the sets with reactions, and renameMotion names one", a
   const after = await exportMotion();
   assert.equal(after.sets.find(s => s.id === card).motionName, "promo-card");
   assert.deepEqual(after.document.hovers.map(h => h.name).slice(2), ["promo-card[size=small]", "promo-card[size=large]"]);
+});
+
+// ---- Task 7 fix round 1 ----
+
+test("exporting tags theme sets built before tagging", async () => {
+  // Two pages, no tags anywhere, and a document with no findAllWithCriteria: export walks and tags.
+  const sets = capture.componentSets.map(fakeSet);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [fakePage(sets.slice(0, 1)), fakePage(sets.slice(1))] });
+  const { document, sets: listed } = await exportMotion();
+  assert.deepEqual(document, motionDocument(capture.componentSets.map(s => applyTags(s, THEME_SELECTORS))));
+  assert.equal(document.hovers[0].selector, '.nacara-navbar__link:not([data-active="true"]):not([aria-current])');
+  assert.deepEqual(listed.map(s => [s.name, s.tagged, s.theme]), [["Navbar link", true, true], ["Sidebar link", true, true], ["Card", false, false]]);
+});
+
+test("exporting uses the document's own search when it has one", async () => {
+  const sets = capture.componentSets.map(fakeSet);
+  const root = { type: "DOCUMENT", children: [], findAllWithCriteria: ({ types }) => (types[0] === "COMPONENT_SET" ? sets : []) };
+  global.figma = fakeFigma(root);
+  const { document } = await exportMotion();
+  assert.deepEqual(document.hovers.map(h => h.name), ["navbar-link", "sidebar-link", "card[size=small]", "card[size=large]"]);
+  assert.equal(document.hovers[1].selector, '.nacara-sidebar__link:not([aria-current="page"])');
+});
+
+test("a copied theme tag is cleared", async () => {
+  const copy = fakeSet(Object.assign(set("Navbar link"), { name: "Navbar link copy" }));
+  const page = fakePage([copy]);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  copy.setSharedPluginData("nacara", "selector", ".nacara-navbar__link");
+  copy.children[0].setSharedPluginData("nacara", "selector", '.nacara-navbar__link:not([data-active="true"]):not([aria-current])');
+  copy.children[0].children[0].setSharedPluginData("nacara", "selector", ":self");
+  await tagThemeComponents(page);
+  assert.equal(copy.getSharedPluginData("nacara", "selector"), "");
+  assert.equal(copy.children[0].getSharedPluginData("nacara", "selector"), "");
+  assert.equal(copy.children[0].children[0].getSharedPluginData("nacara", "selector"), "");
+  const h = hoversOf(await snapshotSet(copy)).hovers[0];
+  assert.equal(h.selector, '[data-motion="navbar-link-copy"]');
+  assert.deepEqual(h.changes.map(c => [c.layer, c.property]), [[undefined, "background-color"], ["Label", "color"]]);
+});
+
+test("a text range binding alone is not reported", async () => {
+  const navbar = fakeSet(set("Sidebar link"));
+  const label = name => navbar.children.find(v => v.name === name).children[0];
+  label("State=Default").boundVariables.textRangeFills = [alias("nacara/color/text-muted")];
+  label("State=Hover").boundVariables.textRangeFills = [alias("nacara/color/text")];
+  for (const v of navbar.children) v.boundVariables.componentProperties = { Label: alias(`nacara/x/${v.name}`) };
+  const page = fakePage([navbar]);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  await tagThemeComponents(page);
+  const h = hoversOf(await snapshotSet(navbar)).hovers[0];
+  assert.deepEqual(h.changes.map(c => c.property), ["background-color", "color"]);
+  assert.deepEqual(h.notTranslated, []);
+});
+
+test("mixed values snapshot as mixed", async () => {
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [] });
+  const mixed = figma.mixed;
+  const styled = pluginData({ name: "Styled", type: "TEXT", characters: "Hi", x: 0, y: 0, width: 10, height: 10, rotation: 0, opacity: 1,
+    fills: mixed, strokes: [], effects: [], effectStyleId: "", textStyleId: mixed, fontSize: 12 });
+  const plain = pluginData({ name: "Plain", type: "TEXT", characters: "Hi", x: 0, y: 0, width: 10, height: 10, rotation: 0, opacity: 1,
+    fills: [], strokes: [], effects: [], effectStyleId: "", textStyleId: "", fontSize: mixed, fontName: mixed });
+  const box = pluginData({ name: "Box", type: "RECTANGLE", x: 0, y: 0, width: 10, height: 10, rotation: 0, opacity: 1, fills: [], strokes: [], effects: [],
+    effectStyleId: "", cornerRadius: mixed, topLeftRadius: 1, topRightRadius: 2, bottomRightRadius: 3, bottomLeftRadius: 4 });
+  const variant = Object.assign(pluginData({ id: "1:2", name: "State=Default", type: "COMPONENT", x: 0, y: 0, width: 10, height: 10, rotation: 0, opacity: 1,
+    fills: [], strokes: [], effects: [], effectStyleId: "", variantProperties: { State: "Default" }, reactions: [] }), { children: [styled, plain, box] });
+  const setNode = Object.assign(pluginData({ id: "1:1", name: "Mixed", type: "COMPONENT_SET", description: "" }), { children: [variant] });
+  const [s, p, b] = (await snapshotSet(setNode)).variants[0].layer.children;
+  assert.deepEqual(s.fills, [{ type: "MIXED" }]);
+  assert.equal(s.textStyle, "mixed");
+  assert.equal(s.fontSize, undefined);
+  assert.equal(p.fontSize, "mixed");
+  assert.equal(p.fontName, "mixed");
+  assert.equal(b.cornerRadius, undefined);
+  assert.deepEqual([b.topLeftRadius, b.topRightRadius, b.bottomRightRadius, b.bottomLeftRadius], [1, 2, 3, 4]);
+  JSON.stringify(s); // a symbol left in the snapshot would vanish silently from the JSON
+  assert.ok(![s, p, b].some(layer => Object.values(layer).includes(mixed)));
+});
+
+test("mixed text fills that differ are reported", () => {
+  const navbar = tagged("Navbar link");
+  child(variant(navbar, "State=Hover"), "Label").fills = [{ type: "MIXED" }];
+  const h = hover(navbar, "navbar-link");
+  assert.deepEqual(h.notTranslated.map(n => [n.layer, n.property]), [["Label", "fill"]]);
 });

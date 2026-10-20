@@ -1750,35 +1750,42 @@ function compareVariants(before, after, isTheme) {
   };
   const walk = (parentA, parentB, path, chain, inSelf) => {
     const kidsA = parentA.children || [], kidsB = parentB.children || [];
-    const count = (kids, name) => kids.filter(k => k.name === name).length;
     const names = [...new Set(kidsA.concat(kidsB).map(k => k.name))];
     for (const name of names) {
-      const layer = path ? `${path}/${name}` : name;
-      if (count(kidsA, name) > 1 || count(kidsB, name) > 1) {
-        notTranslated.push({ layer, property: "layer", reason: "two layers share this name; rename one" });
+      const named = path ? `${path}/${name}` : name;
+      const as = kidsA.filter(k => k.name === name), bs = kidsB.filter(k => k.name === name);
+      let pairs;
+      if (as.length > 1 || bs.length > 1) {
+        // Inside a :self layer (an icon's vectors, all "Vector") only the colour comes across, and
+        // it is the same for each, so same-named siblings pair up by their order.
+        if (!(isTheme && inSelf && as.length === bs.length)) {
+          notTranslated.push({ layer: named, property: "layer", reason: "two layers share this name; rename one" });
+          continue;
+        }
+        pairs = as.map((a, i) => [`${named}#${i + 1}`, a, bs[i]]);
+      } else if (!as.length || !bs.length) {
+        notTranslated.push({ layer: named, property: "layer", reason: as.length ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
         continue;
-      }
-      const a = kidsA.find(k => k.name === name), b = kidsB.find(k => k.name === name);
-      if (!a || !b) {
-        notTranslated.push({ layer, property: "layer", reason: a ? "The layer is in the resting variant only." : "The layer is in the hover variant only." });
-        continue;
-      }
-      const tag = a.selector || b.selector || (inSelf ? ":self" : undefined);
-      const self = isTheme && tag === ":self";
-      const diff = compareLayer(a, b, self);
-      if (a.x !== b.x || a.y !== b.y) {
-        diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
-      }
-      for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer }, n));
-      const part = isTheme ? tag : `${chain ? chain + " " : ""}[data-motion-part="${kebab(name)}"]`;
-      for (const c of diff.changes) {
-        if (isTheme && !tag) notTranslated.push({ layer, property: c.property, reason: UNTAGGED_LAYER });
-        else if (self && c.property !== "color") notTranslated.push({ layer, property: c.property, reason: SELF_ONLY });
-        else if (self) selfColour(layer, c);
-        else changes.push(Object.assign({ layer, part }, c));
-      }
-      walk(a, b, layer, isTheme ? "" : part, self);
+      } else pairs = [[named, as[0], bs[0]]];
+      for (const [layer, a, b] of pairs) compareChild(layer, a, b, name, chain, inSelf);
     }
+  };
+  const compareChild = (layer, a, b, name, chain, inSelf) => {
+    const tag = a.selector || b.selector || (inSelf ? ":self" : undefined);
+    const self = isTheme && tag === ":self";
+    const diff = compareLayer(a, b, self);
+    if (a.x !== b.x || a.y !== b.y) {
+      diff.changes.push({ property: "translate", from: { value: "0px 0px" }, to: { value: `${px(b.x - a.x)} ${px(b.y - a.y)}` } });
+    }
+    for (const n of diff.notTranslated) notTranslated.push(Object.assign({ layer }, n));
+    const part = isTheme ? tag : `${chain ? chain + " " : ""}[data-motion-part="${kebab(name)}"]`;
+    for (const c of diff.changes) {
+      if (isTheme && !tag) notTranslated.push({ layer, property: c.property, reason: UNTAGGED_LAYER });
+      else if (self && c.property !== "color") notTranslated.push({ layer, property: c.property, reason: SELF_ONLY });
+      else if (self) selfColour(layer, c);
+      else changes.push(Object.assign({ layer, part }, c));
+    }
+    walk(a, b, layer, isTheme ? "" : part, self);
   };
   walk(rootA, rootB, "", "", false);
   return { changes, notTranslated };
@@ -1862,9 +1869,34 @@ function motionDocument(setSnapshots) {
 
 const NACARA = "nacara";
 
-/** The component sets under a node: the page's own search where Figma has it, a walk otherwise. */
+// The boundVariables fields a snapshot keeps, and why. Any other binding is left out on purpose:
+// fills, strokes, effects and textRangeFills are carried by each paint's (or the effect style's) own
+// value, and componentProperties and layoutGrids are not appearance a hover animates, so keeping them
+// would only add a "boundVariables.… is not animated" next to a change already translated.
+const BOUND_SNAPSHOT_KEYS = [
+  // the radius as a token, translated by compareLayer
+  ...RADIUS_CORNERS,
+  // translated or reported as literal values; a binding swap alone is reported (BOUND_KEYS_LITERAL)
+  ...BOUND_KEYS_LITERAL,
+  // real changes the comparison reports as "is not animated" when their binding differs
+  "visible", "minWidth", "maxWidth", "minHeight", "maxHeight", "counterAxisSpacing",
+  "strokeWeight", "strokeTopWeight", "strokeRightWeight", "strokeBottomWeight", "strokeLeftWeight",
+  "characters", "fontFamily", "fontSize", "fontStyle", "fontWeight", "letterSpacing", "lineHeight",
+  "paragraphSpacing", "paragraphIndent",
+];
+
+/**
+ * The component sets under a page or the document: Figma's own search where it has one (a page, and
+ * the document once its pages are loaded), a walk otherwise.
+ */
 function componentSetsIn(node) {
-  if (typeof node.findAllWithCriteria === "function") return node.findAllWithCriteria({ types: ["COMPONENT_SET"] });
+  if (typeof node.findAllWithCriteria === "function") {
+    try {
+      return node.findAllWithCriteria({ types: ["COMPONENT_SET"] });
+    } catch (error) {
+      // the document before loadAllPagesAsync, in dynamic-page mode: walk what is loaded
+    }
+  }
   const sets = [];
   const walk = n => {
     if (n.type === "COMPONENT_SET") sets.push(n);
@@ -1875,26 +1907,27 @@ function componentSetsIn(node) {
 }
 
 /**
- * Tags the theme's component sets on a page, those built before tagging existed included: "selector"
- * on the set, on each variant THEME_SELECTORS names, and on each named layer of a variant. Writes
- * only what differs, so a second run changes nothing.
+ * Tags the theme's component sets under a page or the document, those built before tagging existed
+ * included: "selector" on the set, on each variant THEME_SELECTORS names, and on each named layer of a
+ * variant. A tag THEME_SELECTORS no longer gives (a renamed or duplicated set, a renamed variant or
+ * layer) is cleared at those three levels, so a copied tag never passes for the theme's. Writes only
+ * what differs, so a second run changes nothing.
  */
-async function tagThemeComponents(page) {
+async function tagThemeComponents(node) {
   let sets = 0, written = 0;
-  const tag = (node, selector) => {
-    if (node.getSharedPluginData(NACARA, "selector") === selector) return;
-    node.setSharedPluginData(NACARA, "selector", selector);
+  const tag = (target, selector) => {
+    if (target.getSharedPluginData(NACARA, "selector") === selector) return;
+    target.setSharedPluginData(NACARA, "selector", selector);
     written++;
   };
-  for (const set of componentSetsIn(page)) {
-    const entry = THEME_SELECTORS[set.name];
-    if (!entry) continue;
-    sets++;
+  for (const set of componentSetsIn(node)) {
+    const entry = THEME_SELECTORS[set.name] || { set: "", variants: {}, layers: {} };
+    if (entry.set) sets++;
     tag(set, entry.set);
     for (const variant of set.children) {
-      if (entry.variants[variant.name]) tag(variant, entry.variants[variant.name]);
+      tag(variant, entry.variants[variant.name] || "");
       // A variant's own layers only: the Badge instance holds a Label of its own.
-      for (const layer of variant.children || []) if (entry.layers[layer.name]) tag(layer, entry.layers[layer.name]);
+      for (const layer of variant.children || []) tag(layer, entry.layers[layer.name] || "");
     }
   }
   return { sets, written };
@@ -1973,7 +2006,7 @@ function snapshotReader() {
     if (node.strokes !== undefined) out.strokes = await paints(node.strokes);
     const bound = {};
     for (const [key, value] of Object.entries(node.boundVariables || {})) {
-      if (key !== "fills" && key !== "strokes" && key !== "effects") bound[key] = await names(value);
+      if (BOUND_SNAPSHOT_KEYS.includes(key)) bound[key] = await names(value);
     }
     if (Object.keys(bound).length) out.boundVariables = bound;
     if (node.effectStyleId) {
@@ -2024,16 +2057,27 @@ async function snapshotSet(set) {
   return out;
 }
 
-/** The motion document of every component set in the file with a reaction, and those sets. */
+/**
+ * The motion document of every component set in the file with a reaction, and those sets. It tags the
+ * theme's sets first, so a library built before tagging exports the theme's selectors.
+ */
 async function exportMotion() {
   if (typeof figma.loadAllPagesAsync === "function") await figma.loadAllPagesAsync();
+  await tagThemeComponents(figma.root);
   const snapshots = [];
   for (const set of componentSetsIn(figma.root)) {
     if (set.children.some(v => (v.reactions || []).length)) snapshots.push(await snapshotSet(set));
   }
   return {
     document: motionDocument(snapshots),
-    sets: snapshots.map(s => ({ id: s.id, name: s.name, motionName: s.motionName || motionName(s.name), tagged: Boolean(s.selector) })),
+    sets: snapshots.map(s => ({
+      id: s.id,
+      name: s.name,
+      motionName: s.motionName || motionName(s.name),
+      tagged: Boolean(s.selector),
+      theme: Object.prototype.hasOwnProperty.call(THEME_SELECTORS, s.name),
+      selectors: hoversOf(s).hovers.map(h => h.selector),
+    })),
   };
 }
 

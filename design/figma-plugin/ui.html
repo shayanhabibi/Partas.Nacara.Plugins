@@ -128,7 +128,8 @@
   const showMotion = ({ document: motion, sets }) => {
     const names = document.getElementById("motion-names");
     names.replaceChildren();
-    for (const set of sets.filter(s => !s.tagged)) {
+    // The theme's own sets carry the theme's selectors; only a set of your own takes a name.
+    for (const set of sets.filter(s => !s.theme)) {
       const id = `motion-name-${set.id}`;
       const label = element("label", `Motion name of ${set.name}`);
       label.htmlFor = id;
@@ -141,6 +142,9 @@
         post({ type: "motion-rename", setId: set.id, name: input.value });
       };
       names.append(label, input);
+      // The markup the hover plays on: [data-motion="card"][data-size="small"] is data-motion="card" data-size="small".
+      const markup = set.selectors.map(s => s.replace(/^\[|\]$/g, "").split("][").join(" "));
+      names.appendChild(element("div", markup.length ? `On elements with ${markup.join(", or ")}` : "No hover yet.", "muted"));
     }
 
     const hovers = document.getElementById("motion-hovers");
@@ -163,6 +167,11 @@
       const card = element("div", undefined, "card");
       card.appendChild(list("Skipped", motion.skipped.map(s => `${s.component}, ${s.variant}: ${s.reason}`)));
       skipped.appendChild(card);
+    }
+    if (!motion.hovers.length) {
+      hovers.appendChild(element("p",
+        "No hovers yet. To make one, select a variant, such as the theme's Navbar link State=Default, and in Prototype add an interaction: " +
+        "While hovering → Change to the hover variant (State=Hover), with Smart animate. Then Find hovers again.", "muted"));
     }
     const count = n => (n === 1 ? "1 hover" : `${n} hovers`);
     return `${count(motion.hovers.length)} in ${sets.length} component sets` + (motion.skipped.length ? `; ${motion.skipped.length} skipped.` : ".");
