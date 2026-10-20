@@ -57,8 +57,22 @@ let tests =
                 match MotionDocument.parse """{"version":2,"hovers":[]}""" with
                 | Error message ->
                     Expect.stringContains message "version 2" "names the version"
-                    Expect.stringContains message "1" "names the supported one"
+                    Expect.stringContains message "version 1" "names the supported one"
                 | Ok _ -> failtest "expected an error"
+            }
+
+            test "a wrongly typed field is an error, not an exception" {
+                for json in [ """{"version":1,"hovers":{}}"""; """{"version":"1","hovers":[]}"""; "[]"; """{"version":1,"hovers":[{"name":1}]}""" ] do
+                    Expect.isError (MotionDocument.parse json) json
+            }
+
+            test "cubic bezier points are rounded to 3 decimals" {
+                let json =
+                    """{"version":1,"hovers":[{"name":"x","selector":".x","duration":100,"easing":{"type":"CUSTOM_CUBIC_BEZIER","x1":0.12345,"y1":0.5,"x2":0.6789,"y2":1},"changes":[]}]}"""
+
+                match MotionDocument.parse json with
+                | Ok document -> Expect.equal document.Hovers.Head.Easing (CubicBezier(0.123, 0.5, 0.679, 1.0)) "rounded"
+                | Error message -> failtest message
             }
 
             test "an unknown easing is an error naming the hover" {

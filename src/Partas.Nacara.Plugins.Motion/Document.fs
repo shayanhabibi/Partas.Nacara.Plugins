@@ -123,8 +123,20 @@ module MotionDocument =
         | true, value when value.ValueKind <> JsonValueKind.Null -> Some value
         | _ -> None
 
+    let private asString name (value: JsonElement) =
+        if value.ValueKind = JsonValueKind.String then
+            value.GetString()
+        else
+            failwith $"The motion document's \"%s{name}\" must be a string."
+
+    let private asNumber name (value: JsonElement) =
+        if value.ValueKind = JsonValueKind.Number then
+            value.GetDouble()
+        else
+            failwith $"The motion document's \"%s{name}\" must be a number."
+
     let private str name element =
-        tryProp name element |> Option.map (fun value -> value.GetString())
+        tryProp name element |> Option.map (asString name)
 
     let private required name (element: JsonElement) =
         match tryProp name element with
@@ -133,12 +145,15 @@ module MotionDocument =
 
     let private list name (element: JsonElement) =
         match tryProp name element with
-        | Some value -> [ for item in value.EnumerateArray() -> item ]
+        | Some value when value.ValueKind = JsonValueKind.Array -> [ for item in value.EnumerateArray() -> item ]
+        | Some _ -> failwith $"The motion document's \"%s{name}\" must be an array."
         | None -> []
 
-    let private requiredString name element = (required name element).GetString()
+    let private requiredString name element = required name element |> asString name
 
-    let private number name element = (required name element).GetDouble()
+    let private number name element = required name element |> asNumber name
+
+    let private round3 (x: float) = System.Math.Round(x, 3)
 
     let private value (element: JsonElement) =
         match str "token" element, str "value" element with
@@ -150,7 +165,12 @@ module MotionDocument =
         match requiredString "type" element with
         | "LINEAR" -> Linear
         | "CUSTOM_CUBIC_BEZIER" ->
-            CubicBezier(number "x1" element, number "y1" element, number "x2" element, number "y2" element)
+            CubicBezier(
+                round3 (number "x1" element),
+                round3 (number "y1" element),
+                round3 (number "x2" element),
+                round3 (number "y2" element)
+            )
         | "CUSTOM_SPRING" ->
             Spring
                 {
@@ -205,7 +225,7 @@ module MotionDocument =
         try
             use document = JsonDocument.Parse json
             let root = document.RootElement
-            let version = (required "version" root).GetInt32()
+            let version = int (number "version" root)
 
             if version <> SupportedVersion then
                 Error $"The motion document is version %d{version}; this package reads version %d{SupportedVersion}."
@@ -219,3 +239,4 @@ module MotionDocument =
         with
         | :? JsonException as error -> Error $"The motion document is not valid JSON: %s{error.Message}"
         | Failure message -> Error message
+        | error -> Error $"The motion document is malformed: %s{error.Message}"
