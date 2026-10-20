@@ -117,13 +117,17 @@
     fragment.appendChild(ul);
     return fragment;
   };
-  const valueOf = v => (v.token ? v.token : v.value);
+  // A token with the value it falls back to where the site does not define it.
+  const valueOf = v => (v.token ? (v.value ? `${v.token} (${v.value})` : v.token) : v.value);
   const easingOf = e => {
     if (e.type === "CUSTOM_CUBIC_BEZIER") return `cubic-bezier(${e.x1}, ${e.y1}, ${e.x2}, ${e.y2})`;
     if (e.type === "CUSTOM_SPRING") return `spring: mass ${e.mass}, stiffness ${e.stiffness}, damping ${e.damping}`;
     return e.type;
   };
-  const where = item => (item.layer ? `${item.layer}: ` : "");
+  // A part as the markup it plays on: [data-motion-part="accent"] [data-motion-part="dot"] is
+  // data-motion-part="dot" inside data-motion-part="accent". A theme part is its class selector.
+  const markupOf = part => part.split(/\]\s+\[/).map(s => s.replace(/^\[|\]$/g, "")).reverse().join(" inside ");
+  const where = item => (item.layer ? `${item.layer}${item.part ? ` (${markupOf(item.part)})` : ""}: ` : "");
 
   const showMotion = ({ document: motion, sets }) => {
     const names = document.getElementById("motion-names");
