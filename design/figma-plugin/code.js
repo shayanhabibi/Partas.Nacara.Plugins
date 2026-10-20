@@ -1909,9 +1909,11 @@ function componentSetsIn(node) {
 /**
  * Tags the theme's component sets under a page or the document, those built before tagging existed
  * included: "selector" on the set, on each variant THEME_SELECTORS names, and on each named layer of a
- * variant. A tag THEME_SELECTORS no longer gives (a renamed or duplicated set, a renamed variant or
- * layer) is cleared at those three levels, so a copied tag never passes for the theme's. Writes only
- * what differs, so a second run changes nothing.
+ * variant. Stale tags are cleared at those three levels, and only those that are the theme's:
+ *  - on a theme set, a variant or layer tag THEME_SELECTORS no longer gives (a renamed variant or layer);
+ *  - on any other set, a tag whose value is one of the theme's selectors (a duplicated theme set), so a
+ *    copy never passes for the theme's. A selector of your own on your own set is kept.
+ * Writes only what differs, so a second run changes nothing.
  */
 async function tagThemeComponents(node) {
   let sets = 0, written = 0;
@@ -1920,18 +1922,33 @@ async function tagThemeComponents(node) {
     target.setSharedPluginData(NACARA, "selector", selector);
     written++;
   };
+  const clearCopied = target => {
+    if (THEME_SELECTOR_VALUES.has(target.getSharedPluginData(NACARA, "selector"))) tag(target, "");
+  };
   for (const set of componentSetsIn(node)) {
-    const entry = THEME_SELECTORS[set.name] || { set: "", variants: {}, layers: {} };
-    if (entry.set) sets++;
-    tag(set, entry.set);
+    const entry = THEME_SELECTORS[set.name];
+    if (entry) sets++;
+    if (entry) tag(set, entry.set);
+    else clearCopied(set);
     for (const variant of set.children) {
-      tag(variant, entry.variants[variant.name] || "");
+      if (entry) tag(variant, entry.variants[variant.name] || "");
+      else clearCopied(variant);
       // A variant's own layers only: the Badge instance holds a Label of its own.
-      for (const layer of variant.children || []) tag(layer, entry.layers[layer.name] || "");
+      for (const layer of variant.children || []) {
+        if (entry) tag(layer, entry.layers[layer.name] || "");
+        else clearCopied(layer);
+      }
     }
   }
   return { sets, written };
 }
+
+// Every selector THEME_SELECTORS gives, but ":self": that one is not the theme's own, a set of yours
+// may use it, and without the set's theme selector a copied ":self" is ignored anyway.
+const THEME_SELECTOR_VALUES = new Set(
+  Object.values(THEME_SELECTORS)
+    .flatMap(e => [e.set, ...Object.values(e.variants), ...Object.values(e.layers)])
+    .filter(s => s !== ":self"));
 
 const round3 = x => round(x, 3);
 const roundColour = c => {

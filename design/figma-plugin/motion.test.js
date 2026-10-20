@@ -414,10 +414,30 @@ test("a copied theme tag is cleared", async () => {
   await tagThemeComponents(page);
   assert.equal(copy.getSharedPluginData("nacara", "selector"), "");
   assert.equal(copy.children[0].getSharedPluginData("nacara", "selector"), "");
-  assert.equal(copy.children[0].children[0].getSharedPluginData("nacara", "selector"), "");
+  // ":self" is not the theme's own value: it stays, and without the set's selector it is ignored.
+  assert.equal(copy.children[0].children[0].getSharedPluginData("nacara", "selector"), ":self");
   const h = hoversOf(await snapshotSet(copy)).hovers[0];
   assert.equal(h.selector, '[data-motion="navbar-link-copy"]');
-  assert.deepEqual(h.changes.map(c => [c.layer, c.property]), [[undefined, "background-color"], ["Label", "color"]]);
+  assert.deepEqual(h.changes.map(c => [c.layer, c.part, c.property]), [
+    [undefined, undefined, "background-color"],
+    ["Label", '[data-motion-part="label"]', "color"],
+  ]);
+});
+
+test("a selector of your own on your own set survives tagging", async () => {
+  const promo = fakeSet(Object.assign(set("Navbar link"), { name: "Promo link" }));
+  const page = fakePage([promo]);
+  global.figma = fakeFigma({ type: "DOCUMENT", children: [page] });
+  promo.setSharedPluginData("nacara", "selector", ".promo-link");
+  promo.children[0].setSharedPluginData("nacara", "selector", ".promo-link:not(.is-active)");
+  promo.children[0].children[0].setSharedPluginData("nacara", "selector", ":self");
+  await tagThemeComponents(page);
+  assert.equal(promo.getSharedPluginData("nacara", "selector"), ".promo-link");
+  assert.equal(promo.children[0].getSharedPluginData("nacara", "selector"), ".promo-link:not(.is-active)");
+  const h = hoversOf(await snapshotSet(promo)).hovers[0];
+  assert.equal(h.selector, ".promo-link:not(.is-active)");
+  assert.deepEqual(h.changes.map(c => [c.layer, c.property]), [[undefined, "background-color"], [undefined, "color"]]);
+  assert.deepEqual(h.notTranslated, []);
 });
 
 test("a text range binding alone is not reported", async () => {
