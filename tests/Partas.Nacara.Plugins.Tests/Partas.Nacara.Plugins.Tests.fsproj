@@ -20,6 +20,7 @@
         <Compile Include="MotionDocumentTests.fs"/>
         <Compile Include="SpringTests.fs"/>
         <Compile Include="MotionCssTests.fs"/>
+        <Compile Include="MotionTests.fs"/>
         <Compile Include="Main.fs"/>
     </ItemGroup>
 
