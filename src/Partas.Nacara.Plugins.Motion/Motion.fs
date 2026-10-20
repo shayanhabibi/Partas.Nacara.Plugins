@@ -236,7 +236,12 @@ module Motion =
             | Ok compiled -> compiled
             | Error message -> failwith $"Motion: %s{message}"
 
-        do PluginLayers.offer { Name = LayerName; Css = compiled.Css }
+        // Offered once: the same layer registered again would be bundled twice.
+        do
+            let layer = { Name = LayerName; Css = compiled.Css }
+
+            if not (PluginLayers.all () |> List.contains layer) then
+                PluginLayers.offer layer
 
         interface IPlugin with
             member _.Name = "motion"

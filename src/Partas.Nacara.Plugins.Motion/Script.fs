@@ -97,7 +97,7 @@ module MotionScript =
 
     let private names (hovers: Hover list) =
         [
-            "createAnimatable"
+            "animate"
             if usesSpring hovers then
                 "spring"
             if usesBezier hovers then
@@ -114,66 +114,110 @@ const hovers = [
 
 const camel = (property) => property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
 
-// A number, or the list of numbers, anime.js tweens for a css value: the browser resolves the
-// value on a probe so a colour arrives as its channels and a length as its pixels.
+// anime.js cannot parse color(srgb ...), which is how a browser writes color-mix(), so every
+// colour is rewritten as rgba() by painting it on a canvas pixel.
+const canvas = document.createElement("canvas");
+canvas.width = canvas.height = 1;
+const context = canvas.getContext("2d", { willReadFrequently: true });
+const colour = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^)]*\)/g;
+const rgba = (text) =>
+  text.replace(colour, (match) => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = "#000";
+    context.fillStyle = match;
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+    return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 1000) / 1000})`;
+  });
+
+// What the browser makes of a css value under the hovered element, so var() resolves in its scope.
 const probe = document.createElement("span");
 probe.hidden = true;
-const numbers = (property, raw) => {
+const resolve = (host, property, raw) => {
+  host.appendChild(probe);
   probe.style.setProperty(property, raw);
   const computed = getComputedStyle(probe).getPropertyValue(property);
   probe.style.removeProperty(property);
-  const found = computed.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
-  if (!found) return null;
-  const values = found.map(Number);
-  return values.length === 1 ? values[0] : values;
+  probe.remove();
+  return computed ? rgba(computed) : null;
 };
+
+// The same value with nothing in it, for a property that rests at none: a transparent shadow
+// of the shape the hover ends on.
+const zeroOf = (value) => value.replace(/rgba\([^)]*\)/g, "rgba(0, 0, 0, 0)").replace(/-?\d*\.?\d+px/g, "0px");
 
 const bind = (host, hover) => {
   const duration = () => @DURATION@;
   const targets = [];
-  for (const group of hover.groups) {
-    const elements = group.part ? host.querySelectorAll(group.part) : [host];
-    for (const element of elements) {
-      const settings = {};
-      for (const change of group.changes)
-        settings[camel(change.property)] = { duration: duration(), ease: hover.ease };
-      targets.push({ animatable: createAnimatable(element, settings), changes: group.changes });
-    }
-  }
+  for (const group of hover.groups)
+    for (const element of group.part ? host.querySelectorAll(group.part) : [host])
+      targets.push({ element, changes: group.changes });
 
   const held = new Set();
-  let rest = [];
+  let rest = null;
+  let generation = 0;
+
+  // One animation per element, replacing whatever is running so it starts from what is rendered.
+  const play = (values, done) => {
+    const stamp = ++generation;
+    let pending = targets.length;
+    targets.forEach(({ element }, index) => {
+      const params = { duration: duration(), ease: hover.ease, composition: "replace" };
+      for (const property in values[index]) params[camel(property)] = values[index][property];
+      params.onComplete = () => {
+        if (stamp === generation && --pending === 0 && done) done();
+      };
+      animate(element, params);
+    });
+  };
+
   const enter = (source) => {
     held.add(source);
     if (held.size > 1) return;
-    // Where each property is now, so leaving returns to it however the hover was interrupted.
-    rest = targets.map(({ animatable, changes }) =>
-      changes.map((change) => {
-        const current = animatable[camel(change.property)]();
-        return Array.isArray(current) ? [...current] : current;
-      }));
-    for (const { animatable, changes } of targets)
+    const to = targets.map(({ changes }) => {
+      const values = {};
       for (const change of changes) {
-        const to = numbers(change.property, change.to(host));
-        if (to !== null) animatable[camel(change.property)](to, duration());
+        const value = resolve(host, change.property, change.to(host));
+        if (value !== null) values[change.property] = value;
       }
+      return values;
+    });
+    // Rest is read only while idle: an interrupted hover must not take its own tween for the rest.
+    if (rest === null)
+      rest = targets.map(({ element }, index) => {
+        const values = {};
+        for (const property in to[index]) {
+          const current = rgba(getComputedStyle(element).getPropertyValue(property));
+          if (current === "none") {
+            values[property] = zeroOf(to[index][property]);
+            element.style.setProperty(property, values[property]);
+          } else values[property] = current;
+        }
+        return values;
+      });
+    play(to);
   };
+
   const leave = (source) => {
-    held.delete(source);
-    if (held.size > 0) return;
-    targets.forEach(({ animatable, changes }, index) =>
-      changes.forEach((change, at) => animatable[camel(change.property)](rest[index][at], duration())));
+    if (!held.delete(source) || held.size > 0 || rest === null) return;
+    play(rest, () => {
+      // Back at rest: hand the properties back to the stylesheet.
+      for (const { element, changes } of targets)
+        for (const change of changes) element.style.removeProperty(change.property);
+      rest = null;
+    });
   };
 
   host.addEventListener("mouseenter", () => enter("pointer"));
   host.addEventListener("mouseleave", () => leave("pointer"));
-  host.addEventListener("focus", () => enter("focus"));
+  host.addEventListener("focus", () => {
+    if (host.matches(":focus-visible")) enter("focus");
+  });
   host.addEventListener("blur", () => leave("focus"));
 };
 
 const attach = () => {
-@GUARD@  document.body.appendChild(probe);
-  for (const hover of hovers)
+@GUARD@  for (const hover of hovers)
     for (const host of document.querySelectorAll(hover.selector)) bind(host, hover);
 };
 

@@ -2,6 +2,7 @@ module Partas.Nacara.Plugins.Tests.MotionOptions
 
 open System.IO
 open Expecto
+open Nacara.Core
 open Nacara.Plugins
 
 let private document =
@@ -114,7 +115,8 @@ let scriptTests =
                     MotionScript.entry Bundled Instant [ hover (CubicBezier(0.4, 0.0, 0.2, 1.0)) [ widen (Literal "80px") ] ]
 
                 Expect.stringContains script "cubicBezier" "bezier"
-                Expect.stringContains script "createAnimatable" "animatable"
+                Expect.stringContains script "animate" "animate"
+                Expect.isFalse (script.Contains "createAnimatable") "no animatable"
                 Expect.isFalse (script.Contains "spring") "no spring"
                 Expect.stringContains script "from \"./anime.esm.js\"" "bundled import"
             }
@@ -153,5 +155,45 @@ let scriptTests =
 
             test "the vendored anime.js is 4.5.0" {
                 Expect.stringContains (MotionScript.anime ()) "v4.5.0" "version"
+            }
+        ]
+
+[<Tests>]
+let pluginTests =
+    testList
+        "motion plugin"
+        [
+            test "an anime hover registers a bundled script and its page asset" {
+                let path = Path.Combine(Path.GetTempPath(), $"motion-{System.Guid.NewGuid():N}.json")
+                File.Copy(Path.Combine(__SOURCE_DIRECTORY__, "motion-sample.json"), path)
+
+                try
+                    let plugin =
+                        Motion.createWith (Motion.document path >> Motion.hoverEngine "card[size=small]" Anime)
+
+                    let registry = plugin.Configure Registry.empty
+
+                    let destination =
+                        match registry.Assets with
+                        | [ Bundle(sources, entry, destination) ] ->
+                            Expect.equal (sources |> List.map fst) [ "motion.js"; "anime.esm.js" ] "sources"
+                            Expect.equal entry "motion.js" "entry"
+                            RelativePath.value destination
+                        | other -> failtestf "expected one bundle, got %A" other
+
+                    Expect.isTrue
+                        (System.Text.RegularExpressions.Regex.IsMatch(destination, "^assets/motion\.[0-9a-f]{8}\.js$"))
+                        destination
+
+                    Expect.equal (Registry.extras<PageAsset> registry) [ Script(destination, true) ] "page script"
+                finally
+                    File.Delete path
+            }
+
+            test "the script plays focus-visible and gives properties back" {
+                let script = MotionScript.entry Bundled Instant [ hover Linear [ widen (Literal "80px") ] ]
+                Expect.stringContains script ":focus-visible" "focus-visible"
+                Expect.stringContains script "removeProperty" "inline styles removed"
+                Expect.stringContains script "composition: \"replace\"" "replace composition"
             }
         ]
