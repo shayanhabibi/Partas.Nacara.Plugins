@@ -131,15 +131,23 @@ const rgba = (text) =>
   });
 
 // What the browser makes of a css value under the hovered element, so var() resolves in its scope.
+// A border-radius is read as its four corners, so rest and target have the same shape: a computed
+// shorthand collapses (8px, 4px 8px) and anime.js would pad the shorter one with zeros.
+const corners = ["top-left", "top-right", "bottom-right", "bottom-left"];
+const current = (element, property) =>
+  property === "border-radius"
+    ? corners.map((corner) => getComputedStyle(element).getPropertyValue(`border-${corner}-radius`)).join(" ")
+    : getComputedStyle(element).getPropertyValue(property);
+
 const probe = document.createElement("span");
 probe.hidden = true;
 const resolve = (host, property, raw) => {
   host.appendChild(probe);
   probe.style.setProperty(property, raw);
-  const computed = getComputedStyle(probe).getPropertyValue(property);
+  const computed = current(probe, property);
   probe.style.removeProperty(property);
   probe.remove();
-  return computed ? rgba(computed) : null;
+  return computed.trim() ? rgba(computed) : null;
 };
 
 // The same value with nothing in it, for a property that rests at none: a transparent shadow
@@ -160,9 +168,13 @@ const bind = (host, hover) => {
   // One animation per element, replacing whatever is running so it starts from what is rendered.
   const play = (values, done) => {
     const stamp = ++generation;
-    let pending = targets.length;
+    const moving = targets.filter((_, index) => Object.keys(values[index]).length > 0);
+    let pending = moving.length;
+    if (pending === 0 && done) done();
     targets.forEach(({ element }, index) => {
-      const params = { duration: duration(), ease: hover.ease, composition: "replace" };
+      if (Object.keys(values[index]).length === 0) return;
+      // A physical ease plays for its own settling time and ignores the duration, so instant means a plain one.
+      const params = { duration: duration(), ease: duration() === 0 ? "linear" : hover.ease, composition: "replace" };
       for (const property in values[index]) params[camel(property)] = values[index][property];
       params.onComplete = () => {
         if (stamp === generation && --pending === 0 && done) done();
@@ -187,11 +199,11 @@ const bind = (host, hover) => {
       rest = targets.map(({ element }, index) => {
         const values = {};
         for (const property in to[index]) {
-          const current = rgba(getComputedStyle(element).getPropertyValue(property));
-          if (current === "none") {
+          const now = rgba(current(element, property));
+          if (now === "none") {
             values[property] = zeroOf(to[index][property]);
             element.style.setProperty(property, values[property]);
-          } else values[property] = current;
+          } else values[property] = now;
         }
         return values;
       });

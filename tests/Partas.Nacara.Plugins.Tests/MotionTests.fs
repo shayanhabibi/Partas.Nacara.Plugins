@@ -197,3 +197,20 @@ let pluginTests =
                 Expect.stringContains script "composition: \"replace\"" "replace composition"
             }
         ]
+
+[<Tests>]
+let reducedTests =
+    testList
+        "motion reduced"
+        [
+            test "an instant duration drops a spring ease" {
+                let light = Easing.Spring { Mass = 1.0; Stiffness = 100.0; Damping = 10.0 }
+                let script = MotionScript.entry Bundled Instant [ hover light [ widen (Literal "80px") ] ]
+                Expect.stringContains script "duration() === 0 ? \"linear\" : hover.ease" "linear when instant"
+            }
+
+            test "a border radius is tweened as four corners" {
+                let script = MotionScript.entry Bundled Keep [ hover Linear [ widen (Literal "4px 8px") ] ]
+                Expect.stringContains script "border-${corner}-radius" "longhands"
+            }
+        ]
