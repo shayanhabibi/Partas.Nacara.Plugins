@@ -13,6 +13,7 @@
         <Compile Include="DirectivesTests.fs"/>
         <Compile Include="TokensTests.fs"/>
         <Compile Include="DesignTokensTests.fs"/>
+        <Compile Include="LayoutsTests.fs"/>
         <Compile Include="OgImageTests.fs"/>
         <Compile Include="AgentFriendlyTests.fs"/>
         <Compile Include="Main.fs"/>

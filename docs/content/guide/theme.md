@@ -35,6 +35,44 @@ Theme.defaults |> Theme.brandIcon (BrandIcon.Svg """<svg viewBox="0 0 24 24">...
 The icon is `1.5rem` tall. SVG drawn with `currentColor` follows the colour
 scheme.
 
+## Layouts
+
+A page chooses its layout in its front matter:
+
+```yaml
+---
+title: Partas.Nacara.Plugins
+layout: splash
+---
+```
+
+| Layout | What it is |
+| --- | --- |
+| `docs` | The ordinary page, and what a page with no `layout` gets: menu, table of contents, title, edit link, previous and next. |
+| `splash` | A landing page. One column as wide as `--nacara-splash-width`, with no menu, no table of contents and no title, so the page writes its own heading. |
+| `bare` | A canvas between the navbar and the footer, which the page lays out itself. |
+
+A layout of your own is a name and what it does to the page. Start from the
+built-in layout it is nearest to, and change what differs:
+
+```fsharp
+Theme.defaults
+|> Theme.addLayout "reference" DocPage.withoutPageNav
+|> Theme.addLayout "landing" (DocPage.splash >> fun page -> { page with ShowTitle = true })
+```
+
+Naming a built-in layout replaces it, and a page naming a layout the theme does
+not have fails the build. The layout's element carries `data-layout`, so its
+own CSS reaches only its pages:
+
+```fsharp
+Theme.defaults
+|> Theme.css """[data-layout="landing"] { --nacara-splash-width: 80rem; }"""
+```
+
+The Figma plugin draws a template of each layout, and exports one you draw as
+the `Theme.addLayout` that adds it. See `design/README.md` in the repository.
+
 ## Design tokens
 
 The `tokens` layer is the one layer you do not write CSS for. It is a record, and

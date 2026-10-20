@@ -1243,6 +1243,52 @@ async function codeText(k, lines) {
   return t;
 }
 
+/** Prose and blocks stacked as the theme's CSS spaces them, in a column of the given width. */
+function contentKit(k, lib, width) {
+  const prose = async parts => {
+    if (parts.every(p => typeof p === "string")) {
+      const t = await k.text(parts.join(""), "Body/Default");
+      t.resize(width, t.height);
+      t.textAutoResize = "HEIGHT";
+      return t;
+    }
+    const line = k.frame("Paragraph", "HORIZONTAL", width);
+    line.layoutWrap = "WRAP";
+    line.counterAxisAlignItems = "CENTER";
+    // A word per text, so the paragraph wraps between words as prose does. A text's width leaves
+    // out a trailing space, so the space between words is the gap: Inter's at 16px.
+    line.itemSpacing = 4.5;
+    for (const part of parts) {
+      if (typeof part === "string") {
+        for (const word of part.trim().split(/\s+/)) line.appendChild(await k.text(word, "Body/Default"));
+      } else {
+        const code = lib["Inline code"].createInstance();
+        line.appendChild(code);
+        code.setProperties({ [propertyKey(lib["Inline code"], "Code")]: part.code });
+      }
+    }
+    return line;
+  };
+  // Blocks with their CSS margins, as [node, top, bottom]; adjacent margins collapse to the larger.
+  const stack = (content, blocks) => {
+    let previous = 0;
+    blocks.forEach(([node, top, bottom], i) => {
+      const gap = i === 0 ? 0 : Math.max(previous, top);
+      if (gap) {
+        const spacer = k.frame("Spacer");
+        spacer.resize(1, gap);
+        spacer.primaryAxisSizingMode = spacer.counterAxisSizingMode = "FIXED";
+        content.appendChild(spacer);
+      }
+      content.appendChild(node);
+      if (node.type !== "TEXT" || node.textAutoResize !== "WIDTH_AND_HEIGHT") node.layoutSizingHorizontal = node.name === "Edit link" ? "HUG" : "FILL";
+      previous = bottom;
+    });
+  };
+  const instance = (set, variant) => (variant ? variantOf(set, variant) : set).createInstance();
+  return { prose, stack, instance };
+}
+
 /** A docs page composed from the library, in light; and the same page in dark. */
 async function buildExample(ctx, lib, page) {
   const k = drawingKit(ctx);
@@ -1265,34 +1311,9 @@ async function buildExample(ctx, lib, page) {
 
   const content = k.frame("Content", "VERTICAL", CONTENT_WIDTH);
   row.appendChild(content);
-  // Blocks with their CSS margins; adjacent margins collapse to the larger.
+  const { prose, stack, instance } = contentKit(k, lib, CONTENT_WIDTH);
   const blocks = [];
   const block = (node, top, bottom) => blocks.push([node, top, bottom]);
-  const prose = async parts => {
-    if (parts.every(p => typeof p === "string")) {
-      const t = await k.text(parts.join(""), "Body/Default");
-      t.resize(CONTENT_WIDTH, t.height);
-      t.textAutoResize = "HEIGHT";
-      return t;
-    }
-    const line = k.frame("Paragraph", "HORIZONTAL", CONTENT_WIDTH);
-    line.layoutWrap = "WRAP";
-    line.counterAxisAlignItems = "CENTER";
-    // A word per text, so the paragraph wraps between words as prose does. A text's width leaves
-    // out a trailing space, so the space between words is the gap: Inter's at 16px.
-    line.itemSpacing = 4.5;
-    for (const part of parts) {
-      if (typeof part === "string") {
-        for (const word of part.trim().split(/\s+/)) line.appendChild(await k.text(word, "Body/Default"));
-      } else {
-        const code = lib["Inline code"].createInstance();
-        line.appendChild(code);
-        code.setProperties({ [propertyKey(lib["Inline code"], "Code")]: part.code });
-      }
-    }
-    return line;
-  };
-  const instance = (set, variant) => (variant ? variantOf(set, variant) : set).createInstance();
 
   block(await k.text("Cascade layers", "Heading/H1", "heading"), 0, 16);
   block(await prose([{ code: "Partas.Nacara.Theme" }, " is the documentation theme this site is built with: layout, navbar, design tokens and the web components behind them."]), 0, 16);
@@ -1313,20 +1334,7 @@ async function buildExample(ctx, lib, page) {
   block(warning, 0, 16);
   block(lib["Edit link"].createInstance(), 32, 0);
   block(lib["Page nav"].createInstance(), 48, 0);
-
-  let previous = 0;
-  blocks.forEach(([node, top, bottom], i) => {
-    const gap = i === 0 ? 0 : Math.max(previous, top);
-    if (gap) {
-      const spacer = k.frame("Spacer");
-      spacer.resize(1, gap);
-      spacer.primaryAxisSizingMode = spacer.counterAxisSizingMode = "FIXED";
-      content.appendChild(spacer);
-    }
-    content.appendChild(node);
-    if (node.type !== "TEXT" || node.textAutoResize !== "WIDTH_AND_HEIGHT") node.layoutSizingHorizontal = node.name === "Edit link" ? "HUG" : "FILL";
-    previous = bottom;
-  });
+  stack(content, blocks);
 
   row.appendChild(lib.TOC.createInstance());
   k.append(root, lib.Footer.createInstance(), "FILL");
@@ -1368,7 +1376,154 @@ function rebind(ctx, root, byName) {
   }
 }
 
-/** Builds the Components page and the Example page. */
+// ---- layouts -------------------------------------------------------------------------------
+
+const LAYOUTS_PAGE = "Layouts";
+const LAYOUT_PREFIX = "Layout/";
+// What each of the theme's layouts keeps of the chrome, as DocPage has it; docs is
+// DocPage.create, the ordinary page.
+const LAYOUTS = {
+  docs: { menu: true, toc: true, pageNav: true, title: true, editLink: true, styled: true },
+  splash: { menu: false, toc: false, pageNav: false, title: false, editLink: false, styled: true },
+  bare: { menu: false, toc: false, pageNav: false, title: false, editLink: false, styled: false },
+};
+// The DocPage field each part of a layout frame stands for, and the layer that shows it is there:
+// an instance of the component of that name, or a frame of that name.
+const LAYOUT_PARTS = [
+  ["menu", "ShowMenu", "Sidebar"],
+  ["toc", "ShowToc", "TOC"],
+  ["pageNav", "ShowPageNav", "Page nav"],
+  ["title", "ShowTitle", "Page title"],
+  ["editLink", "ShowEditLink", "Edit link"],
+];
+
+/** One layout's template, as the theme lays out a page that names it. */
+async function buildLayout(ctx, lib, name, spec) {
+  const k = drawingKit(ctx);
+  const root = k.frame(LAYOUT_PREFIX + name, "VERTICAL", PAGE_WIDTH);
+  root.clipsContent = true;
+  root.counterAxisAlignItems = "CENTER";
+  k.paints(root, "fills", [["bg"]]);
+  k.append(root, lib.Navbar.createInstance(), "FILL");
+
+  const row = k.frame("Layout");
+  root.appendChild(row);
+  row.counterAxisAlignItems = "MIN";
+  if (!spec.styled) {
+    // .nacara-layout--bare: no padding, no measure; the page places its own content.
+    row.layoutSizingHorizontal = "FILL";
+    const canvas = k.append(row, k.frame("Canvas", "VERTICAL"), "FILL");
+    canvas.resize(canvas.width, 560);
+    canvas.primaryAxisSizingMode = "FIXED";
+    canvas.primaryAxisAlignItems = canvas.counterAxisAlignItems = "CENTER";
+    k.paints(canvas, "fills", [["bg-subtle"]]);
+    canvas.appendChild(await k.text("The page lays this out itself", "Caption/Default", "text-muted"));
+  } else {
+    k.pad(row, "space-8", "space-4");
+    k.bind(row, ["itemSpacing"], "layout-gap");
+    const wide = !spec.menu;
+    if (wide) {
+      // .nacara-layout--splash: one column, as wide as --nacara-splash-width.
+      row.primaryAxisSizingMode = "FIXED";
+      row.resize(ctx.V["splash-width"] ? 1088 : PAGE_WIDTH, row.height);
+      if (ctx.V["splash-width"]) k.bind(row, ["width"], "splash-width");
+    } else {
+      row.layoutSizingHorizontal = "FILL";
+      row.primaryAxisAlignItems = "CENTER";
+      row.appendChild(lib.Sidebar.createInstance());
+    }
+    const width = wide ? row.width - 2 * 16 : CONTENT_WIDTH;
+    const content = k.frame("Content", "VERTICAL", width);
+    row.appendChild(content);
+    if (wide) content.layoutSizingHorizontal = "FILL";
+    const { prose, stack } = contentKit(k, lib, width);
+    const blocks = [];
+    const block = (node, top, bottom) => blocks.push([node, top, bottom]);
+
+    if (spec.title) {
+      const title = await k.text("Page title", "Heading/H1", "heading");
+      title.name = "Page title";
+      block(title, 0, 16);
+    }
+    if (wide) {
+      // A landing page writes its own heading, and a section per thing it points at.
+      block(await k.text("Your project", "Heading/H1", "heading"), 0, 16);
+      block(await prose(["One sentence on what it is, and a link to where a reader starts."]), 0, 16);
+      for (const heading of ["The first thing it does", "The second thing it does"]) {
+        block(await k.text(heading, "Heading/H2", "heading"), 48, 12);
+        block(await prose(["A paragraph on it, as long as it needs to be and no longer."]), 0, 16);
+        block(contentKit(k, lib, width).instance(lib["Code block"], "Frame=Code"), 0, 16);
+        block(await prose(["→ Read more"]), 0, 16);
+      }
+    } else {
+      block(await prose(["The page's Markdown, in the theme's prose styles."]), 0, 16);
+      block(await k.text("A section", "Heading/H2", "heading"), 48, 12);
+      block(await prose(["Each heading of the page is an entry in the table of contents."]), 0, 16);
+    }
+    if (spec.editLink) block(lib["Edit link"].createInstance(), 32, 0);
+    if (spec.pageNav) block(lib["Page nav"].createInstance(), 48, 0);
+    stack(content, blocks);
+    if (spec.toc && spec.menu) row.appendChild(lib.TOC.createInstance());
+  }
+  k.append(root, lib.Footer.createInstance(), "FILL");
+  return root;
+}
+
+/** The theme's layouts, each drawn where its template is missing; a template already there is the designer's. */
+async function buildLayouts(ctx, lib, page) {
+  let x = 0;
+  for (const frame of page.children) x = Math.max(x, frame.x + frame.width + 160);
+  const drawn = [];
+  for (const [name, spec] of Object.entries(LAYOUTS)) {
+    if (page.children.some(n => n.name === LAYOUT_PREFIX + name)) continue;
+    const frame = await buildLayout(ctx, lib, name, spec);
+    page.appendChild(frame);
+    frame.x = x;
+    frame.y = 0;
+    x += PAGE_WIDTH + 160;
+    drawn.push(frame);
+  }
+  return drawn;
+}
+
+/** What a layout frame keeps of the chrome, read from the parts it holds. */
+function layoutOf(frame) {
+  const has = layer => !!frame.findOne(n => n.name === layer && (n.type === "INSTANCE" || layer === "Page title"));
+  const spec = { styled: !frame.findOne(n => n.name === "Canvas") };
+  for (const [key, , layer] of LAYOUT_PARTS) spec[key] = has(layer);
+  // The theme shows a table of contents only beside a menu.
+  if (!spec.menu) spec.toc = false;
+  return spec;
+}
+
+/** Each layout on the Layouts page that is not the theme's own, as the F# that adds it. */
+async function exportLayouts() {
+  const page = figma.root.children.find(p => p.name === LAYOUTS_PAGE);
+  if (!page) return { source: "", layouts: [] };
+  await page.loadAsync();
+  const fields = [...LAYOUT_PARTS.map(([key, field]) => [key, field]), ["styled", "Styled"]];
+  const same = (a, b) => fields.every(([key]) => a[key] === b[key]);
+  const lines = [];
+  const layouts = [];
+  for (const frame of page.children.filter(n => n.type === "FRAME" && n.name.startsWith(LAYOUT_PREFIX))) {
+    const name = frame.name.slice(LAYOUT_PREFIX.length).trim();
+    const spec = layoutOf(frame);
+    if (!name || (LAYOUTS[name] && same(spec, LAYOUTS[name]))) continue;
+    // Written from whichever of the theme's layouts it is nearest, so a splash with a title is
+    // DocPage.splash and one change rather than five.
+    const changesFrom = base => fields.filter(([key]) => spec[key] !== LAYOUTS[base][key]).map(([key, field]) => `${field} = ${spec[key]}`);
+    const base = Object.keys(LAYOUTS).reduce((best, b) => (changesFrom(b).length < changesFrom(best).length ? b : best), "docs");
+    const changes = changesFrom(base);
+    const record = `fun page -> { page with ${changes.join("; ")} }`;
+    const shape =
+      base === "docs" ? (changes.length ? `(${record})` : "id") : changes.length ? `(DocPage.${base} >> ${record})` : `DocPage.${base}`;
+    lines.push(`|> Theme.addLayout "${name}" ${shape}`);
+    layouts.push(name);
+  }
+  return { source: lines.join("\n"), layouts };
+}
+
+/** Builds the Components page, the Example page and the Layouts page. */
 async function buildLibrary() {
   const ctx = await libraryContext();
   const components = await pageNamed(COMPONENTS_PAGE);
@@ -1377,8 +1532,10 @@ async function buildLibrary() {
   const example = await pageNamed(EXAMPLE_PAGE);
   await figma.setCurrentPageAsync(example);
   const { light, dark } = await buildExample(ctx, lib, example);
+  const layoutsPage = await pageNamed(LAYOUTS_PAGE);
+  const layouts = await buildLayouts(ctx, lib, layoutsPage);
   figma.viewport.scrollAndZoomIntoView([light, dark].filter(Boolean));
-  return { components: Object.keys(lib).length, mono: ctx.mono, schemes: dark ? "Light and Dark" : "Light" };
+  return { components: Object.keys(lib).length, mono: ctx.mono, schemes: dark ? "Light and Dark" : "Light", layouts: layouts.map(f => f.name) };
 }
 
 // ---- plugin entry --------------------------------------------------------------------------
@@ -1390,6 +1547,7 @@ if (typeof __html__ !== "undefined") {
       if (message.type === "import") figma.ui.postMessage({ type: "imported", result: await importTokens(message.documents) });
       if (message.type === "export") figma.ui.postMessage({ type: "exported", documents: await exportTokens() });
       if (message.type === "build") figma.ui.postMessage({ type: "built", result: await buildLibrary() });
+      if (message.type === "export-layouts") figma.ui.postMessage({ type: "exported-layouts", result: await exportLayouts() });
     } catch (error) {
       figma.ui.postMessage({ type: "error", message: String(error) });
     }

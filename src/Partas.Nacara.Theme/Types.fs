@@ -201,6 +201,47 @@ module Menu =
                     }
         }
 
+/// <summary>What the theme needs to know about the page it is rendering.</summary>
+/// <remarks>
+/// Kept separate from the front-matter type so a site can define its own front matter and still use
+/// the theme: it maps its type onto this record, and nothing else changes.
+/// </remarks>
+type DocPage =
+    {
+        Title: string
+        Description: string option
+        /// <summary>Show the table of contents next to the content.</summary>
+        ShowToc: bool
+        /// <summary>Show previous and next links at the bottom.</summary>
+        ShowPageNav: bool
+        /// <summary>Show the sidebar menu.</summary>
+        ShowMenu: bool
+        /// <summary>Offer a box that filters the menu.</summary>
+        /// <remarks><c>None</c> leaves it to the theme, which offers one when the menu is
+        /// long.</remarks>
+        MenuFilter: bool option
+        /// <summary>Carry the menu's folding from page to page.</summary>
+        /// <remarks>Off, every page opens the menu the same way: the trail to itself, and nothing
+        /// else.</remarks>
+        MenuMemory: bool
+        /// <summary>Whether the theme writes the page's title above the content.</summary>
+        ShowTitle: bool
+        /// <summary>Whether the theme offers the link that edits the page at its source.</summary>
+        ShowEditLink: bool
+        /// <summary>Whether the theme lays the content out.</summary>
+        /// <remarks>Off, the page is a canvas: its title, the prose styles and the edit link are
+        /// left out, and the content is placed as it was written.</remarks>
+        Styled: bool
+        /// <summary>Attributes to put on the page's <c>&lt;main&gt;</c>, name and value.</summary>
+        /// <remarks><c>id</c>, <c>class</c> and <c>tabindex</c> are the theme's own and cannot be
+        /// set here.</remarks>
+        MainAttributes: (string * string) list
+        /// <summary>The name of the layout the page asked for, if it asked for one.</summary>
+        /// <remarks>Written on the layout's element as <c>data-layout</c>, so a stylesheet can
+        /// style one layout without styling the rest.</remarks>
+        Layout: string option
+    }
+
 /// <summary>Options of the default theme.</summary>
 type ThemeOptions =
     {
@@ -248,43 +289,13 @@ type ThemeOptions =
         /// <remarks>A generated section of thousands of pages would otherwise write every one of
         /// them into every page of the site. <c>0</c> lists them all, whatever it costs.</remarks>
         MenuGroupLimit: int
-    }
-
-/// <summary>What the theme needs to know about the page it is rendering.</summary>
-/// <remarks>
-/// Kept separate from the front-matter type so a site can define its own front matter and still use
-/// the theme: it maps its type onto this record, and nothing else changes.
-/// </remarks>
-type DocPage =
-    {
-        Title: string
-        Description: string option
-        /// <summary>Show the table of contents next to the content.</summary>
-        ShowToc: bool
-        /// <summary>Show previous and next links at the bottom.</summary>
-        ShowPageNav: bool
-        /// <summary>Show the sidebar menu.</summary>
-        ShowMenu: bool
-        /// <summary>Offer a box that filters the menu.</summary>
-        /// <remarks><c>None</c> leaves it to the theme, which offers one when the menu is
-        /// long.</remarks>
-        MenuFilter: bool option
-        /// <summary>Carry the menu's folding from page to page.</summary>
-        /// <remarks>Off, every page opens the menu the same way: the trail to itself, and nothing
-        /// else.</remarks>
-        MenuMemory: bool
-        /// <summary>Whether the theme writes the page's title above the content.</summary>
-        ShowTitle: bool
-        /// <summary>Whether the theme offers the link that edits the page at its source.</summary>
-        ShowEditLink: bool
-        /// <summary>Whether the theme lays the content out.</summary>
-        /// <remarks>Off, the page is a canvas: its title, the prose styles and the edit link are
-        /// left out, and the content is placed as it was written.</remarks>
-        Styled: bool
-        /// <summary>Attributes to put on the page's <c>&lt;main&gt;</c>, name and value.</summary>
-        /// <remarks><c>id</c>, <c>class</c> and <c>tabindex</c> are the theme's own and cannot be
-        /// set here.</remarks>
-        MainAttributes: (string * string) list
+        /// <summary>The layouts a page can name in its front matter, and what each does to the page.</summary>
+        /// <remarks>
+        /// <c>docs</c>, <c>splash</c> and <c>bare</c> to begin with. Add one with
+        /// <see cref="M:Partas.Nacara.Theme.Theme.addLayout" />; a page naming a layout that is not
+        /// here fails the build.
+        /// </remarks>
+        Layouts: Map<string, DocPage -> DocPage>
     }
 
 [<RequireQualifiedAccess>]
@@ -305,6 +316,7 @@ module DocPage =
             ShowEditLink = true
             Styled = true
             MainAttributes = []
+            Layout = None
         }
 
     /// <summary>What the page is about, for search results and social cards.</summary>
@@ -377,6 +389,15 @@ module DocPage =
             MainAttributes = value
         }
 
+    /// <summary>Names the layout the page uses, for stylesheets to select it by.</summary>
+    /// <remarks>Changes nothing else about the page: the layout's own function does that.</remarks>
+    /// <param name="value">The layout's name, written as <c>data-layout</c>.</param>
+    /// <param name="page">The page being described.</param>
+    let layout value (page: DocPage) =
+        { page with
+            Layout = Some(value: string)
+        }
+
     /// <summary>The theme's styling and spacing, with no menu and no table of contents.</summary>
     /// <remarks>Wider than the reading measure, at <c>--nacara-splash-width</c>.</remarks>
     /// <param name="page">The page being described.</param>
@@ -434,8 +455,10 @@ type DocFrontMatter =
         /// Which layout renders the page, when it is not the ordinary one.
         /// </summary>
         /// <remarks>
-        /// <c>layout: bare</c> is a page with no chrome: no menu, no table of contents, no
-        /// previous and next links. A landing page is the usual reason.
+        /// <c>layout: splash</c> is a wide page with no menu and no table of contents, for a
+        /// landing page; <c>layout: bare</c> is a canvas with no chrome but the navbar and the
+        /// footer. A site adds its own with <c>Theme.addLayout</c>, and a name nobody added fails
+        /// the build.
         /// </remarks>
         Layout: string option
         /// <summary>Whether this page offers the previous and next pages of its section.</summary>
@@ -546,8 +569,21 @@ module DocFrontMatter =
             }
         )
 
-    /// <summary>The theme's view of a page described by this front matter.</summary>
-    let toDocPage (frontMatter: DocFrontMatter) =
+    /// <summary>The layouts every site has: <c>docs</c>, <c>splash</c> and <c>bare</c>.</summary>
+    let builtInLayouts: Map<string, DocPage -> DocPage> =
+        Map.ofList
+            [
+                "docs", id
+                "splash", DocPage.splash
+                "bare", DocPage.bare
+            ]
+
+    /// <summary>The theme's view of a page described by this front matter, among a site's layouts.</summary>
+    /// <remarks>Fails, naming the layouts there are, when the page names one that is not among
+    /// them.</remarks>
+    /// <param name="layouts">The layouts a page can name, as <c>ThemeOptions.Layouts</c> holds them.</param>
+    /// <param name="frontMatter">The page's front matter.</param>
+    let toDocPageWith (layouts: Map<string, DocPage -> DocPage>) (frontMatter: DocFrontMatter) =
         let page =
             DocPage.create frontMatter.Title
             |> DocPage.describedBy frontMatter.Description
@@ -555,9 +591,16 @@ module DocFrontMatter =
 
         let page =
             match frontMatter.Layout with
-            | Some "bare" -> DocPage.bare page
-            | Some "splash" -> DocPage.splash page
-            | _ -> page
+            | None -> page
+            | Some name ->
+                match Map.tryFind name layouts with
+                | Some shape -> page |> DocPage.layout name |> shape
+                | None ->
+                    let known = layouts |> Map.keys |> String.concat ", "
+
+                    failwith
+                        $"'%s{frontMatter.Title}' asks for layout '%s{name}', which the theme does not have. \
+                          It has: %s{known}. Add one with Theme.addLayout."
 
         let page =
             match frontMatter.PageNav with
@@ -578,3 +621,9 @@ module DocFrontMatter =
         match frontMatter.Toc with
         | Some TocOff -> DocPage.withoutToc page
         | _ -> page
+
+    /// <summary>The theme's view of a page described by this front matter.</summary>
+    /// <remarks>Knows only the built-in layouts. <c>Theme.layout</c> reads the site's own as
+    /// well.</remarks>
+    /// <param name="frontMatter">The page's front matter.</param>
+    let toDocPage (frontMatter: DocFrontMatter) = toDocPageWith builtInLayouts frontMatter

@@ -20,9 +20,14 @@
   <button id="save-light">Save light.tokens.json</button>
   <button id="save-dark">Save dark.tokens.json</button>
 </div>
-<p>With the tokens imported, draw the theme's components on a <b>Components</b> page and a docs page composed from them, in each scheme, on an <b>Example</b> page. Components that already exist are kept.</p>
+<p>With the tokens imported, draw the theme's components on a <b>Components</b> page, a docs page composed from them in each scheme on an <b>Example</b> page, and a template of each layout on a <b>Layouts</b> page. Components and templates that already exist are kept.</p>
 <div class="row">
-  <button id="build">Build components and example</button>
+  <button id="build">Build components, example and layouts</button>
+</div>
+<p>A layout of your own is a frame on the Layouts page named <code>Layout/&lt;name&gt;</code>: duplicate a template and remove the parts it leaves out.</p>
+<label for="layouts">Layouts, as F#</label><textarea id="layouts" readonly></textarea>
+<div class="row">
+  <button id="export-layouts">Export layouts</button>
 </div>
 <div id="status"></div>
 
@@ -53,6 +58,8 @@
 
   document.getElementById("export").onclick = () => parent.postMessage({ pluginMessage: { type: "export" } }, "*");
 
+  document.getElementById("export-layouts").onclick = () => parent.postMessage({ pluginMessage: { type: "export-layouts" } }, "*");
+
   document.getElementById("build").onclick = () => {
     status("Building…");
     parent.postMessage({ pluginMessage: { type: "build" } }, "*");
@@ -79,8 +86,13 @@
       status(`Exported ${Object.keys(message.documents).join(", ")}.`);
     }
     if (message.type === "built") {
-      const { components, schemes, mono } = message.result;
-      status(`${components} components on the Components page; the example page in ${schemes}. Code is set in ${mono}.`);
+      const { components, schemes, mono, layouts } = message.result;
+      status(`${components} components on the Components page; the example page in ${schemes}; ${layouts.length ? "drew " + layouts.join(", ") : "every layout template was already there"}. Code is set in ${mono}.`);
+    }
+    if (message.type === "exported-layouts") {
+      const { source, layouts } = message.result;
+      document.getElementById("layouts").value = source ? `Theme.defaults\n${source}\n` : "";
+      status(layouts.length ? `Exported ${layouts.join(", ")}.` : "No layouts of your own on the Layouts page.");
     }
     if (message.type === "error") status(message.message);
   };

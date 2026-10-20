@@ -61,6 +61,35 @@ module Theme =
             FavIcon = None
             BrandIcon = None
             MenuGroupLimit = 150
+            Layouts = DocFrontMatter.builtInLayouts
+        }
+
+    /// <summary>A layout pages can name in their front matter, as <c>layout: &lt;name&gt;</c>.</summary>
+    /// <remarks>
+    /// <para>
+    /// A layout is what it does to the page: which parts of the chrome it keeps. Start from a
+    /// built-in one - <c>DocPage.splash</c>, <c>DocPage.bare</c> - or from the ordinary page, and
+    /// change what differs. Naming a built-in layout replaces it.
+    /// </para>
+    /// <para>
+    /// The layout's element carries <c>data-layout="&lt;name&gt;"</c>, so CSS of its own selects it
+    /// without touching any other page.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="fsharp">
+    /// Theme.defaults
+    /// |> Theme.addLayout "reference" DocPage.withoutPageNav
+    /// |> Theme.addLayout "landing" (DocPage.splash >> fun page -> { page with ShowTitle = true })
+    /// |> Theme.css """[data-layout="landing"] { --nacara-splash-width: 80rem; }"""
+    /// </code>
+    /// </example>
+    /// <param name="name">What front matter calls it.</param>
+    /// <param name="shape">What it does to a page that names it.</param>
+    /// <param name="options">The options so far.</param>
+    let addLayout (name: string) (shape: DocPage -> DocPage) (options: ThemeOptions) =
+        { options with
+            Layouts = Map.add name shape options.Layouts
         }
 
     /// <summary>How many pages a menu group lists before it points at its own page instead.</summary>
@@ -590,6 +619,10 @@ module Theme =
                                         Html.div
                                             [
                                                 prop.className layoutClass
+
+                                                match doc.Layout with
+                                                | Some name -> prop.custom ("data-layout", name)
+                                                | None -> ()
                                                 prop.children
                                                     [
                                                         // Rendered even with no menu to show: on a
@@ -703,9 +736,10 @@ module Theme =
     /// <summary>The layout for pages using the theme's own front matter.</summary>
     /// <param name="options">The theme's own configuration.</param>
     /// <param name="context">The page and the site around it. Its front matter is read for the
-    /// title, the description and which parts of the chrome to leave out.</param>
+    /// title, the description and which parts of the chrome to leave out. A <c>layout</c> it names
+    /// is looked up among the options' layouts.</param>
     let layout (options: ThemeOptions) (context: PageContext<DocFrontMatter>) =
-        shell options (DocFrontMatter.toDocPage context.FrontMatter) context
+        shell options (DocFrontMatter.toDocPageWith options.Layouts context.FrontMatter) context
 
     /// <summary>
     /// A documentation collection using the theme's front matter and layout.

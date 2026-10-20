@@ -39,9 +39,10 @@ What does not: a text style's family (Inter and Fira Mono stand in for the theme
 stacks), letter spacing and weights that have no token, and component structure or any value
 not bound to a variable.
 
-## Components and an example page
+## Components, an example page and layouts
 
-With the tokens imported, **Build components and example** draws the theme on two pages:
+With the tokens imported, **Build components, example and layouts** draws the theme on three
+pages:
 
 - **Components**: the navbar, sidebar, table of contents and footer, and the pieces a page is
   made of. These are badges, callouts, code blocks (code and terminal frames), tables, tabs,
@@ -52,10 +53,34 @@ With the tokens imported, **Build components and example** draws the theme on tw
 - **Example**: a docs page at 1440px composed from those components, once per scheme. The dark
   page is the light one with the Dark mode applied, or, where each scheme is a collection of its
   own, rebound to the Dark collection's variables.
+- **Layouts**: a template of each layout a page can name in its front matter. `Layout/docs` is
+  the ordinary page, `Layout/splash` is the wide landing page, and `Layout/bare` is the canvas
+  between the navbar and the footer.
 
 A component or text style that already exists by name is kept, so building again adds only what
 is missing and leaves your edits alone; only the text styles' bindings are applied again. The
-example pages are redrawn each time, the Dark one with the `Shadow (Dark)` style.
+example pages are redrawn each time, the Dark one with the `Shadow (Dark)` style. A layout
+template that already exists is kept too.
+
+## Layouts of your own
+
+A frame on the Layouts page named `Layout/<name>` is a layout. Duplicate the template nearest
+to what you want, rename it, and delete the parts it leaves out: the `Sidebar`, `TOC`,
+`Page nav` and `Edit link` instances and the `Page title` text. A table of contents is only
+shown beside a menu.
+
+**Export layouts** writes each one that is not a theme layout as it was drawn, as the F# that adds
+it:
+
+```fsharp
+Theme.defaults
+|> Theme.addLayout "reference" (fun page -> { page with ShowPageNav = false })
+|> Theme.addLayout "landing" (DocPage.splash >> fun page -> { page with ShowTitle = true })
+```
+
+A page with `layout: reference` in its front matter then uses it. Only which parts are shown
+comes back. Spacing and widths come from the tokens, and anything else a layout looks like is
+CSS, selected by `[data-layout="<name>"]`.
 
 ## Naming
 
